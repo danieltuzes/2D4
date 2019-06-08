@@ -1,18 +1,18 @@
-# SDDDST
-Simple Discrete Dislocation Dynamics Simulation Toolkit
+# 2D4
+A 2D discrete dislocation dynamics simulation program.
 
 ## Short description
 This toolkit contains tools to simulate 2D single slip edge dislocation systems under periodic boundary conditions. The integrator is based on an implicit numerical scheme which makes it possible to keep the 
 O(*N*<sup>2</sup>) complexity which arise from the pair interactions while no dislocation annihilation is required and the runtime is greatly decreased.
 
-SDDDST is highly modular, it can be easily modified and extended based on the use case where it is needed.
+2D4 is highly modular, it can be easily modified and extended based on the use case where it is needed.
 
 The detailed publication of the numerical scheme and the implementation with the achived results will be soon available.
 
 ### Tools
 The toolkit contains the following tools
 1. The **simulation program** *2D_DDD_simulation* that evols the dislocation configuration under the prescribed external stress.
-2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/sdddst/init_config_gen) to create the initial configuration.
+2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/2D4/init_config_gen) to create the initial configuration.
 3. **Evaulation programs** to do perform analysis on the simulations obatined.
 
 The rest of this file belongs to the simulation program 2D_DDD_simulation.
@@ -222,3 +222,6 @@ After we are ready, the simulation can be created and run by:
 simulation = psc.Simulation.create(simulation_data)
 simulation.run()
 ```
+
+## Impressum, credits, authors and copyright
+This is a private fork of the work pgabor/sdddst. The source files imported from that repo may have different copyright, and most of those files start with a copyright section. All other modifications are under my copyright.
