@@ -1,4 +1,4 @@
-
+//
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 
@@ -18,7 +18,6 @@ namespace br = boost::random;
 int main(int argc, char** argv)
 {
 #pragma region read in variables
-    std::cout << 1 + 1;
     bpo::options_description requiredOptions("Required options"); // must be set from command line or file
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
 
@@ -29,6 +28,7 @@ int main(int argc, char** argv)
         ("seed-start,S", bpo::value<int>()->default_value(1000), "An integer used as an initial seed value for the random number generator.")
         ("seed-end,E", bpo::value<int>(), "An integer used as the last seed value for the random number generator, seed-end > seed_start must hold. If set, seed-end - seed-start number of initial configurations will be created.")
         ("unsorted,U", "If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.")
+        ("output-foldername,o", bpo::value<std::string>()->default_value("dislocation-configurations"), "In which folder should the initial conditions be stored. Symbol . means here.")
         ("bare,B", "If set, filenames will not contain the value of the parameter N.")
         ;
 
@@ -51,9 +51,8 @@ int main(int argc, char** argv)
 
     if (!vm.count("hide-copyright"))
     {
-        std::cout << "init_config_gen from the SDDDST - Simple Discrete Dislocation Dynamics Toolkit\n"
-        "Copyright (C) 2015-2019 Gábor Péterffy <peterffy95@gmail.com>, Dániel Tüzes <tuzes@metal.elte.hu> and their friends.\n"
-        "This program comes with ABSOLUTELY NO WARRANTY; This is free software, and you are welcome to redistribute it under certain conditions; see the license for details\n";
+        std::cout << "init_config_gen from the 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
+            "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
     }
 #pragma endregion
 
@@ -94,10 +93,10 @@ int main(int argc, char** argv)
 #pragma region generate and write out configuration
     for (int seed_val = vm["seed-start"].as<int>(); seed_val <= vm["seed-end"].as<int>(); ++seed_val) // generate configurations with seeds in the range of [seed-start; seed-end]; seed-end has been set at label: seed-end set
     {
-        std::string ofname = "dislocation-configurations/ic_" + std::to_string(seed_val);
+        std::string ofname = vm["output-foldername"].as<std::string>() + "/" + std::to_string(seed_val);
         if(vm.count("bare") == 0)
             ofname += "_" + std::to_string(vm["N"].as<int>());
-        ofname += ".txt"; // output filename; the file is inside a folder
+        ofname += ".dconf"; // output filename; the file is inside a folder
 
         std::ofstream ofile(ofname); // the filestream
         if (!ofile) // evaluates to false if file cannot be opened

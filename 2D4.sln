@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "2D_DDD_simulation", "2D_DDD
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "init_config_gen", "init_config_gen\init_config_gen.vcxproj", "{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xautocorr", "xautocorr\xautocorr.vcxproj", "{EBB66B65-8969-4020-A338-46026F0498B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}.Debug|x64.Build.0 = Debug|x64
 		{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}.Release|x64.ActiveCfg = Release|x64
 		{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}.Release|x64.Build.0 = Release|x64
+		{EBB66B65-8969-4020-A338-46026F0498B2}.Debug|x64.ActiveCfg = Debug|x64
+		{EBB66B65-8969-4020-A338-46026F0498B2}.Debug|x64.Build.0 = Debug|x64
+		{EBB66B65-8969-4020-A338-46026F0498B2}.Release|x64.ActiveCfg = Release|x64
+		{EBB66B65-8969-4020-A338-46026F0498B2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

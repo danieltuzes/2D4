@@ -1,5 +1,5 @@
 # 2D4
-A 2D discrete dislocation dynamics simulation program.
+A 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
 This toolkit contains tools to simulate 2D single slip edge dislocation systems under periodic boundary conditions. The integrator is based on an implicit numerical scheme which makes it possible to keep the 
@@ -20,7 +20,7 @@ The rest of this file belongs to the simulation program 2D_DDD_simulation.
 ## Build & run
 This project uses several external libraries, such as **umfpack** and **boost** and furthermore, to keep the code simple, some additional include libraries must be set up for your compiler. A convenient Linux-gcc-cmake built procedure (scenario A) is provided along with a Windows-VS-vcpkg built procedure (scenario B).
 
-### Dependencies: scenario A
+### Scenario A
 This is the Linux-gcc-cmake case. To be able to build the simulator, you will need the following dependencies on your computer:
 
 * g++ or clang
@@ -55,7 +55,7 @@ You can safely **delete** the files corresponding to scenario B:
 * 2D_DDD_simulation.vcxproj.user
 * SDDST.sln
 
-### Dependencies: scenario B
+### Scenario B
 This is the Windows-VS-vcpkg case. The project can be compiled for x64 compatible machines only [due to umfpacks's openblas dependency](https://github.com/microsoft/vcpkg/issues/2095), which is available only for x64. This case comes with no python interface yet. Follow these instructions to be able build this project.
 1. Install [vcpkg](https://github.com/microsoft/vcpkg)
    1. Open a PowerShell (abbreviated as PS) and first create the directory where you would like to place it. Let's say, `C:\local`, so in PS, execute `mkdir C:\local`. Move there by executing `cd C:\local`.

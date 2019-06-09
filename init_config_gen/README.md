@@ -1,5 +1,5 @@
-# SDDDST::init_config_gen
-The initial configuration generator tool for Simple Discrete Dislocation Dynamics Simulation Toolkit
+# 2D4::init_config_gen
+The initial configuration generator tool for 2D4, a 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
 With this tool one can create dislocation configurations to use as an input of the simulation program 2D_DDD_simulation. It uses a platform independent implementation provided by [`boost.random`](https://www.boost.org/doc/libs/1_70_0/doc/html/boost_random.html).
