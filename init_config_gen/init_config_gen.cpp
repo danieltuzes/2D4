@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 
         br::mt19937 engine(seed_val); // Mersenne twister is a good and expensive random number generator
         br::uniform_real_distribution<> distr(-0.5, 0.5); // uniform distribution on [-0.5; 0.5)
-        using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple
+        using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
         std::vector<disl> dislocs; // container of the N number of dislocations
         
         for (int n = 0; n < vm["N"].as<int>(); ++n) // generate the N number of dislocations
