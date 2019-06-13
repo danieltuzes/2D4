@@ -87,6 +87,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="xautocorr.cpp" />
+    <ClCompile Include="xautocorr_utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="xautocorr_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

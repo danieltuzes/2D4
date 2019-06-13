@@ -21,5 +21,13 @@
     <ClCompile Include="xautocorr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="xautocorr_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="xautocorr_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

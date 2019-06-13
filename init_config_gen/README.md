@@ -1,4 +1,4 @@
-# 2D4::init_config_gen
+﻿# 2D4::init_config_gen
 The initial configuration generator tool for 2D4, a 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
@@ -12,11 +12,15 @@ Type `init_config_gen --help` to get the help. The program accepts the following
 * `--N arg` or `-N arg`: **mandatory** argument. The number of dislocations to simulate. Must be an even number, because the same amount of positive and negative dislocations must be found in the system.
 * `--seed-start arg` or `-S arg`: optional argument with default value `1000`. It is an integer used to populate the seed value of the random number generator engine.
 * `--seed-end arg` or `-E arg`: optional argument. If set, must be larger than `seed_start` and the program will create configuration files starting from seed value `seed-start`, increasing it one by one till it reaches `seed-end` (closed interval).
+* `--pattern-strength` or `-A`: a probability desnity function 1 + A * sin(x * n * 2 π) will be used for ρ₊ and 1 - A * sin(x * n * 2 π) for ρ₋. A must be in the range [-1:1]. See fig. below.
+* `--linear-wavenumber` or `-n`: an integer describing how many times shall the sinusoidal wave fit into the simulation area. See fig. below.
 * `--unsorted` or `-U`: optional switch. If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.
 * `--bare` or `-B`: optional swtich. If set, the configuration file name will not conatin the number of dislocations.
 
+![Illustration with A and n](init_pattern_gen.png "Figure to illustrate the effect of A and n")
+
 ## Output
-The program creates the initial conditions in the folder `dislocation-configurations` relative to the binary, with filenames `ic_SEEDVALUE_N.txt`. The file format is as described in [SDSST](https://github.com/danieltuzes/sdddst). The output is a simple text file in the format
+The program creates the initial conditions in the folder `dislocation-configurations` relative to the binary, with filenames `ic_SEEDVALUE_N.txt`. The file format is as described in [2D4](https://github.com/danieltuzes/2D4). The output is a simple text file in the format
 ```
 pos_1_x pos_1_y Burgers_vector_1
 pos_2_x pos_2_y Burgers_vector_2
@@ -25,3 +29,8 @@ pos_N_x pos_N_y Burgers_vector_N
 
 ```
 If the default value of parameter `sorted` is kept `true`, then dislocations with positive Burger's vector come first with decreasing y coordinate. If `false` is set, dislocations comes with alternating Burger's vector and random coordinate values. Please keep in mind that line endings (`CR` and `LF`) will depend on your operating system.
+
+### Plotting
+One of the possibilites to plot the dislocations is to use *gnuplot*. The provided `plot_unicode.plt` plots the dislocation configuration `1000_64.dconf`. To plot pretty dislocations, install the `DejaVuSansDisl.ttf` font onto your system (`C:\Windows\Fonts` on Windows and `~/.local/share/fonts` on most Linux). The script will create `1000_64.dconf_unicode.pdf` which will look like the figure below. Feel free to modify the gnuplot script or the font (please check the license for the font and don't abuse it).
+
+![Example of a plot of the dislocation configuration](dislocation_configuration.png "Example of a plot of the dislocation configuration")
