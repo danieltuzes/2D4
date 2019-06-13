@@ -1,6 +1,7 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
+#pragma region header
 
 #define _USE_MATH_DEFINES
 #include <boost/program_options.hpp> // to read in program call arguments
@@ -18,9 +19,10 @@
 namespace bpo = boost::program_options;
 namespace br = boost::random;
 
-
 using pair = std::pair<double, double>;
-double interpolate(pair, pair, double);
+double interpolate_y(pair, pair, double);
+
+#pragma endregion
 
 int main(int argc, char** argv)
 {
@@ -34,7 +36,7 @@ int main(int argc, char** argv)
     optionalOptions.add_options()
         ("seed-start,S", bpo::value<int>()->default_value(1000), "An integer used as an initial seed value for the random number generator.")
         ("seed-end,E", bpo::value<int>(), "An integer used as the last seed value for the random number generator, seed-end > seed_start must hold. If set, seed-end - seed-start number of initial configurations will be created.")
-        ("pattern-strenth,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the propability density function will be\n(1-A) + A * [1 + sin(x * n * 2 pi)] with A = pattern-strength for rho_+ and\n(1-A) - A * [1 + sin(x * w * 2 pi)] for rho_-. A must be in [-1:1].")
+        ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the propability density function will be\n(1-A) + A * [1 + sin(x * n * 2 pi)] with A = pattern-strength for rho_+ and\n(1-A) - A * [1 + sin(x * w * 2 pi)] for rho_-. A must be in [-1:1].")
         ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5].")
         ("unsorted,U", "If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.")
         ("output-foldername,o", bpo::value<std::string>()->default_value("dislocation-configurations"), "In which folder should the initial conditions be stored. Symbol . means here.")
@@ -105,11 +107,11 @@ int main(int argc, char** argv)
     }
 
     std::vector<std::pair<double, double>> cdfr_p, cdfr_m; // x,y values of the cumulative distribution function of rho_p and rho_m
-    if (vm["pattern-strenth"].as<double>() != 0)
+    if (A != 0)
     {
         int res = (int)sqrt(vm["N"].as<int>()) * 10 + 1000; // resolution for the inverse function lookup; heuristic guess
         double n = vm["linear-wavenumber"].as<int>();
-        for (int i = 0; i < res; ++i)
+        for (int i = 0; i <= res; ++i)
         {
             double x = (double)i / res - 0.5;
             double yrp = 0.5 + x + A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI);
@@ -143,11 +145,13 @@ int main(int argc, char** argv)
         using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
         std::vector<disl> dislocs; // container of the N number of dislocations
 
+        //std::ofstream deb_conf_ofile("debug_conf.txt");
         for (int n = 0; n < vm["N"].as<int>(); ++n) // generate the N number of dislocations
         {
             double x = distr(engine);
             if (A != 0)
             {
+                x += 0.5;
                 auto cmp = pair(0, x);
                 std::vector<pair>::iterator lb;
                 if (n % 2 == 0)
@@ -155,8 +159,9 @@ int main(int argc, char** argv)
                 else
                     lb = std::lower_bound(cdfr_p.begin(), cdfr_p.end(), cmp, [](pair lhs, pair rhs) {return (lhs.second < rhs.second); });
 
-                auto ub = lb + 1;
-                x = interpolate(*lb, *ub, x);
+                auto ub = lb - 1;
+                //deb_conf_ofile << x << "\t" << lb->first << "\t" << lb->second << "\t" << ub->first << "\t" << ub->second << "\t" << interpolate_y(*lb, *ub, x) << "\n";
+                x = interpolate_y(*lb, *ub, x);
             }
             dislocs.push_back(disl(x, distr(engine), (n % 2) * 2 - 1)); // x, y coordinates, and the Burger's vector
         }
@@ -168,12 +173,11 @@ int main(int argc, char** argv)
     }
 #pragma endregion
 
-
     std::cout << "Done.\n";
     return 0;
 }
 
-double interpolate(pair a, pair b, double x) // returns y for x between a and b
+double interpolate_y(pair a, pair b, double y) // returns x for y between a and b
 {
-    return a.second + (x - a.first) * (b.second - a.second) / (b.first - a.first);
+    return a.first + (y - a.second) * (b.first - a.first) / (b.second - a.second);
 }
