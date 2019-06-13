@@ -195,11 +195,21 @@ int main(int argc, char** argv)
 
     if (um == ws) // Wigner-Seitz case
     {
+        std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) > std::get<1>(b)); }); // dislocaions are sorted based on their y value
+        std::vector<int> points(dislocs.size(), 0);
+        for (unsigned int y = 0; y < samp; ++y) // samp =  res * subs, it defines a more fine mesh
+            for (unsigned int x = 0; x < samp; ++x)
+            {
+                pair centerpoint((x + 0.5) / samp - 0.5, (y + 0.5) / samp - 0.5); // centerpoints of the fine mesh
 
+            }
     }
 
+    std::cout << "Done." << std::endl;
     return 0;
 }
+
+
 
 #pragma region sandbox
 void test_fourier_and_corr(std::vector<double>& in)
