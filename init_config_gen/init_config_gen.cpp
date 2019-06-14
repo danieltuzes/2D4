@@ -166,7 +166,7 @@ int main(int argc, char** argv)
             dislocs.push_back(disl(x, distr(engine), (n % 2) * 2 - 1)); // x, y coordinates, and the Burger's vector
         }
 
-        if (vm.count("unsorted") == 0) // sorting if not told otherwise
+        if (vm.count("unsorted") == 0) // sorting if not told otherwise; first the negative, in increasing y value than positive with increasing y value
             std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
 
         for_each(dislocs.begin(), dislocs.end(), [&ofile](const disl& a) {ofile << std::get<0>(a) << "\t" << std::get<1>(a) << "\t" << std::get<2>(a) << "\n"; }); // print out to ofile
