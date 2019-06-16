@@ -48,24 +48,32 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region process variables
+    
     if (vm.count("help")) // if the user is curious 
     {
         std::cout << options << std::endl;
         exit(0);
     }
-    else //
+
+    // input-path
+    if (0 == vm.count("input-path")) // to test if N is present
     {
-        // input-path
-        if (0 == vm.count("input-path")) // to test if N is present
-        {
-            std::cerr << "input-path is missing! Program terminates.\n";
-            exit(-1);
-        }
+        std::cerr << "input-path is missing! Program terminates.\n";
+        exit(-1);
+    }
+    std::string ifname = vm["input-path"].as<std::string>();
+    std::ifstream ifile(ifname);
+    if (!ifile)
+    {
+        std::cerr << "The program couldn't open " << ifname << " for reading. Program terminates." << std::endl;
+        return 0;
     }
 
+    // output-path
     std::string of(vm["output-fnameprefix"].as<std::string>()); // the output foldername
     std::cout << "Files will be created in " << of << std::endl;
 
+    // methods
     size_t subs = vm["sub-sampling"].as<int>(); // subs-sampling rate
     size_t res = vm["resolution"].as<int>(); // the resolution of the autocorrelation map
     size_t samp = res * subs; // sampling rate for method ws
@@ -101,6 +109,7 @@ int main(int argc, char** argv)
         methodname = "Gauss-smoothing";
     }
 
+    // extra infos
     bool create_maps = false;
     if (vm.count("create-maps"))
     {
@@ -115,17 +124,9 @@ int main(int argc, char** argv)
     else
         std::cout << "Debug information will be shown. The name of these files start with deb." << std::endl;
 
-
 #pragma endregion
 
     std::vector<double> linedensity(res, 0); // a sûrûségre, késõbb majd ez fogja tárolni a korrelációt is
-    std::string ifname = vm["input-path"].as<std::string>();
-    std::ifstream ifile(ifname);
-    if (!ifile)
-    {
-        std::cerr << "The program couldn't open " << ifname << " for reading. Program terminates." << std::endl;
-        return 0;
-    }
 
     std::vector<disl> dislocs; // container of the N number of dislocations
     for (disl tmp; ifile >> tmp; dislocs.push_back(tmp)); // read in dislocations
@@ -133,57 +134,31 @@ int main(int argc, char** argv)
         [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); }); // dislocaions are sorted based on their type and y value
     size_t size = dislocs.size();
 
-    std::vector<std::vector<double>> rho_t; // the 2D map for rho_total
-    std::vector<std::vector<double>> kappa; // the 2D map for kappa = rho_signed
-    std::vector<std::vector<double>> rho_p; // the 2D map for rho_positive
-    std::vector<std::vector<double>> rho_n; // the 2D map for rho_negative
-
 #pragma region create maps if asked for
+    std::vector<std::vector<std::vector<double>>> maps; // the 2D maps for rho_t, kappa, rho_p, rho_n
+    std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };
+
     std::string ofname_extra = "_" + vm["method"].as<std::string>() + "_r" + std::to_string(res);
-    std::string o_rho_p_fn = of + ifname + ofname_extra + "_rho_p.txt";
-    std::string o_rho_n_fn = of + ifname + ofname_extra + "_rho_n.txt";
-    std::string o_rho_t_fn = of + ifname + ofname_extra + "_rho_t.txt";
-    std::string o_kappa_fn = of + ifname + ofname_extra + "_kappa.txt";
-    std::ofstream o_rho_p;
-    std::ofstream o_rho_n;
-    std::ofstream o_rho_t;
-    std::ofstream o_kappa;
+
+    std::vector<std::string> o_maps_fn;
+    for (const auto& name : names)
+        o_maps_fn.push_back(of + ifname + ofname_extra + "_" + name + ".txt");
+
+    std::vector<std::ofstream> o_maps(4);
 
     if (create_maps)
     {
-        rho_t = std::vector < std::vector<double>>(res, std::vector<double>(res, 0));
-        kappa = std::vector < std::vector<double>>(res, std::vector<double>(res, 0));
-        rho_p = std::vector < std::vector<double>>(res, std::vector<double>(res, 0));
-        rho_n = std::vector < std::vector<double>>(res, std::vector<double>(res, 0));
-
-        o_rho_p.open(o_rho_p_fn);
-        o_rho_n.open(o_rho_n_fn);
-        o_rho_t.open(o_rho_t_fn);
-        o_kappa.open(o_kappa_fn);
-        if (!o_rho_p)
+        for (size_t i = 0; i < 4; ++i)
         {
-            std::cerr << "Cannot create " << o_rho_p_fn << ". Program terminates." << std::endl;
-            exit(-1);
+            maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res, 0)));
+            o_maps[i].open(o_maps_fn[i]);
+            if (!o_maps[i])
+            {
+                std::cerr << "Cannot create " << o_maps_fn[i] << ". Program terminates." << std::endl;
+                exit(-1);
+            }
+            o_maps[i] << "# This file contains the frequency of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
         }
-        if (!o_rho_n)
-        {
-            std::cerr << "Cannot create " << o_rho_n_fn << ". Program terminates." << std::endl;
-            exit(-1);
-        }
-        if (!o_rho_t)
-        {
-            std::cerr << "Cannot create " << o_rho_t_fn << ". Program terminates." << std::endl;
-            exit(-1);
-        }
-        if (!o_kappa)
-        {
-            std::cerr << "Cannot create " << o_kappa_fn << ". Program terminates." << std::endl;
-            exit(-1);
-        }
-        o_rho_p << "# This file contains the frequency of rho_p for the file " << ifname << " using the " << methodname << " method.\n";
-        o_rho_n << "# This file contains the frequency of rho_n for the file " << ifname << " using the " << methodname << " method.\n";
-        o_rho_t << "# This file contains the frequency of rho_t for the file " << ifname << " using the " << methodname << " method.\n";
-        o_kappa << "# This file contains the frequency of kappa for the file " << ifname << " using the " << methodname << " method.\n";
     }
 
 #pragma endregion
@@ -196,12 +171,12 @@ int main(int argc, char** argv)
             int ybin = (int)((std::get<1>(disl) + 0.5) * res);
             int type = std::get<2>(disl);
 
-            rho_t[ybin][xbin] += res * res;
-            kappa[ybin][xbin] += res * res * type;
+            maps[0][ybin][xbin] += res * res;
+            maps[1][ybin][xbin] += res * res * type;
             if (type == -1) // negative dislocation
-                rho_n[ybin][xbin] += res * res;
+                maps[3][ybin][xbin] += res * res;
             else // positive dislocation
-                rho_p[ybin][xbin] += res * res;
+                maps[2][ybin][xbin] += res * res;
         }
     }
 
@@ -217,21 +192,21 @@ int main(int argc, char** argv)
                     double exponent = exp(-distsq(centerpoint, disl_pos_xy) / (2 * sigma * sigma));
 
                     if (std::get<2>(disl) == -1) // negative dislocation
-                        rho_n[y / subs][x / subs] += exponent;
+                        maps[3][y / subs][x / subs] += exponent;
                     else // positive dislocation
-                        rho_p[y / subs][x / subs] += exponent;
+                        maps[2][y / subs][x / subs] += exponent;
                 }
             }
 
-        normalize(rho_p, res * res * (double)size / 2);
-        normalize(rho_n, res * res * (double)size / 2);
+        normalize(maps[2], res * res * (double)size / 2);
+        normalize(maps[3], res * res * (double)size / 2);
 
 
         for (size_t y = 0; y < res; ++y) // rho_t and kappa cannot be calculated without the normalizaton of rho_p and rho_n
             for (size_t x = 0; x < res; ++x) // using stl::transform twice on rho_t and kappa would have an unnecessary overhead
             {
-                rho_t[y][x] = rho_p[y][x] + rho_n[y][x];
-                kappa[y][x] = rho_p[y][x] - rho_n[y][x];
+                maps[0][y][x] = maps[2][y][x] + maps[3][y][x];
+                maps[1][y][x] = maps[2][y][x] - maps[3][y][x];
             }
     }
 
@@ -248,14 +223,14 @@ int main(int argc, char** argv)
 
         if (create_maps)
         {
-            measure_density(dislocs_p, samp, rho_p);
-            measure_density(dislocs_n, samp, rho_n);
+            measure_density(dislocs_p, samp, maps[2]);
+            measure_density(dislocs_n, samp, maps[3]);
 
             for (size_t i = 0; i < res; ++i)
                 for (size_t j = 0; j < res; ++j)
                 {
-                    rho_t[i][j] = rho_p[i][j] + rho_n[i][j];
-                    kappa[i][j] = rho_p[i][j] - rho_n[i][j];
+                    maps[0][i][j] = maps[2][i][j] + maps[3][i][j];
+                    maps[1][i][j] = maps[2][i][j] - maps[3][i][j];
                 }
         }
 
@@ -271,12 +246,12 @@ int main(int argc, char** argv)
 
         if (create_maps)
         {
-            measure_density(dislocs, samp, rho_t, kappa);
+            measure_density(dislocs, samp, maps[0], maps[1]);
             for (size_t i = 0; i < res; ++i)
                 for (size_t j = 0; j < res; ++j)
                 {
-                    rho_p[i][j] = (rho_t[i][j] + kappa[i][j]) / 2;
-                    rho_n[i][j] = (rho_t[i][j] - kappa[i][j]) / 2;
+                    maps[2][i][j] = (maps[0][i][j] + maps[1][i][j]) / 2;
+                    maps[3][i][j] = (maps[0][i][j] - maps[1][i][j]) / 2;
                 }
         }
 
@@ -292,19 +267,13 @@ int main(int argc, char** argv)
         for (const auto& d : dislocs)
             debo_disl_areafile << d << "\n"; // print out to ofile
 
-        gnuplotlevels(rho_t, of + "deb_levels_t.txt");
-        gnuplotlevels(rho_p, of + "deb_levels_p.txt");
-        gnuplotlevels(rho_n, of + "deb_levels_n.txt");
-        gnuplotlevels(kappa, of + "deb_levels_s.txt");
+        for (size_t i = 0; i < 4; ++i)
+            gnuplotlevels(maps[i], of + "deb_levels_" + names[i] + ".txt");
     }
 
     if (create_maps)
-    {
-        o_rho_p << rho_p;
-        o_rho_n << rho_n;
-        o_rho_t << rho_t;
-        o_kappa << kappa;
-    }
+        for (size_t i = 0; i < 4; ++i)
+            o_maps[i] << maps[i];
 
     std::cout << "Done. Program terminates." << std::endl;
     return 0;
