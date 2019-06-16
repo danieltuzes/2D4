@@ -150,7 +150,7 @@ double dist(double coord1, double coord2)
 
 double distsq(const pair& a, const pair& b)
 {
-    double xdist = dist(a.first , b.first );
+    double xdist = dist(a.first, b.first);
     double ydist = dist(a.second, b.second);
     return xdist * xdist + ydist * ydist;
 }
@@ -160,14 +160,19 @@ double dist(const pair& a, const pair& b)
     return sqrt(distsq(a, b));
 }
 
+template <typename T> std::ostream& operator << (std::ostream& o, const std::vector<T>& line)
+{
+    for (auto const& value : line)
+        o << value << "\t";
+
+    return o;
+}
+
 template <typename T> std::ostream& operator << (std::ostream& o, const std::vector<std::vector<T>>& map)
 {
     for (auto const& map_line : map)
-    {
-        for (auto const& ddensity : map_line)
-            o << ddensity << "\t";
-        o << "\n";
-    }
+        o << map_line << "\n";
+
     return o;
 }
 
@@ -175,17 +180,167 @@ template std::ostream& operator << (std::ostream&, const std::vector<std::vector
 template std::ostream& operator << (std::ostream&, const std::vector<std::vector<double>>&); // template instantiation
 
 
-template <typename T> std::vector<std::vector<T>> gnuplot_flip(const std::vector<std::vector<T>>& map)
+void measure_area(std::vector<disl>& dislocs, size_t samp)
 {
-    auto size = map.size();
-    std::vector<std::vector<T>> ret(size, std::vector<T>(size, 0));
-
-    for (int i = 0; i < size; ++i)
-        for (int j = 0; j < size; ++j)
-            ret[size-1-i][j] = map[i][j];
-
-    return ret;
+    size_t size = dislocs.size();
+    double lastdist = 1; // the last smallest distance multiplied with sqrt(2), always smaller than sqrt(0.5)
+    double lastdistsq = 1; // the last smallest distance square
+    size_t cid = size; // the id of the last closest dislocation
+    for (size_t y = 0; y < samp; ++y) // samp = res * subs, it defines a more fine mesh
+    {
+        double meshy = (y + 0.5) / samp - 0.5; // the y coordinate of the investigated mesh point
+        for (size_t x = 0; x < samp; ++x)
+        {
+            double meshx = (x + 0.5) / samp - 0.5; // the x coordinate of the investigated mesh point
+            nearestDislIndex(dislocs, cid, lastdist, lastdistsq, meshx, meshy);
+            std::get<2>(dislocs[cid]) += 1;
+            lastdist += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+            lastdistsq = lastdist * lastdist;
+        }
+        lastdist += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+        lastdistsq = lastdist * lastdist;
+    }
 }
 
-template std::vector<std::vector<int>> gnuplot_flip(const std::vector<std::vector<int>>&);       // template instantiation
-template std::vector<std::vector<double>> gnuplot_flip(const std::vector<std::vector<double>>&); // template instantiation
+// if !is_single, calculates total and signed density to linedensity_a and ~_b: if cid < p it supposes that disl is positive
+template <bool is_single> void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a, std::vector<double>& linedensity_b)
+{
+    size_t size = linedensity_a.size(); // number of density points
+    size_t subs = samp / size; // subsampling inside a density cell
+
+    double lastdist = 1; // the last smallest distance multiplied with sqrt(2), always smaller than sqrt(0.5)
+    double lastdistsq = 1; // the last smallest distance square
+    size_t cid = dislocs.size(); // the id of the last closest dislocation
+
+    for (size_t y = yid * subs; y < (yid + 1) * subs; ++y) // for the different subsampling y values
+    {
+        double meshy = (y + 0.5) / samp - 0.5; // the position in y of the subcell
+        for (size_t x = 0; x < samp; ++x) // along a whole x line
+        {
+            double meshx = (x + 0.5) / samp - 0.5; // the position in x of the subcell
+            nearestDislIndex(dislocs, cid, lastdist, lastdistsq, meshx, meshy); // cid is set to the nearest dislocation
+            if (is_single)
+                linedensity_a[x / subs] += (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
+            else
+            {
+                linedensity_a[x / subs] += (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
+                if (cid < dislocs.size() / 2)
+                    linedensity_b[x / subs] += (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
+                else
+                    linedensity_b[x / subs] -= (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
+            }
+            lastdist += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+            lastdistsq = lastdist * lastdist;
+        }
+        lastdist += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+        lastdistsq = lastdist * lastdist;
+    }
+}
+
+void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a, std::vector<double>& linedensity_b)
+{
+    measure_density<false>(dislocs, yid, samp, linedensity_a, linedensity_b);
+}
+
+void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a)
+{
+    measure_density<true>(dislocs, yid, samp, linedensity_a, linedensity_a);
+}
+
+// if !is_single, calculates total and signed density to map_a and ~_b: if cid < p it supposes that disl is positive
+template <bool is_single> void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b)
+{
+    for (size_t yid = 0; yid < map_a.size(); ++yid)
+        measure_density<is_single>(dislocs, yid, samp, map_a[yid], map_b[yid]);
+}
+
+void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b)
+{
+    measure_density<false>(dislocs, samp, map_a, map_b);
+}
+
+void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map)
+{
+    measure_density<true>(dislocs, samp, map, map);
+}
+
+template void measure_density<false>(const std::vector<disl>&, size_t, std::vector<std::vector<double>>&, std::vector<std::vector<double>>&);
+template void measure_density<true>(const std::vector<disl>&, size_t, std::vector<std::vector<double>>&, std::vector<std::vector<double>>&);
+
+void nearestDislIndex(const std::vector<disl>& dislocs, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy)
+{
+    size_t size = dislocs.size(); // the size of the dislocation array
+    for (size_t i = 0; i < size; ++i) // find the nearest dislocation
+    {
+        double disly = std::get<1>(dislocs[i]); // the y coordinate of the dislocation
+        double disty = dist(disly, posy); // the distance of the point from the dislocation in y direction
+        if (disty < lastdist) // the distance in y must not be larger than the distance
+        {
+            double dislx = std::get<0>(dislocs[i]); // the x coordinate of the dislocation
+            double distx = dist(dislx, posx); // the distance of the point from the dislocation in x direction
+            if (distx < lastdist && // the distance in x must not be larger than the distance
+                distx * distx + disty * disty < lastdistsq) // eventually it must be the closest
+            {
+                lastdistsq = distx * distx + disty * disty;
+                lastdist = sqrt(lastdistsq);
+                cid = i;
+            }
+        }
+    }
+}
+
+void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fname)
+{
+    size_t size = map.size(); // the 2D map
+    std::vector<double> levels(size * size, 0); // stores the 2D map in 1D line
+    auto it = levels.begin();
+
+    for (const auto& line : map)
+        it = std::copy_n(line.begin(), size, it); // copy the 2D map into the 1D line
+    std::sort(levels.begin(), levels.end());
+
+    it = std::unique(levels.begin(), levels.end());
+    levels.resize(std::distance(levels.begin(), it));
+    std::ofstream ofile(fname);
+    if (!ofile)
+    {
+        std::cerr << "Cannot write " << fname << ". Program terminates." << std::endl;
+        exit(-1);
+    }
+    ofile << "set cntrparam levels discrete ";
+    if (levels.size() == 1)
+    {
+        ofile << 0;
+        std::cerr << "Warning: too few densities are found. cntrparam levels cannot be set." << std::endl;
+        return;
+    }
+    for (it = levels.begin(); it != levels.end() - 2; ++it)
+        ofile << (*it + *(it + 1)) / 2 << ", ";
+    ofile << (*it + *(it + 1)) / 2;
+
+}
+
+#pragma region sandbox
+void test_fourier_and_corr(std::vector<double>& in)
+{
+    const int res = 1024;
+    randomfill(in);                 // fill in the vector data with random values for testing
+    std::vector<double> correlation(res, 0);
+    auto correlation_fftw = autoCorrelation1D(in); // calculate correlation with fftw
+    auto FourierComp_fftw = FourierAbsVal1D(in);   // the fourier component of the function
+    autocorr(in, correlation);                     // autocorrelation is calculated by hand
+
+    std::ofstream ofile("test.txt");
+    if (!ofile)
+    {
+        std::cerr << "Cannot write file.";
+        exit(0);
+    }
+    else
+        ofile << std::setprecision(16) << "# linedensity[i]\tcorrelation[i]/" << res << "\tcorrelation_fftw[i]\tFourierComp_fftw[i]\n";
+
+    for (size_t i = 0; i < res; ++i)
+        ofile << in[i] << "\t" << correlation[i] / res << "\t" << correlation_fftw[i] << "\t" << FourierComp_fftw[i < res - i ? i : res - i] << "\n";
+
+}
+#pragma endregion

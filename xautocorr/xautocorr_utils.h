@@ -27,8 +27,8 @@ using disl = std::tuple<double, double, int>;
 
 using pair = std::pair<double, double>;
 
-// Wigner-Seitz, Box-counting and Gauss-convolving; na: default value
-enum method { na, ws, bc, gc };
+// Wigner-Seitz, Box-counting and Gauss-smoothing; na: default value, wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signer, bc: box-counting, gc: Gauss-convolution
+enum method { na, wspn, wsts, bc, gs };
 
 // fill up the whole vector with some arbitrary content
 void randomfill(std::vector<double>&);
@@ -63,8 +63,30 @@ double distsq(const pair&, const pair&);
 // the 2D distance with periodic boundary condition on size [-0.5; 0.5) × [-0.5; 0.5)
 double dist(const pair&, const pair&);
 
+// separate line elements with tab
+template <typename T> std::ostream& operator << (std::ostream&, const std::vector<T>&);
+
+// separate line elements with tab, and different lines with \n
 template <typename T> std::ostream& operator << (std::ostream&, const std::vector<std::vector<T>>&);
-template <typename T> std::vector<std::vector<T>> gnuplot_flip(const std::vector<std::vector<T>>&);
+
+// measures how many points belong to each dislocation on a mesh with samp × samp number of points
+void measure_area(std::vector<disl>&, size_t samp);
+
+// measures the density along a line in samp number of points; if samp > disl.size(), it supersamples and calculates average
+// calculates total and signed density to linedensity_a and ~_b: if cid < p it supposes that disl is positive
+// deduce the right template <bool> void measure_density based on the number of give arguments (see definition in cpp)
+void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b);
+
+// measures the density along a line in samp number of points; if samp > disl.size(), it supersamples and calculates average
+// deduce the right template <bool> void measure_density based on the number of give arguments (see definition in cpp)
+void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map);
+
+//searches the index cid of the dislocation closest to coordinate (posx,posy) which must be closer than lastdist, otherwise cid left untouched
+void nearestDislIndex(const std::vector<disl>&, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy);
+
+
+// returns a vector with pairwise average unique values from map in increasing order
+void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fname);
 
 
 // sandbox playing area
