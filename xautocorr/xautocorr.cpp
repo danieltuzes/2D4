@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region process variables
-    
+
     if (vm.count("help")) // if the user is curious 
     {
         std::cout << options << std::endl;
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
     for (const auto& name : names)
         o_maps_fn.push_back(of + ifname + ofname_extra + "_" + name + ".txt");
 
-    std::vector<std::ofstream> o_maps(4);
+    std::vector<std::ofstream> o_maps(4); // output files for the maps;  rho_t, kappa, rho_p, rho_n
 
     if (create_maps)
     {
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
                 std::cerr << "Cannot create " << o_maps_fn[i] << ". Program terminates." << std::endl;
                 exit(-1);
             }
-            o_maps[i] << "# This file contains the frequency of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+            o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
         }
     }
 
@@ -165,18 +165,23 @@ int main(int argc, char** argv)
 
     if (um == bc) // box counting case
     {
-        for (auto const& disl : dislocs)
+        for (size_t i = 0; i < dislocs.size(); ++i)
         {
-            int xbin = (int)((std::get<0>(disl) + 0.5) * res);
-            int ybin = (int)((std::get<1>(disl) + 0.5) * res);
-            int type = std::get<2>(disl);
+            int xbin = (int)((std::get<0>(dislocs[i]) + 0.5) * res);
+            int ybin = (int)((std::get<1>(dislocs[i]) + 0.5) * res);
+            int cellnum = res * res;
 
-            maps[0][ybin][xbin] += res * res;
-            maps[1][ybin][xbin] += res * res * type;
-            if (type == -1) // negative dislocation
-                maps[3][ybin][xbin] += res * res;
-            else // positive dislocation
-                maps[2][ybin][xbin] += res * res;
+            maps[0][ybin][xbin] += cellnum;
+            if (i < size / 2) // positive dislocation
+            {
+                maps[2][ybin][xbin] += cellnum;
+                maps[1][ybin][xbin] += cellnum;
+            }
+            else // negative dislocation
+            {
+                maps[3][ybin][xbin] += cellnum;
+                maps[1][ybin][xbin] -= cellnum;
+            }
         }
     }
 
@@ -186,21 +191,20 @@ int main(int argc, char** argv)
             for (size_t x = 0; x < samp; ++x)
             {
                 pair centerpoint((x + 0.5) / samp - 0.5, (y + 0.5) / samp - 0.5); // centerpoints of the fine mesh
-                for (auto const& disl : dislocs)
+                for (size_t i = 0; i < dislocs.size(); ++i)
                 {
-                    pair disl_pos_xy(std::get<0>(disl), std::get<1>(disl));
+                    pair disl_pos_xy(std::get<0>(dislocs[i]), std::get<1>(dislocs[i]));
                     double exponent = exp(-distsq(centerpoint, disl_pos_xy) / (2 * sigma * sigma));
 
-                    if (std::get<2>(disl) == -1) // negative dislocation
-                        maps[3][y / subs][x / subs] += exponent;
-                    else // positive dislocation
+                    if (i < size / 2) // positive dislocation
                         maps[2][y / subs][x / subs] += exponent;
+                    else // negative dislocation
+                        maps[3][y / subs][x / subs] += exponent;
                 }
             }
 
         normalize(maps[2], res * res * (double)size / 2);
         normalize(maps[3], res * res * (double)size / 2);
-
 
         for (size_t y = 0; y < res; ++y) // rho_t and kappa cannot be calculated without the normalizaton of rho_p and rho_n
             for (size_t x = 0; x < res; ++x) // using stl::transform twice on rho_t and kappa would have an unnecessary overhead
@@ -242,6 +246,7 @@ int main(int argc, char** argv)
     {
         for (auto& val : dislocs) // zero out the 3rd element, it will be used to measure the area
             std::get<2>(val) = 0;
+
         measure_area(dislocs, samp);
 
         if (create_maps)
@@ -254,10 +259,9 @@ int main(int argc, char** argv)
                     maps[3][i][j] = (maps[0][i][j] - maps[1][i][j]) / 2;
                 }
         }
-
     }
 
-    if (debug_level)
+    if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
     {
         std::ofstream debo_disl_areafile(of + "deb_disl.txt");
         debo_disl_areafile << "# The positive and negative dislocations with their corresponding area.\n"

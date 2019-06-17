@@ -73,7 +73,7 @@ template <typename T> std::ostream& operator << (std::ostream&, const std::vecto
 void measure_area(std::vector<disl>&, size_t samp);
 
 // measures the density along a line in samp number of points; if samp > disl.size(), it supersamples and calculates average
-// calculates total and signed density to linedensity_a and ~_b: if cid < p it supposes that disl is positive
+// calculates total and signed density to linedensity_a and ~_b: if cid < dislocs.size() it supposes that disl is positive
 // deduce the right template <bool> void measure_density based on the number of give arguments (see definition in cpp)
 void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b);
 
