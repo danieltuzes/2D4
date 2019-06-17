@@ -72,18 +72,25 @@ template <typename T> std::ostream& operator << (std::ostream&, const std::vecto
 // measures how many points belong to each dislocation on a mesh with samp × samp number of points
 void measure_area(std::vector<disl>&, size_t samp);
 
-// measures the density along a line in samp number of points; if samp > disl.size(), it supersamples and calculates average
-// calculates total and signed density to linedensity_a and ~_b: if cid < dislocs.size() it supposes that disl is positive
-// deduce the right template <bool> void measure_density based on the number of give arguments (see definition in cpp)
-void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b);
+// measures how many points belong to each dislocation (in the range of beginIndex till endIndex)
+// on a mesh with samp × samp number of points
+void measure_area(std::vector<disl>& dislocs, size_t beginIndex, size_t endIndex, size_t samp);
 
 // measures the density along a line in samp number of points; if samp > disl.size(), it supersamples and calculates average
-// deduce the right template <bool> void measure_density based on the number of give arguments (see definition in cpp)
-void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map);
+// if pozNneg calculates the positive and negative density stored in linedensity_a and ~b, otherwise,
+//      calculates the total and signed density to linedensity_a and ~_b
+// if cid < dislocs.size()/2 it supposes that disl is positive
+template <bool pozNneg> void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a, std::vector<double>& linedensity_b);
+
+// measures the density line by line, see the overloaded function with argument std::vector<double>& linedensity_a and ~b
+template <bool pozNneg> void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b);
 
 //searches the index cid of the dislocation closest to coordinate (posx,posy) which must be closer than lastdist, otherwise cid left untouched
 void nearestDislIndex(const std::vector<disl>&, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy);
 
+//searches the index cid of the dislocation (in the range of beginIndex till endIndex)
+// closest to coordinate (posx,posy) which must be closer than lastdist, otherwise cid left untouched
+void nearestDislIndex(const std::vector<disl>&, size_t beginIndex, size_t endIndex, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy);
 
 // returns a vector with pairwise average unique values from map in increasing order
 void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fname);

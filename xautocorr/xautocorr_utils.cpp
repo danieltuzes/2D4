@@ -179,7 +179,6 @@ template <typename T> std::ostream& operator << (std::ostream& o, const std::vec
 template std::ostream& operator << (std::ostream&, const std::vector<std::vector<int>>&);    // template instantiation
 template std::ostream& operator << (std::ostream&, const std::vector<std::vector<double>>&); // template instantiation
 
-
 void measure_area(std::vector<disl>& dislocs, size_t samp)
 {
     size_t size = dislocs.size();
@@ -202,33 +201,19 @@ void measure_area(std::vector<disl>& dislocs, size_t samp)
     }
 }
 
-// if !is_single, calculates total and signed density to linedensity_a and ~_b: if cid < p it supposes that disl is positive
-template <bool is_single> void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a, std::vector<double>& linedensity_b)
+void measure_area(std::vector<disl>& dislocs, size_t beginIndex, size_t endIndex, size_t samp)
 {
-    size_t size = linedensity_a.size(); // number of density points
-    size_t subs = samp / size; // subsampling inside a density cell
-
     double lastdist = 1; // the last smallest distance multiplied with sqrt(2), always smaller than sqrt(0.5)
     double lastdistsq = 1; // the last smallest distance square
-    size_t cid = dislocs.size(); // the id of the last closest dislocation
-
-    for (size_t y = yid * subs; y < (yid + 1) * subs; ++y) // for the different subsampling y values
+    size_t cid = std::numeric_limits<size_t>::max(); // the id of the last closest dislocation; hopefully, out of range
+    for (size_t y = 0; y < samp; ++y) // samp = res * subs, it defines a more fine mesh
     {
-        double meshy = (y + 0.5) / samp - 0.5; // the position in y of the subcell
-        for (size_t x = 0; x < samp; ++x) // along a whole x line
+        double meshy = (y + 0.5) / samp - 0.5; // the y coordinate of the investigated mesh point
+        for (size_t x = 0; x < samp; ++x)
         {
-            double meshx = (x + 0.5) / samp - 0.5; // the position in x of the subcell
-            nearestDislIndex(dislocs, cid, lastdist, lastdistsq, meshx, meshy); // cid is set to the nearest dislocation
-            if (is_single)
-                linedensity_a[x / subs] += (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
-            else
-            {
-                linedensity_a[x / subs] += (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
-                if (cid < dislocs.size() / 2)
-                    linedensity_b[x / subs] += (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
-                else
-                    linedensity_b[x / subs] -= (double)(size * size) / std::get<2>(dislocs[cid]); // the nominator is chosen such a way that the integral of the map density is the particle number
-            }
+            double meshx = (x + 0.5) / samp - 0.5; // the x coordinate of the investigated mesh point
+            nearestDislIndex(dislocs, beginIndex, endIndex, cid, lastdist, lastdistsq, meshx, meshy);
+            std::get<2>(dislocs[cid]) += 1;
             lastdist += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
             lastdistsq = lastdist * lastdist;
         }
@@ -237,40 +222,78 @@ template <bool is_single> void measure_density(const std::vector<disl>& dislocs,
     }
 }
 
-void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a, std::vector<double>& linedensity_b)
+template <bool pozNneg> void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a, std::vector<double>& linedensity_b)
 {
-    measure_density<false>(dislocs, yid, samp, linedensity_a, linedensity_b);
+    double area = pow(linedensity_a.size(), 2); // number of density points
+    size_t subs = samp / linedensity_a.size(); // subsampling inside a density cell
+    size_t size = dislocs.size(); // the number of dislocations
+
+    double lastdist_a = 1; // the last smallest distance multiplied with sqrt(2), always smaller than sqrt(0.5)
+    double lastdist_b = 1; // the last smallest distance multiplied with sqrt(2), always smaller than sqrt(0.5)
+    double lastdistsq_a = 1; // the last smallest distance square
+    double lastdistsq_b = 1; // the last smallest distance square
+    size_t cid_a = std::numeric_limits<size_t>::max(); // the id of the last closest dislocation, hopefully out of scope
+    size_t cid_b = std::numeric_limits<size_t>::max(); // the id of the last closest dislocation, hopefully out of scope
+
+    for (size_t y = yid * subs; y < (yid + 1) * subs; ++y) // for the different subsampling y values
+    {
+        double meshy = (y + 0.5) / samp - 0.5; // the position in y of the subcell
+        for (size_t x = 0; x < samp; ++x) // along a whole x line
+        {
+            double meshx = (x + 0.5) / samp - 0.5; // the position in x of the subcell
+            if (pozNneg) // positive and negative map
+            {
+                nearestDislIndex(dislocs, 0, size / 2, cid_a, lastdist_a, lastdistsq_a, meshx, meshy); // cid is set to the nearest dislocation, only the first size/2 dislocation are positive
+                nearestDislIndex(dislocs, size / 2, size, cid_b, lastdist_b, lastdistsq_b, meshx, meshy); // cid is set to the nearest dislocation, only the second size/2 dislocation are negative
+                linedensity_a[x / subs] += area / std::get<2>(dislocs[cid_a]); // the nominator is chosen such a way that the integral of the map density is the particle number
+                linedensity_b[x / subs] += area / std::get<2>(dislocs[cid_b]); // the nominator is chosen such a way that the integral of the map density is the particle number
+                lastdist_b += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+                lastdistsq_b = lastdist_b * lastdist_b;
+            }
+            else // total and kappa map
+            {
+                nearestDislIndex(dislocs, cid_a, lastdist_a, lastdistsq_a, meshx, meshy); // cid is set to the nearest dislocation
+                double disl_d = area / std::get<2>(dislocs[cid_a]); // the density caused by that dislocation
+                linedensity_a[x / subs] += disl_d; // the nominator is chosen such a way that the integral of the map density is the particle number
+                if (cid_a < dislocs.size() / 2)
+                    linedensity_b[x / subs] += disl_d; // the nominator is chosen such a way that the integral of the map density is the particle number
+                else
+                    linedensity_b[x / subs] -= disl_d; // the nominator is chosen such a way that the integral of the map density is the particle number
+            }
+            lastdist_a += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+            lastdistsq_a = lastdist_a * lastdist_a;
+
+        }
+        lastdist_a += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+        lastdistsq_a = lastdist_a * lastdist_a;
+        if (pozNneg)
+        {
+            lastdist_b += (double)1 / samp; // if one moves in x, it increases the distance, this is an overestimation
+            lastdistsq_b = lastdist_b * lastdist_b;
+        }
+    }
 }
 
-void measure_density(const std::vector<disl>& dislocs, size_t yid, size_t samp, std::vector<double>& linedensity_a)
-{
-    measure_density<true>(dislocs, yid, samp, linedensity_a, linedensity_a);
-}
-
-// if !is_single, calculates total and signed density to map_a and ~_b: if cid < p it supposes that disl is positive
-template <bool is_single> void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b)
+// if !pozNneg, calculates total and signed density to map_a and ~_b: if cid < p it supposes that disl is positive
+template <bool pozNneg> void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b)
 {
     for (size_t yid = 0; yid < map_a.size(); ++yid)
-        measure_density<is_single>(dislocs, yid, samp, map_a[yid], map_b[yid]);
-}
-
-void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map_a, std::vector<std::vector<double>>& map_b)
-{
-    measure_density<false>(dislocs, samp, map_a, map_b);
-}
-
-void measure_density(const std::vector<disl>& dislocs, size_t samp, std::vector<std::vector<double>>& map)
-{
-    measure_density<true>(dislocs, samp, map, map);
+        measure_density<pozNneg>(dislocs, yid, samp, map_a[yid], map_b[yid]);
 }
 
 template void measure_density<false>(const std::vector<disl>&, size_t, std::vector<std::vector<double>>&, std::vector<std::vector<double>>&);
+
 template void measure_density<true>(const std::vector<disl>&, size_t, std::vector<std::vector<double>>&, std::vector<std::vector<double>>&);
 
 void nearestDislIndex(const std::vector<disl>& dislocs, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy)
 {
-    size_t size = dislocs.size(); // the size of the dislocation array
-    for (size_t i = 0; i < size; ++i) // find the nearest dislocation
+    nearestDislIndex(dislocs, 0, dislocs.size(), cid, lastdist, lastdistsq, posx, posy);
+}
+
+void nearestDislIndex(const std::vector<disl>& dislocs, size_t beginIndex, size_t endIndex, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy)
+{
+    size_t size = endIndex - beginIndex; // the size of the dislocation array
+    for (size_t i = beginIndex; i < endIndex; ++i) // find the nearest dislocation
     {
         double disly = std::get<1>(dislocs[i]); // the y coordinate of the dislocation
         double disty = dist(disly, posy); // the distance of the point from the dislocation in y direction

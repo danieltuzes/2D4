@@ -169,7 +169,7 @@ int main(int argc, char** argv)
         {
             int xbin = (int)((std::get<0>(dislocs[i]) + 0.5) * res);
             int ybin = (int)((std::get<1>(dislocs[i]) + 0.5) * res);
-            int cellnum = res * res;
+            size_t cellnum = res * res;
 
             maps[0][ybin][xbin] += cellnum;
             if (i < size / 2) // positive dislocation
@@ -219,17 +219,13 @@ int main(int argc, char** argv)
         for (auto& val : dislocs) // zero out the 3rd element, it will be used to measure the area
             std::get<2>(val) = 0;
 
-        std::vector<disl> dislocs_p(dislocs.begin(), dislocs.begin() + size / 2); // only the positive dislocations; the 3rd element (int) will be used to measure the area
-        std::vector<disl> dislocs_n(dislocs.begin() + size / 2, dislocs.begin() + size); // only the negative dislocations; the 3rd element (int) will be used to measure the area
-
-        measure_area(dislocs_p, samp);
-        measure_area(dislocs_n, samp);
+        measure_area(dislocs, 0, size/2, samp);
+        measure_area(dislocs, size/2, size, samp);
 
         if (create_maps)
         {
-            measure_density(dislocs_p, samp, maps[2]);
-            measure_density(dislocs_n, samp, maps[3]);
-
+            measure_density<true>(dislocs, samp, maps[2], maps[3]);
+            
             for (size_t i = 0; i < res; ++i)
                 for (size_t j = 0; j < res; ++j)
                 {
@@ -237,9 +233,6 @@ int main(int argc, char** argv)
                     maps[1][i][j] = maps[2][i][j] - maps[3][i][j];
                 }
         }
-
-        std::copy_n(dislocs_p.begin(), size / 2, dislocs.begin());
-        std::copy_n(dislocs_n.begin(), size / 2, dislocs.begin() + size / 2);
     }
 
     if (um == wsts)
@@ -251,7 +244,7 @@ int main(int argc, char** argv)
 
         if (create_maps)
         {
-            measure_density(dislocs, samp, maps[0], maps[1]);
+            measure_density<false>(dislocs, samp, maps[0], maps[1]);
             for (size_t i = 0; i < res; ++i)
                 for (size_t j = 0; j < res; ++j)
                 {
