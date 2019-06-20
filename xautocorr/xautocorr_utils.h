@@ -30,27 +30,6 @@ using pair = std::pair<double, double>;
 // Wigner-Seitz, Box-counting and Gauss-smoothing; na: default value, wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signer, bc: box-counting, gc: Gauss-convolution
 enum method { na, wspn, wsts, bc, gs };
 
-// fill up the whole vector with some arbitrary content
-void randomfill(std::vector<double>&);
-
-// calculate the correlation by "hand"
-void autocorr(const std::vector<double>&, std::vector<double>&);
-
-// makes the sum of the vector values 1
-void normalize(std::vector<double>&);
-
-// makes the sum of the vector<vector> values 1
-void normalize(std::vector<std::vector<double>>&, double = 1);
-
-//absolute value square for complex numbers
-void abs_val2(fftw_complex*, int);
-
-// calculates the autocorrelation using fftw
-std::vector<double> autoCorrelation1D(const std::vector<double>&);
-
-// calculates the fourier values with fftw, and then calculates the absolute values of the elements
-std::vector<double> FourierAbsVal1D(const std::vector<double>&);
-
 std::istream& operator >> (std::istream&, disl&);
 std::ostream& operator << (std::ostream&, const disl&);
 
@@ -95,6 +74,34 @@ void nearestDislIndex(const std::vector<disl>&, size_t beginIndex, size_t endInd
 // returns a vector with pairwise average unique values from map in increasing order
 void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fname);
 
+#pragma region Fourier analysis and correlations
+
+// calculate the correlation by "hand"
+void autocorr(const std::vector<double>&, std::vector<double>&);
+
+// makes the sum of the vector values 1
+void normalize(std::vector<double>&);
+
+// makes the sum of the vector<vector> values 1
+void normalize(std::vector<std::vector<double>>&, double = 1);
+
+//absolute value square for complex numbers
+void abs_val2(fftw_complex*, int);
+
+// calculates the autocorrelation using fftw
+std::vector<double> autoCorrelation1D(const std::vector<double>&);
+
+// calculates the fourier values with fftw, and then calculates the absolute values of the elements
+std::vector<double> FourierAbsVal1D(const std::vector<double>&);
+
+// calculates the fourier values of linedensity, add it to k and returns a reference to k
+void AddFourierAbsVal1D(std::vector<double>& k, const std::vector<double>& linedensity);
+
+
+#pragma endregion
 
 // sandbox playing area
-void test_fourier_and_corr(std::vector<double>&);
+void test_fourier_and_corr();
+
+// fill up the whole vector with some arbitrary content
+void randomfill(std::vector<double>&);

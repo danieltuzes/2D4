@@ -17,98 +17,6 @@
 
 namespace bpo = boost::program_options;
 
-void randomfill(std::vector<double>& in)
-{
-    std::mt19937 generator(1000);
-    std::uniform_real_distribution<double> distr(0, 2);
-    int n = static_cast<int>(in.size());
-    for (int i = 0; i < n; ++i)
-        in[i] = distr(generator) / 10. + sin(distr(generator) / 10. + i / 50. * (2 * 3.14159));
-}
-
-void autocorr(const std::vector<double>& data_in, std::vector<double>& data_out)
-{
-    int n = static_cast<int>(data_in.size());
-    for (int shift = 0; shift < n; ++shift)
-    {
-        data_out[shift] = 0;
-        for (int i = 0; i < n; ++i)
-            data_out[shift] += data_in[i] * data_in[(i + shift) % n];
-    }
-}
-
-void normalize(std::vector<double>& data)
-{
-    double sum = std::accumulate(data.begin(), data.end(), (double)0);
-    std::for_each(data.begin(), data.end(), [sum](double& val) {val /= sum; });
-}
-
-void normalize(std::vector<std::vector<double>>& in, double norm)
-{
-    double sum = 0;
-    for (auto const& row : in)
-        for (auto const& value : row)
-            sum += value;
-    sum /= norm;
-
-    for (auto& row : in)
-        for (auto& value : row)
-            value /= sum;
-}
-
-std::vector<double> autoCorrelation1D(const std::vector<double>& data)
-{
-    static int size = (int)data.size();
-    std::vector<double> ret(size, 0);
-    fftw_complex* tmp;
-    tmp = new fftw_complex[(size / 2 + 1) * 2];
-
-    fftw_plan a = fftw_plan_dft_r2c_1d(size, const_cast<double*>(&data.front()), tmp, FFTW_ESTIMATE);
-    fftw_execute(a);
-    abs_val2(tmp, size);
-
-    fftw_plan b = fftw_plan_dft_c2r_1d(size, tmp, &ret[0], FFTW_ESTIMATE);
-    fftw_execute(b);
-
-    fftw_destroy_plan(b);
-    fftw_destroy_plan(a);
-    for (int i = 0; i < size; ++i)
-        ret[i] /= size * size;
-
-    delete[] tmp;
-    tmp = nullptr;
-    return ret;
-}
-
-std::vector<double> FourierAbsVal1D(const std::vector<double>& data)
-{
-    static int lsize = (int)data.size();
-    static int psize = lsize / 2 + 1;
-    std::vector<double> ret(psize, 0);
-    fftw_complex* tmp;
-    tmp = new fftw_complex[(lsize / 2 + 1) * 2];
-
-    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&data.front()), tmp, FFTW_ESTIMATE);
-    fftw_execute(a);
-
-    fftw_destroy_plan(a);
-    for (int i = 0; i < psize; ++i)
-        ret[i] = tmp[i][0] * tmp[i][0] + tmp[i][1] * tmp[i][1];
-
-    delete[] tmp;
-    tmp = nullptr;
-    return ret;
-}
-
-void abs_val2(fftw_complex* c, int size) //absolute value square for complex numbers
-{
-    for (int j = 0; j < size; ++j)
-    {
-        c[j][0] = c[j][0] * c[j][0] + c[j][1] * c[j][1];
-        c[j][1] = 0;
-    }
-}
-
 std::istream& operator >> (std::istream& in, disl& d)
 {
     double posx = 0, posy = 0;
@@ -343,14 +251,127 @@ void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fnam
 
 }
 
+# pragma region Fourier analysis and correlation
+void autocorr(const std::vector<double>& data_in, std::vector<double>& data_out)
+{
+    int n = static_cast<int>(data_in.size());
+    for (int shift = 0; shift < n; ++shift)
+    {
+        data_out[shift] = 0;
+        for (int i = 0; i < n; ++i)
+            data_out[shift] += data_in[i] * data_in[(i + shift) % n];
+    }
+}
+
+void normalize(std::vector<double>& data)
+{
+    double sum = std::accumulate(data.begin(), data.end(), (double)0);
+    std::for_each(data.begin(), data.end(), [sum](double& val) {val /= sum; });
+}
+
+void normalize(std::vector<std::vector<double>>& in, double norm)
+{
+    double sum = 0;
+    for (auto const& row : in)
+        for (auto const& value : row)
+            sum += value;
+    sum /= norm;
+
+    for (auto& row : in)
+        for (auto& value : row)
+            value /= sum;
+}
+
+std::vector<double> autoCorrelation1D(const std::vector<double>& data)
+{
+    static int lsize = (int)data.size();
+    static int psize = lsize / 2 + 1;
+    std::vector<double> ret(lsize, 0);
+    fftw_complex* tmp;
+    tmp = new fftw_complex[psize];
+
+    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&data.front()), tmp, FFTW_ESTIMATE);
+    fftw_execute(a);
+    abs_val2(tmp, psize);
+
+    fftw_plan b = fftw_plan_dft_c2r_1d(lsize, tmp, &ret[0], FFTW_ESTIMATE);
+    fftw_execute(b);
+
+    fftw_destroy_plan(b);
+    fftw_destroy_plan(a);
+    for (int i = 0; i < lsize; ++i)
+        ret[i] /= lsize * lsize;
+
+    delete[] tmp;
+    tmp = nullptr;
+    return ret;
+}
+
+std::vector<double> FourierAbsVal1D(const std::vector<double>& data)
+{
+    const int lsize = (int)data.size(); // logical size
+    const int psize = lsize / 2 + 1; // physical size
+    std::vector<double> ret(psize, 0);
+    fftw_complex* tmp;
+    tmp = new fftw_complex[psize];
+
+    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&data.front()), tmp, FFTW_ESTIMATE);
+    fftw_execute(a);
+
+    fftw_destroy_plan(a);
+    for (int i = 0; i < psize; ++i)
+        ret[i] = tmp[i][0] * tmp[i][0] + tmp[i][1] * tmp[i][1];
+
+    delete[] tmp;
+    tmp = nullptr;
+    return ret;
+}
+
+void abs_val2(fftw_complex* c, int size) //absolute value square for complex numbers
+{
+    for (int j = 0; j < size; ++j)
+    {
+        c[j][0] = c[j][0] * c[j][0] + c[j][1] * c[j][1];
+        c[j][1] = 0;
+    }
+}
+
+void AddFourierAbsVal1D(std::vector<double>& k, const std::vector<double>& linedensity)
+{
+    const int lsize = (int)linedensity.size(); // logical size
+    const int psize = lsize / 2 + 1; // physical size, size of k
+    fftw_complex* tmp;
+    tmp = new fftw_complex[psize];
+
+    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&linedensity.front()), tmp, FFTW_ESTIMATE);
+    fftw_execute(a);
+
+    fftw_destroy_plan(a);
+    for (int i = 0; i < psize; ++i)
+        k[i] += tmp[i][0] * tmp[i][0] + tmp[i][1] * tmp[i][1];
+}
+
+#pragma endregion
+
 #pragma region sandbox
-void test_fourier_and_corr(std::vector<double>& in)
+void randomfill(std::vector<double>& in)
+{
+    std::mt19937 generator(1000);
+    std::uniform_real_distribution<double> distr(0, 2);
+    int n = static_cast<int>(in.size());
+    for (int i = 0; i < n; ++i)
+        in[i] = distr(generator) / 10. + sin(distr(generator) / 10. + i / 50. * (2 * 3.14159));
+}
+
+void test_fourier_and_corr()
 {
     const int res = 1024;
+    std::vector<double> in(res);
+
     randomfill(in);                 // fill in the vector data with random values for testing
     std::vector<double> correlation(res, 0);
-    auto correlation_fftw = autoCorrelation1D(in); // calculate correlation with fftw
     auto FourierComp_fftw = FourierAbsVal1D(in);   // the fourier component of the function
+    auto correlation_fftw = autoCorrelation1D(in); // calculate correlation with fftw
     autocorr(in, correlation);                     // autocorrelation is calculated by hand
 
     std::ofstream ofile("test.txt");

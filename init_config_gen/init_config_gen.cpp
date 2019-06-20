@@ -39,7 +39,7 @@ int main(int argc, char** argv)
         ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the probability density function will be\n1 + A * sin(x * n * 2 pi) with A = pattern-strength for rho_+ and\n1 - A * sin(x * w * 2 pi) for rho_-. A must be in [-1:1].")
         ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5].")
         ("unsorted,U", "If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.")
-        ("output-foldername,o", bpo::value<std::string>()->default_value("dislocation-configurations"), "In which folder should the initial conditions be stored. Symbol . means here.")
+        ("output-path,o", bpo::value<std::string>()->default_value("dislocation-configurations/"), "In which folder should the initial conditions be stored. Symbol ./ means here.")
         ("bare,B", "If set, filenames will not contain the value of the parameter N.")
         ;
 
@@ -95,8 +95,8 @@ int main(int argc, char** argv)
     if (vm.count("seed-end") == 0) // label: seed-end set
     {
         vm.insert(std::make_pair("seed-end", bpo::variable_value()));
+        vm.at("seed-end").value() = vm["seed-start"].as<int>()+1;
     }
-    vm.at("seed-end").value() = vm["seed-start"].as<int>();
 
     // pattern strength
     double A = vm["pattern-strength"].as<double>();
@@ -124,9 +124,9 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region generate and write out configuration
-    for (int seed_val = vm["seed-start"].as<int>(); seed_val <= vm["seed-end"].as<int>(); ++seed_val) // generate configurations with seeds in the range of [seed-start; seed-end]; seed-end has been set at label: seed-end set
+    for (int seed_val = vm["seed-start"].as<int>(); seed_val < vm["seed-end"].as<int>(); ++seed_val) // generate configurations with seeds in the range of [seed-start; seed-end]; seed-end has been set at label: seed-end set
     {
-        std::string ofname = vm["output-foldername"].as<std::string>() + "/" + std::to_string(seed_val);
+        std::string ofname = vm["output-path"].as<std::string>() + std::to_string(seed_val);
         if (vm.count("bare") == 0)
             ofname += "_" + std::to_string(vm["N"].as<int>());
         ofname += ".dconf"; // output filename; the file is inside a folder
