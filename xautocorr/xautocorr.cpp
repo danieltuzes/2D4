@@ -18,7 +18,7 @@ int main(int argc, char** argv)
         ("sub-sampling,s", bpo::value<int>()->default_value(16), "This is a parameter for method ws and gc. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>()->default_value(0.125), "This is a parameter for method gc. It tells how wide the Gauss-distribution should with which the dirac-delta densities should be concolved.")
         ("create-maps", "If set, the program will create the 2D density maps for rho_t and kappa.")
-        ("output-fnameprefix,o", bpo::value<std::string>()->default_value("xautocorr/"), "With what output filename prefix should the initial conditions be stored. Symbol ./ means here.")
+        ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "With what output filename prefix should the initial conditions be stored. Symbol ./ or empty string means here.")
         ("debug-level,d", bpo::value<int>()->default_value(0), "Debugging information to show.")
         ;
 
@@ -240,10 +240,8 @@ int main(int argc, char** argv)
             }
 
             for (size_t i = 0; i < 4; ++i)
-            {
                 for (size_t linenum = 0; linenum < res; ++linenum)
                     AddFourierAbsVal1D(F_transforms[i], maps[i][linenum]);
-            }
         }
 
         if (um == gs) // Gauss-smoothing case
@@ -268,11 +266,15 @@ int main(int argc, char** argv)
             normalize(maps[3], res * res * (double)size / 2);
 
             for (size_t y = 0; y < res; ++y) // rho_t and kappa cannot be calculated without the normalizaton of rho_p and rho_n
+            {
                 for (size_t x = 0; x < res; ++x) // using stl::transform twice on rho_t and kappa would have an unnecessary overhead
                 {
                     maps[0][y][x] = maps[2][y][x] + maps[3][y][x];
                     maps[1][y][x] = maps[2][y][x] - maps[3][y][x];
                 }
+                for (size_t i = 0; i < 4; ++i)
+                    AddFourierAbsVal1D(F_transforms[i], maps[i][y]);
+            }
         }
 
         if (um == wspn) // Wigner-Seitz positive and negative case

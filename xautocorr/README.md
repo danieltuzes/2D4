@@ -15,7 +15,7 @@ This is an advanced pattern finder for 2D dislocation configurations. Such confi
   * `wsts`: Wigner-Seitz total and signed. Like `wspn`, but the total dislocation density ρ<sub>t</sub> and signed dislocation density κ will be calculated directly and ρ₊ and ρ₋ are the derived quantities.
 * `--sub-sampling` or `-s` (1): increases the size of the mesh to calculate the densities, but the resolution remains the same. Instead of calculating the densities on a mesh with size resolution × resolution, it is calculated on a mesh with size (s·r) × (s·r). This paramterer takes effect only for Gauss convolution and Wigner-Seitz methods.
 * `--half-width` or `-w` (0.125): half-width of the Gauss distribution used in the Gauss convolution method. The hald-width is measured in the units of the simulation space units.
-* `--output-foldername` or `-o` ("xautocorr"): the output foldername relative to the executable.
+* `--output-foldername` or `-o` (""): the output foldername relative to the executable.
 
 ## Methods
 ### Box counting method
