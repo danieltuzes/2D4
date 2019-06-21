@@ -200,7 +200,6 @@ void nearestDislIndex(const std::vector<disl>& dislocs, size_t& cid, double& las
 
 void nearestDislIndex(const std::vector<disl>& dislocs, size_t beginIndex, size_t endIndex, size_t& cid, double& lastdist, double& lastdistsq, double posx, double posy)
 {
-    size_t size = endIndex - beginIndex; // the size of the dislocation array
     for (size_t i = beginIndex; i < endIndex; ++i) // find the nearest dislocation
     {
         double disly = std::get<1>(dislocs[i]); // the y coordinate of the dislocation

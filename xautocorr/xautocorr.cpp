@@ -304,7 +304,7 @@ int main(int argc, char** argv)
                 measure_density<true>(dislocs, y, samp, linedensity_p, linedensity_n);
                 AddFourierAbsVal1D(F_transforms[2], linedensity_p);
                 AddFourierAbsVal1D(F_transforms[3], linedensity_n);
-                for (int x = 0; x < res; ++x)
+                for (size_t x = 0; x < res; ++x)
                 {
                     linedensity_t[x] = linedensity_p[x] + linedensity_n[x];
                     linedensity_s[x] = linedensity_p[x] - linedensity_n[x];
@@ -341,7 +341,7 @@ int main(int argc, char** argv)
                 measure_density<false>(dislocs, y, samp, linedensity_t, linedensity_s);
                 AddFourierAbsVal1D(F_transforms[0], linedensity_t);
                 AddFourierAbsVal1D(F_transforms[1], linedensity_s);
-                for (int x = 0; x < res; ++x)
+                for (size_t x = 0; x < res; ++x)
                 {
                     linedensity_p[x] = (linedensity_t[x] + linedensity_s[x]) / 2;
                     linedensity_n[x] = (linedensity_t[x] - linedensity_s[x]) / 2;

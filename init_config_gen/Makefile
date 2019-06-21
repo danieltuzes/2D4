@@ -1,0 +1,2 @@
+all:
+	g++ init_config_gen.cpp -lboost_program_options -static -Wall -Wno-unknown-pragmas -std=gnu++11 -pedantic -Ofast -flto -march=native -DGCC_MACHINE_INFO="`uname -a`" -o "init_config_gen_`uname -a | cut -d " " -f 2 | cut -d "." -f 1`.bin" 2>&1 | tee error.txt
