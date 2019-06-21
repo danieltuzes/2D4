@@ -51,7 +51,7 @@ std::ostream& operator << (std::ostream& o, const disl& d)
 
 double dist(double coord1, double coord2)
 {
-    double diff = abs(coord1 - coord2); // distance wo periodic bc
+    double diff = std::abs(coord1 - coord2); // distance wo periodic bc
     double diff_a = 1 - diff; // alternative distance
     return diff < diff_a ? diff : diff_a;
 }
