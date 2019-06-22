@@ -159,20 +159,20 @@ int main(int argc, char** argv)
 
 #pragma endregion
 
-#pragma region define vectors F_transforms
-    std::vector<std::vector<double>> F_transforms; // the different Fourier-transformed data; rho_t, kappa, rho_p, rho_n
+#pragma region define vectors F_absValSqs
+    std::vector<std::vector<double>> F_absValSqs; // the abs square of the different Fourier-transformed data; rho_t, kappa, rho_p, rho_n
     std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };
-    std::string ofname_extra = "_" + vm["method"].as<std::string>() + "_r" + std::to_string(res);
+    std::string ofname_extra = vm["method"].as<std::string>() + "_r" + std::to_string(res);
 
     std::vector<std::string> o_k_fn;
     for (const auto& name : names)
-        o_k_fn.push_back(of + ifname + ofname_extra + "_" + name + "_k.txt");
+        o_k_fn.push_back(of + ofname_extra + "_" + name + "_k.txt");
 
     std::vector<std::ofstream> o_kf(4); // output files for the k values; rho_t, kappa, rho_p, rho_n
 
     for (size_t i = 0; i < 4; ++i)
     {
-        F_transforms.push_back(std::vector<double>(res / 2 + 1));
+        F_absValSqs.push_back(std::vector<double>(res / 2 + 1));
         o_kf[i].open(o_k_fn[i]);
         if (!o_kf[i])
         {
@@ -241,7 +241,7 @@ int main(int argc, char** argv)
 
             for (size_t i = 0; i < 4; ++i)
                 for (size_t linenum = 0; linenum < res; ++linenum)
-                    AddFourierAbsVal1D(F_transforms[i], maps[i][linenum]);
+                    addFourierAbsValSq1D(F_absValSqs[i], maps[i][linenum]);                
         }
 
         if (um == gs) // Gauss-smoothing case
@@ -273,7 +273,7 @@ int main(int argc, char** argv)
                     maps[1][y][x] = maps[2][y][x] - maps[3][y][x];
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    AddFourierAbsVal1D(F_transforms[i], maps[i][y]);
+                    addFourierAbsValSq1D(F_absValSqs[i], maps[i][y]);
             }
         }
 
@@ -285,34 +285,24 @@ int main(int argc, char** argv)
             measure_area(dislocs, 0, size / 2, samp); // measure the area of the positive dislocations
             measure_area(dislocs, size / 2, size, samp); // measure the area of the negative dislocations
 
-            if (create_maps)
-            {
-                measure_density<true>(dislocs, samp, maps[2], maps[3]);
-
-                for (size_t i = 0; i < res; ++i)
-                    for (size_t j = 0; j < res; ++j)
-                    {
-                        maps[0][i][j] = maps[2][i][j] + maps[3][i][j];
-                        maps[1][i][j] = maps[2][i][j] - maps[3][i][j];
-                    }
-            }
-
-            std::vector<double> linedensity_p(res);
-            std::vector<double> linedensity_n(res);
-            std::vector<double> linedensity_t(res);
-            std::vector<double> linedensity_s(res);
             for (size_t y = 0; y < res; ++y)
             {
-                measure_density<true>(dislocs, y, samp, linedensity_p, linedensity_n);
-                AddFourierAbsVal1D(F_transforms[2], linedensity_p);
-                AddFourierAbsVal1D(F_transforms[3], linedensity_n);
+                std::vector<std::vector<double>> linedensities(4, std::vector<double>(res));
+                measure_density<true>(dislocs, y, samp, linedensities[2], linedensities[3]);
                 for (size_t x = 0; x < res; ++x)
                 {
-                    linedensity_t[x] = linedensity_p[x] + linedensity_n[x];
-                    linedensity_s[x] = linedensity_p[x] - linedensity_n[x];
+                    linedensities[0][x] = linedensities[2][x] + linedensities[3][x];
+                    linedensities[1][x] = linedensities[2][x] - linedensities[3][x];
                 }
-                AddFourierAbsVal1D(F_transforms[0], linedensity_t);
-                AddFourierAbsVal1D(F_transforms[1], linedensity_s);
+                for (size_t i = 0; i < 4; ++i)
+                    addFourierAbsValSq1D(F_absValSqs[i], linedensities[i]);
+
+                if (create_maps) // copy linedensity to the map
+                {
+                    for (size_t i = 0; i < 4; ++i)
+                        for (size_t x = 0; x < res; ++x)
+                            maps[i][y][x] = linedensities[i][x];
+                }
             }
         }
 
@@ -322,40 +312,31 @@ int main(int argc, char** argv)
                 std::get<2>(val) = 0;
 
             measure_area(dislocs, samp);
-
-            if (create_maps)
-            {
-                measure_density<false>(dislocs, samp, maps[0], maps[1]);
-                for (size_t i = 0; i < res; ++i)
-                    for (size_t j = 0; j < res; ++j)
-                    {
-                        maps[2][i][j] = (maps[0][i][j] + maps[1][i][j]) / 2;
-                        maps[3][i][j] = (maps[0][i][j] - maps[1][i][j]) / 2;
-                    }
-            }
-
-            std::vector<double> linedensity_p(res);
-            std::vector<double> linedensity_n(res);
-            std::vector<double> linedensity_t(res);
-            std::vector<double> linedensity_s(res);
+            
             for (size_t y = 0; y < res; ++y)
             {
-                measure_density<false>(dislocs, y, samp, linedensity_t, linedensity_s);
-                AddFourierAbsVal1D(F_transforms[0], linedensity_t);
-                AddFourierAbsVal1D(F_transforms[1], linedensity_s);
+                std::vector<std::vector<double>> linedensities(4, std::vector<double>(res));
+                measure_density<false>(dislocs, y, samp, linedensities[0], linedensities[1]);
                 for (size_t x = 0; x < res; ++x)
                 {
-                    linedensity_p[x] = (linedensity_t[x] + linedensity_s[x]) / 2;
-                    linedensity_n[x] = (linedensity_t[x] - linedensity_s[x]) / 2;
+                    linedensities[2][x] = (linedensities[0][x] + linedensities[1][x]) / 2;
+                    linedensities[3][x] = (linedensities[0][x] - linedensities[1][x]) / 2;
                 }
-                AddFourierAbsVal1D(F_transforms[2], linedensity_p);
-                AddFourierAbsVal1D(F_transforms[3], linedensity_n);
+                for (size_t i = 0; i < 4; ++i)
+                    addFourierAbsValSq1D(F_absValSqs[i], linedensities[i]);
+
+                if (create_maps) // copy linedensity to the map
+                {
+                    for (size_t i = 0; i < 4; ++i)
+                        for (size_t x = 0; x < res; ++x)
+                            maps[i][y][x] = linedensities[i][x];
+                }
             }
         }
 
         if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
         {
-            std::ofstream debo_disl_areafile(of + "deb_disl.txt");
+            std::ofstream debo_disl_areafile(of + ifname + ofname_extra + "deb_disl.txt");
             debo_disl_areafile << "# The positive and negative dislocations with their corresponding area.\n"
                 << "# The first half of the dislocations are positive, the rest are negative.\n"
                 << "# The area can be calculated separately for different types (in case wspn) or their joined set (in case wsts).\n";
@@ -363,14 +344,9 @@ int main(int argc, char** argv)
             for (const auto& d : dislocs)
                 debo_disl_areafile << d << "\n"; // print out to ofile
 
-            if (create_maps)
-            {
-                for (const auto& name : names)
-                    o_k_fn.push_back(of + ifname + ofname_extra + "_" + name + "_k.txt");
-
+            if (create_maps && (um == wsts || um == wspn))
                 for (size_t i = 0; i < 4; ++i)
                     gnuplotlevels(maps[i], of + ifname + ofname_extra + "_" + names[i] + "levels.txt");
-            }
         }
 
         if (create_maps)
@@ -389,8 +365,8 @@ int main(int argc, char** argv)
     }
 
     for (size_t i = 0; i < 4; ++i)
-        for (const auto& k : F_transforms[i])
-            o_kf[i] << k << "\n";
+        for (const auto& val : F_absValSqs[i])
+            o_kf[i] << val << "\n";
 
     std::cout << "Done. Program terminates." << std::endl;
     return 0;

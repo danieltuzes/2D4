@@ -335,19 +335,20 @@ void abs_val2(fftw_complex* c, int size) //absolute value square for complex num
     }
 }
 
-void AddFourierAbsVal1D(std::vector<double>& k, const std::vector<double>& linedensity)
+void addFourierAbsValSq1D(std::vector<double>& F_absValSq, const std::vector<double>& linedensity)
 {
     const int lsize = (int)linedensity.size(); // logical size
     const int psize = lsize / 2 + 1; // physical size, size of k
-    fftw_complex* tmp;
-    tmp = new fftw_complex[psize];
+    fftw_complex* lineTransform;
+    lineTransform = new fftw_complex[psize];
 
-    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&linedensity.front()), tmp, FFTW_ESTIMATE);
+    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&linedensity.front()), lineTransform, FFTW_ESTIMATE);
     fftw_execute(a);
 
     fftw_destroy_plan(a);
-    for (int i = 0; i < psize; ++i)
-        k[i] += tmp[i][0] * tmp[i][0] + tmp[i][1] * tmp[i][1];
+    for (int k = 0; k < psize; ++k)
+        F_absValSq[k] += (lineTransform[k][0] * lineTransform[k][0] + lineTransform[k][1] * lineTransform[k][1]);
+    delete[] lineTransform;
 }
 
 #pragma endregion

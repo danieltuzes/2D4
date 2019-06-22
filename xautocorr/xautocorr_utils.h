@@ -94,9 +94,8 @@ std::vector<double> autoCorrelation1D(const std::vector<double>&);
 // calculates the fourier values with fftw, and then calculates the absolute values of the elements
 std::vector<double> FourierAbsVal1D(const std::vector<double>&);
 
-// calculates the fourier values of linedensity, add it to k and returns a reference to k
-void AddFourierAbsVal1D(std::vector<double>& k, const std::vector<double>& linedensity);
-
+// calculates the fourier values of linedensity, add it to k
+void addFourierAbsValSq1D(std::vector<double>& F_absVal, const std::vector<double>& linedensity);
 
 #pragma endregion
 
