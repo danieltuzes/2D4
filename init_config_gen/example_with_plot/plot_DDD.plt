@@ -4,7 +4,7 @@ set size 1,1
 ifname = "1000_64.dconf"
 
 set term pdfcairo enhanced font "DejaVu Sans Disl,18" color
-set out sprintf("%s_unicode.pdf",ifname)
+set out ifname . ".pdf"
 
 set title "{/:Italic t}=0"
 unset key

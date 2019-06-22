@@ -17,7 +17,7 @@ Type `init_config_gen --help` to get the help. The program accepts the following
 * `--unsorted` or `-U`: optional switch. If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.
 * `--bare` or `-B`: optional swtich. If set, the configuration file name will not conatin the number of dislocations.
 
-![Illustration with A and n](init_pattern_gen.png "Figure to illustrate the effect of A and n")
+![Illustration with A and n](README_files/init_pattern_gen.png "Figure to illustrate the effect of A and n")
 
 ## Output
 The program creates the initial conditions in the folder `dislocation-configurations` relative to the binary, with filenames `ic_SEEDVALUE_N.txt`. The file format is as described in [2D4](https://github.com/danieltuzes/2D4). The output is a simple text file in the format
@@ -31,6 +31,6 @@ pos_N_x pos_N_y Burgers_vector_N
 If the default value of parameter `sorted` is kept `true`, then dislocations with positive Burger's vector come first with decreasing y coordinate. If `false` is set, dislocations comes with alternating Burger's vector and random coordinate values. Please keep in mind that line endings (`CR` and `LF`) will depend on your operating system.
 
 ### Plotting
-One of the possibilites to plot the dislocations is to use *gnuplot*. The provided `plot_unicode.plt` plots the dislocation configuration `1000_64.dconf`. To plot pretty dislocations, install the `DejaVuSansDisl.ttf` font onto your system (`C:\Windows\Fonts` on Windows and `~/.local/share/fonts` on most Linux). The script will create `1000_64.dconf_unicode.pdf` which will look like the figure below. Feel free to modify the gnuplot script or the font (please check the license for the font and don't abuse it).
+One of the possibilites to plot the dislocations is to use *gnuplot*. The provided `plot_DDD.plt` plots the dislocation configuration `1000_64.dconf` in folder `example_with_plot`. To plot pretty dislocations, install the `DejaVuSansDisl.ttf` font onto your system (`C:\Windows\Fonts` on Windows and `~/.local/share/fonts` on most Linux). The script will create `1000_64.dconf.pdf` which will look like the figure below. Feel free to modify the gnuplot script or the font (please check the license for the font and don't abuse it).
 
-![Example of a plot of the dislocation configuration](dislocation_configuration.png "Example of a plot of the dislocation configuration")
+![Example of a plot of the dislocation configuration](README_files/dislocation_configuration.png "Example of a plot of the dislocation configuration")

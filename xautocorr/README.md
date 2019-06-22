@@ -18,7 +18,14 @@ This is an advanced pattern finder for 2D dislocation configurations. Such confi
 * `--output-foldername` or `-o` (""): the output foldername relative to the executable.
 
 ## Methods
-### Box counting method
+### Box counting
 
-## Plot the results
+### Gauss-smmothening
+
+### Wigner-Seitz positive and negative
+
+### Wigner-Seitz total and signed
+
+## Ploting the results
+
 ### Density maps
