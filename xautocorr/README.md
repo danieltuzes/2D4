@@ -1,5 +1,5 @@
 # 2D4::xautocorr
-This is an advanced pattern finder for 2D dislocation configurations. Such configurations are created by 2D4::init_config_gen and used by 2D4:.2D_DDD_simulation.
+This is an advanced pattern finder for 2D dislocation configurations. Such configurations are created by 2D4::init_config_gen and used by 2D4\::2D_DDD_simulation.
 
 ## Dependencies
 * FFTW
@@ -19,13 +19,42 @@ This is an advanced pattern finder for 2D dislocation configurations. Such confi
 
 ## Methods
 ### Box counting
+The space is partitioned into `resolution` × `resolution` number of squares and in each square all the 4 dislocation densities are calculated. The density is the number of corresponding dislocations / area of the cell = `resolution` × `resolution` × the number of corresponding dislocations.
+
+ρ<sub>t</sub> and κ are plotted in the figure below. The size of the box is the average dislocation distance.
+![1000 64.Dconfbc R8 Ts.Txt](example_with_64_dislocations/1000_64.dconfbc_r8_ts.txt.png)
+
+ρ<sub>+</sub> and ρ<sub>-</sub> are plotted below.
+![1000 64.Dconfbc R8 Pn.Txt](example_with_64_dislocations/1000_64.dconfbc_r8_pn.txt.png)
 
 ### Gauss-smmothening
+The space is partitioned into `resolution` × `resolution` number of squares and each square is divided into `resolution` × `resolution` number of subcells. Each dislocation represents a density with a Gauss-distribution characterized by `half-width`. All the dislocation distributions are evaluated at the left bottom point of each subcell and added togather. The density of a cell is the sum of the density of its subcells. The density over the whole space is normalized afterwards.
+
+It is suggested to use subcell size smaller than the `half-width`, otherwise, dislocations which are the closest to the evaluation points will get overrepresented.
+
+ρ<sub>t</sub> and κ are plotted in the figure below. The size of the box is the average dislocation distance and a `--sub-sampling 4` and were `--half-width 0.125` were used.
+![1000 64.Dconfgs R8 Ts.Txt](example_with_64_dislocations/1000_64.dconfgs_r8_ts.txt.png)
+
+ρ<sub>+</sub> and ρ<sub>-</sub> are plotted below.
+![1000 64.Dconfgs R8 Pn.Txt](example_with_64_dislocations/1000_64.dconfgs_r8_pn.txt.png)
 
 ### Wigner-Seitz positive and negative
 
+The positive and negative dislocations form different sets when their density is being evaluated. In `resolution` × `resolution` number of points the space is analyzed and the dislocation is identified to which that point the closest is. Grouping the points together which are closest to the same dislocation defines a cell, the so-called (discrete) Wigner-Seitz cell of the dislocation. The area of the cell is proportional to the number of points in the cell. The density is then 1 / area.
+
+With the *positive and negative* method, the Wigner-Seitz partitioning is applied only on the set of positive dislocations, then on the negative dislocations giving the dislocation density for positive and negative dislocations. The total and signed density are calculated as the sum and difference of the two. Note that ρ<sub>+</sub> and ρ<sub>-</sub> can never be 0.
+
+In the picture below this partitioning can be seen for a dislocation configuration containing 64 dislocations. (This configuration can be obtained with [2D4::init_config_gen](https://github.com/danieltuzes/2D4/tree/master/init_config_gen) using `-N 64`, i.e., with seed value `-S 1000`.)
+![1000 64.Dconfwspn R512 Pn.Txt](example_with_64_dislocations/1000_64.dconfwspn_r512_pn.txt.png)
+
+The total and signed dislocation density is calculated and does not use Wigner-Seity partitioning, therefore, regions with constant densities may belong to no dislocation or to two dislocations, i.e., it is not partitioning (no walls are plotted accordingly). Also note that κ=0 is possible.
+![1000 64.Dconfwspn R512 Ts.Txt](example_with_64_dislocations/1000_64.dconfwspn_r512_ts.txt.png)
+
 ### Wigner-Seitz total and signed
+In contrast to the *positive and negative* case, here, densities are calculated using all the dislocations at once. That means that Wigner-Seitz cells are identified first, and the total dislocation density of the cell is calculated as 1 / area, the signed dislocation density is dislocation sign / area. ρ<sub>+</sub> is either equal to ρ<sub>t</sub> or 0 and same applies to ρ<sub>-</sub>. Furthermore, |κ| = ρ holds (pointwise) and none of them can be 0.
 
-## Ploting the results
+In the picture below, the ρ<sub>t</sub> and κ are presented. These are the primary quantities calculated using the Wiger-Seitz partitioning.
+![1000 64.Dconfwsts R512 Ts.Txt](example_with_64_dislocations/1000_64.dconfwsts_r512_ts.txt.png)
 
-### Density maps
+ρ<sub>+</sub> and ρ<sub>-</sub> are derived quantities, they are calculated in a trivial manner. In both cases one gets a partial partitioning.
+![1000 64.Dconfwsts R512 Pn.Txt](example_with_64_dislocations/1000_64.dconfwsts_r512_pn.txt.png)
