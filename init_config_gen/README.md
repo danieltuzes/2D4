@@ -12,12 +12,20 @@ Type `init_config_gen --help` to get the help. The program accepts the following
 * `--N arg` or `-N arg`: **mandatory** argument. The number of dislocations to simulate. Must be an even number, because the same amount of positive and negative dislocations must be found in the system.
 * `--seed-start arg` or `-S arg`: optional argument with default value `1000`. It is an integer used to populate the seed value of the random number generator engine.
 * `--seed-end arg` or `-E arg`: optional argument. If set, must be larger than `seed_start` and the program will create configuration files starting from seed value `seed-start`, increasing it one by one till it reaches `seed-end` (open interval).
-* `--pattern-strength` or `-A`: a probability desnity function 1 + A * sin(x * n * 2 π) will be used for ρ₊ and 1 - A * sin(x * n * 2 π) for ρ₋. A must be in the range [-1:1]. See fig. below.
+* `--pattern-strength` or `-A`: a floating point number in the range of [-1:1] representing the amplitude of the sinusoidal pattern.
 * `--linear-wavenumber` or `-n`: an integer describing how many times shall the sinusoidal wave fit into the simulation area. See fig. below.
+* `--pattern-type` or `-T`: a string selecting the distribution density to alter. `pn` refers to *positive and negative* dislocation density, ρ₊ and ρ₋, and `t` refers to total dislocation density, ρ<sub>t</sub>.
 * `--unsorted` or `-U`: optional switch. If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.
 * `--bare` or `-B`: optional swtich. If set, the configuration file name will not conatin the number of dislocations.
 
+### Patterns
+Different `pattern-type` values result in different distribution functions, a deviation from the uniform distribution.
+
+1. The default `pattern-type`, `pn`, is the abbreviation of *positive and negative*, referring to a sinusoidal deviation from the the uniform distribution. A probability desnity function 1 + A * sin(x * n * 2 π) will be used for ρ₊ and 1 - A * sin(x * n * 2 π) for ρ₋. A must be in the range [-1:1]. This function does not modify ρ<sub>t</sub>, as it is the sum of those. See fig. below.
+
 ![Illustration with A and n](README_files/init_pattern_gen.png "Figure to illustrate the effect of A and n")
+
+2. `--pattern-type t` produces dislocation densities ρ₊ = ρ₋ resulting in constant κ, but in fluctuating ρ<sub>t</sub>.
 
 ## Output
 The program creates the initial conditions in the folder `dislocation-configurations` relative to the binary, with filenames `ic_SEEDVALUE_N.txt`. The file format is as described in [2D4](https://github.com/danieltuzes/2D4). The output is a simple text file in the format
@@ -31,6 +39,6 @@ pos_N_x pos_N_y Burgers_vector_N
 If the default value of parameter `sorted` is kept `true`, then dislocations with positive Burger's vector come first with decreasing y coordinate. If `false` is set, dislocations comes with alternating Burger's vector and random coordinate values. Please keep in mind that line endings (`CR` and `LF`) will depend on your operating system.
 
 ### Plotting
-One of the possibilites to plot the dislocations is to use *gnuplot*. The provided `plot_DDD.plt` plots the dislocation configuration `1000_64.dconf` in folder `example_with_plot`. To plot pretty dislocations, install the `DejaVuSansDisl.ttf` font onto your system (`C:\Windows\Fonts` on Windows and `~/.local/share/fonts` on most Linux). The script will create `1000_64.dconf.pdf` which will look like the figure below. Feel free to modify the gnuplot script or the font (please check the license for the font and don't abuse it).
+One of the possibilites to plot the dislocations is to use *gnuplot*. The provided `plot_DDD.plt` plots the dislocation configuration `1000_64.dconf` in folder `example_with_plot`. To plot pretty dislocations, install the `DejaVuSansDisl.ttf` font onto your system (`C:\Windows\Fonts` on Windows and `~/.local/share/fonts` on most Linux). The script will create `1000_64.dconf.pdf` which will look like the figure below. Feel free to modify the gnuplot script or the font (please check the license of the font and don't abuse it).
 
 ![Example of a plot of the dislocation configuration](README_files/dislocation_configuration.png "Example of a plot of the dislocation configuration")
