@@ -1,6 +1,8 @@
 //
 // xautocorr.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
+#define VERSION_xautocorr "1.0"
+
 #include "xautocorr_utils.h"
 
 int main(int argc, char** argv)
@@ -15,8 +17,8 @@ int main(int argc, char** argv)
     optionalOptions.add_options()
         ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points and the number of the channels in autocorrelation will be the same. Please use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
         ("method,m", bpo::value<std::string>()->default_value("bc"), "The method to calculate the autocorrelation. wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signed, bc: box-counting, gs: Gauss-smoothing")
-        ("sub-sampling,s", bpo::value<int>()->default_value(16), "This is a parameter for method ws and gc. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
-        ("half-width,w", bpo::value<double>()->default_value(0.125), "This is a parameter for method gc. It tells how wide the Gauss-distribution should with which the dirac-delta densities should be concolved.")
+        ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
+        ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
         ("create-maps", "If set, the program will create the 2D density maps for rho_t and kappa.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "With what output filename prefix should the initial conditions be stored. Symbol ./ or empty string means here.")
         ("debug-level,d", bpo::value<int>()->default_value(0), "Debugging information to show.")
@@ -42,7 +44,7 @@ int main(int argc, char** argv)
 
     if (!vm.count("hide-copyright"))
     {
-        std::cout << "xautocorr from the 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
+        std::cout << "xautocorr (version " << VERSION_xautocorr << " with utils version " << VERSION_xautocorr_utils << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
             "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
     }
 #pragma endregion
@@ -101,19 +103,21 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-
     // output-path
-    std::string of(vm["output-fnameprefix"].as<std::string>()); // the output foldername
-    std::cout << "Files will be created in " << of << std::endl;
+    std::string of(vm["output-fnameprefix"].as<std::string>()); // the output filename prefix (potentially inculding foldername)
+    std::cout << "output-fnameprefix = \t" << of << std::endl;
 
     // methods
     size_t subs = vm["sub-sampling"].as<int>(); // subs-sampling rate
     size_t res = vm["resolution"].as<int>(); // the resolution of the autocorrelation map
     size_t samp = res * subs; // sampling rate for method ws
     method um = na; // the used method for the calculation
-    double sigma = vm["half-width"].as<double>();
+    double sigma;
+    size_t half_boxwidth;
+
     std::string methodname;
-    if (vm["method"].as<std::string>() == "wspn" || vm["method"].as<std::string>() == "wsts")
+    std::string methodnameabbrev = vm["method"].as<std::string>();
+    if (methodnameabbrev == "wspn" || methodnameabbrev == "wsts")
     {
         std::cout << "Sampling rate for ";
         if (vm["method"].as<std::string>() == "wspn")
@@ -128,16 +132,27 @@ int main(int argc, char** argv)
         }
         std::cout << methodname << ": " << samp << "\n";
     }
-    else if (vm["method"].as<std::string>() == "bc")
+    else if (methodnameabbrev == "bc")
     {
         um = bc;
         methodname = "box counting";
     }
-    else if (vm["method"].as<std::string>() == "gs")
+    else if (methodnameabbrev == "gs")
     {
-        std::cout << "Half-width of the Gauss-distribution: " << sigma << "\n";
-        if (sigma < (double)1 / samp)
-            std::cerr << "Warning: half-width is smaller than the sampling distance. Unwanted side-effect may arise. Consider using larger sampling or larger half-width. Program continues." << std::endl;
+        if (vm.count("half-width") == 0)
+        {
+            std::cerr << "Warning: no half-width were set by the user, it will be set automatically so that half-width * sub-sampling * resolution = 4 will hold." << std::endl;
+            sigma = (double)4 / samp;
+        }
+        else
+        {
+            sigma = vm["half-width"].as<double>();
+            if (sigma < (double)1 / samp)
+                std::cerr << "Warning: half-width is smaller than the sampling distance. Unwanted side-effect may arise. Consider using larger sampling or larger half-width. Program continues." << std::endl;
+        }
+        half_boxwidth = std::min(size_t(6 * sigma * samp) + 1, samp / 2);
+
+        std::cout << "Half-width of the Gauss-distribution: " << sigma << ", a dislocation affects 2*" << half_boxwidth << " * 2*" << half_boxwidth << " number of cells.\n";
         um = gs;
         methodname = "Gauss-smoothing";
     }
@@ -162,7 +177,7 @@ int main(int argc, char** argv)
 #pragma region define vectors F_absValSqs
     std::vector<std::vector<double>> F_absValSqs; // the abs square of the different Fourier-transformed data; rho_t, kappa, rho_p, rho_n
     std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };
-    std::string ofname_extra = vm["method"].as<std::string>() + "_r" + std::to_string(res);
+    std::string ofname_extra = methodnameabbrev + "_r" + std::to_string(res);
 
     std::vector<std::string> o_k_fn;
     for (const auto& name : names)
@@ -241,26 +256,34 @@ int main(int argc, char** argv)
 
             for (size_t i = 0; i < 4; ++i)
                 for (size_t linenum = 0; linenum < res; ++linenum)
-                    addFourierAbsValSq1D(F_absValSqs[i], maps[i][linenum]);                
+                    addFourierAbsValSq1D(F_absValSqs[i], maps[i][linenum]);
         }
 
         if (um == gs) // Gauss-smoothing case
         {
-            for (size_t y = 0; y < samp; ++y) // samp =  res * subs, it defines a more fine mesh
-                for (size_t x = 0; x < samp; ++x)
+            for (size_t i = 0; i < dislocs.size(); ++i)
+            {
+                double xcoord = std::get<0>(dislocs[i]);
+                double ycoord = std::get<1>(dislocs[i]);
+                size_t xid_min = ((size_t)((xcoord + 0.5) * samp - half_boxwidth) + samp) % samp;
+                size_t yid_min = ((size_t)((ycoord + 0.5) * samp - half_boxwidth) + samp) % samp;
+                pair disl_pos_xy(xcoord, ycoord);
+                for (size_t y = yid_min; y < yid_min + 2 * half_boxwidth; ++y)
                 {
-                    pair centerpoint((x + 0.5) / samp - 0.5, (y + 0.5) / samp - 0.5); // centerpoints of the fine mesh
-                    for (size_t i = 0; i < dislocs.size(); ++i)
+                    size_t yid = y % samp;
+                    for (size_t x = xid_min; x < xid_min + 2 * half_boxwidth; ++x)
                     {
-                        pair disl_pos_xy(std::get<0>(dislocs[i]), std::get<1>(dislocs[i]));
+                        size_t xid = x % samp;
+                        pair centerpoint((xid + 0.5) / samp - 0.5, (yid + 0.5) / samp - 0.5); // centerpoints of the fine mesh
                         double exponent = exp(-distsq(centerpoint, disl_pos_xy) / (2 * sigma * sigma));
 
                         if (i < size / 2) // positive dislocation
-                            maps[2][y / subs][x / subs] += exponent;
+                            maps[2][yid / subs][xid / subs] += exponent;
                         else // negative dislocation
-                            maps[3][y / subs][x / subs] += exponent;
+                            maps[3][yid / subs][xid / subs] += exponent;
                     }
                 }
+            }
 
             normalize(maps[2], res * res * (double)size / 2);
             normalize(maps[3], res * res * (double)size / 2);
@@ -312,7 +335,7 @@ int main(int argc, char** argv)
                 std::get<2>(val) = 0;
 
             measure_area(dislocs, samp);
-            
+
             for (size_t y = 0; y < res; ++y)
             {
                 std::vector<std::vector<double>> linedensities(4, std::vector<double>(res));
@@ -341,12 +364,13 @@ int main(int argc, char** argv)
                 << "# The first half of the dislocations are positive, the rest are negative.\n"
                 << "# The area can be calculated separately for different types (in case wspn) or their joined set (in case wsts).\n";
 
-            for (const auto& d : dislocs)
-                debo_disl_areafile << d << "\n"; // print out to ofile
-
             if (create_maps && (um == wsts || um == wspn))
+            {
+                for (const auto& d : dislocs)
+                    debo_disl_areafile << d << "\n"; // print out to ofile
                 for (size_t i = 0; i < 4; ++i)
                     gnuplotlevels(maps[i], of + ifname + ofname_extra + "_" + names[i] + "levels.txt");
+            }
         }
 
         if (create_maps)

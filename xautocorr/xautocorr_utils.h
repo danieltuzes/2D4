@@ -2,6 +2,9 @@
 // xautocorr_utils.h : contains the function declaration for xautocorr.cpp
 
 #pragma once
+
+#define VERSION_xautocorr_utils "1.0"
+
 #define _USE_MATH_DEFINES
 
 #pragma region includes
