@@ -1,7 +1,7 @@
 //
 // xautocorr.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xautocorr "1.0"
+#define VERSION_xautocorr 1.0
 
 #include "xautocorr_utils.h"
 
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
     if (!vm.count("hide-copyright"))
     {
-        std::cout << "xautocorr (version " << VERSION_xautocorr << " with utils version " << VERSION_xautocorr_utils << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
+        std::cout << "xautocorr (version " << std::setprecision(1) << std::fixed << (VERSION_xautocorr + VERSION_xautocorr_utils) << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
             "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
     }
 #pragma endregion
@@ -152,7 +152,7 @@ int main(int argc, char** argv)
         }
         half_boxwidth = std::min(size_t(6 * sigma * samp) + 1, samp / 2);
 
-        std::cout << "Half-width of the Gauss-distribution: " << sigma << ", a dislocation affects 2*" << half_boxwidth << " * 2*" << half_boxwidth << " number of cells.\n";
+        std::cout << "Half-width of the Gauss-distribution: " << sigma << ", a dislocation affects 2*" << half_boxwidth << " * 2*" << half_boxwidth << " number of subcells.\n";
         um = gs;
         methodname = "Gauss-smoothing";
     }

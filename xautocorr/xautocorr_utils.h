@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define VERSION_xautocorr_utils "1.0"
+#define VERSION_xautocorr_utils 1.0
 
 #define _USE_MATH_DEFINES
 
