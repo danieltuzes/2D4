@@ -40,7 +40,7 @@ int main(int argc, char** argv)
         ("seed-end,E", bpo::value<int>(), "An integer used as the last seed value for the random number generator, seed-end > seed_start must hold. If set, seed-end - seed-start number of initial configurations will be created.")
         ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the probability density function will be\n1 + A * sin(x * n * 2 pi) with A = pattern-strength for rho_+ and\n1 - A * sin(x * w * 2 pi) for rho_-. A must be in [-1:1].")
         ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5].")
-        ("pattern-type,t", bpo::value<std::string>()->default_value("pn"), "The pattern type in the density distribution.")
+        ("pattern-type,T", bpo::value<std::string>()->default_value("s"), "The pattern type in the density distribution.")
         ("unsorted,U", "If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "In which folder should the initial conditions be stored. Symbol ./ means here.")
         ("bare,B", "If set, filenames will not contain the value of the parameter N.")
@@ -128,19 +128,19 @@ int main(int argc, char** argv)
     else
         std::cout << "A =\t" << A << std::endl;
 
-    std::vector<std::pair<double, double>> cdfr_p, cdfr_n; // x,y values of the cumulative distribution function of rho_p and rho_m
+    std::vector<std::pair<double, double>> cdfr_p, cdfr_n; // x,y values of the cumulative distribution function of rho_p and rho_n
     if (A != 0)
     {
         int res = (int)sqrt(N) * 10 + 1000; // resolution for the inverse function lookup; heuristic guess
-        double n = vm["linear-wavenumber"].as<int>();
+        double n = vm["linear-wavenumber"].as<int>(); // linear-wavenumber
         for (int i = 0; i <= res; ++i)
         {
-            double x = (double)i / res - 0.5;
-            double yrp = 0.5 + x + A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI);
-            double yrn;
-            if (vm["pattern-type"].as<std::string>() == "pn") // positive and negative
+            double x = (double)i / res - 0.5; // the x position in dimensionless units, x∈[-0.5:0.5]
+            double yrp = 0.5 + x + A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI); // the y values for the rho_p distribution
+            double yrn; // the y values for the rho_n distribution
+            if (vm["pattern-type"].as<std::string>() == "s") // signed, i.e. κ has patterns
                 yrn = 0.5 + x - A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI);
-            else
+            else // total, i.e. ρ_t has patterns
                 yrn = yrp;
             cdfr_p.push_back(std::pair<double, double>(x, yrp));
             cdfr_n.push_back(std::pair<double, double>(x, yrn));
