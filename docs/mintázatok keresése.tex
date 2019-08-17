@@ -1,0 +1,94 @@
+ \documentclass[10pt,a4paper]{scrartcl}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{bm}
+\let\mathbf\bm
+\usepackage[left=2.5cm, right=3cm, top=2cm]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[magyar]{babel}
+\usepackage{lmodern}
+
+\usepackage{placeins}
+\usepackage{subcaption}
+\usepackage{epstopdf}
+\usepackage{media9}
+\usepackage{xcolor}
+\usepackage[hidelinks,unicode]{hyperref}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+\usepackage[most]{tcolorbox}
+\tcbset{highlight math style={
+	enhanced,
+	boxrule=0pt,
+	colframe=blue,
+	colback=white,
+	arc=0pt,
+	boxrule=0pt,
+	left={3pt},
+	right={3pt},
+	top={3pt},
+	bottom={3pt}}}
+
+\usepackage{cleveref}
+\newcommand*\Laplace{\mathop{}\!\mathbin\bigtriangleup}
+
+\title{Diszlokációmintázatok keresése DDD-ben}
+\author{Tüzes Dániel}
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Ismertető}
+A diszlokációmintázatokat már a legelső mérésekben látták, így az alakítási keményedés után -- nekem mindenképp -- az egyik legérdekesebb jelenség. A 2016-os PRB cikkben sikerült megmutatni egy konzisztensen felépített continuum modellben a diszlokációk mintázatát, ugyanakkor az annak alapjául szolgáló diszkrét rendszerben még nem.
+
+Egy diszkrét rendszerben a legfőbb nehézséget a módszer számítási költsége jelenti, ami miatt nehéz olyan nagy részecskeszámú szimulációt futtatni, ami alkalmas lehet a mintázatok megmutatására. Éppen ezért fontos, hogy a legmegfelelőbb módszerrel elemezzük a szimulációkat mintázatok után kutatva, azaz hogy már a legkevesebb szimuláció alapján magabiztosan meg lehessen mutatni a szimuláció során kiemelkedő mintázatokat, pontosabban szólva a hozzájuk tartozó hullámhosszt.
+
+Egy diszkrét rendszerben a mintázat megmutatása nem egy triviális feladat, mert Dirac-delták összegeként áll elő a triviálisan definiálható sűrűségtér-függvény. Sokkal könnyebb mintázatot megmutatni egy skalártérben, ahol a tér Fourier-transzformáltjának a vizsgálatával egyszerűen megmutatható a mintázat.
+
+Felmerül tehát a probléma, hogy hogyan származtathatunk egy szépen kezelhető, véges értékű, diszlokációsűrűség-teret egy diszkrét diszlokációdinamikai szimulációban. Ez a feladat nem triviális. Ezen térmennyiségek pontos definíciója arra alapul, hogy a részecskeszám növelésével, határértékben hova tart az eloszlás. A gond, hogy éppenséggel a részecskeszám növelése az, amit el szeretnénk kerülni a költségessége miatt. A terek értékének becslésére többfajta módszer is lehetséges, és a már eddig is használt módszerek ugyan feltehetően teljesítik azt, hogy a terek becsült értéke határértékben (végtelen részecskeszám esetén) megegyezik a valódival, de az volna előnyös, ha már véges részecskeszám mellett is megtalálnánk azt a módszert, amely által a diszkrét rendszerből előállított eloszlások a legjobban közelítik a határértékben előállóakat.
+
+Tehát egy hatékony diszlokációmintázat-elemző kiértékelés első lépéseként azt a feladatot kell megoldani, hogy megtaláljuk, egy diszkrét diszlokációeloszláshoz hogyan tudjuk a legjobban megbecsülni a diszlokációsűrűség-tereket a legkisebb diszlokációszám mellett.
+\footnote{Ez a probléma lényegében a 2D-s általánosítása egy már régen ismert problémának, miszerint ha vannak mérési eredményeim egyetlen valaminek (pontnak) a mennyiségéről, amelyek értékei nem egyeznek, akkor mi a legvalószínűbb értéke ennek a mennyiségnek. Viszonylag tág körben erre az a magától értetődő válasz a megfelelő, hogy az átlag a legvalószínűbb mennyiség (ez Gauss-eloszlású hiba esetén könnyen igazolható is).}
+
+\section{Diszlokációsűrűség-eloszlás becslés módszerei}
+Az eddig alkalmazott módszereket és egy új módszert mutatok be a diszlokációsűrűség-eloszlás becslésésre.
+
+\subsection{Box counting}
+A legegyszerűbb módszer a box counting, amelyben a teret első lépésben felosztjuk egyforma méretű négyzetekre (dobozokra, skatulyákra), és azt mondjuk, hogy egy négyzeten belül a diszlokációsűrűség állandó, értéke pedig a benne lévő diszlokációk száma osztva a négyzet területével. Ennek a módszernek a paramétere a négyzet mérete, amelynek optimális mérete valahol az átlagos diszlokációtávolság környéként helyezkedik el.
+
+\subsection{Gauss-elkenés}
+A Dirac-delták összegként előálló, diszkrét diszlokációsűrűséget konvolváljuk egy Gauss-eloszlással, ezáltal téve őket végessé. 
+
+\section{A becslések elemzési szempontjai}
+Az eddig alkalmazott módszereket és egy új módszert mutatok be a diszlokációsűrűség-eloszlás becslésésre. Az egyszerűség kedvéért először nem egyensúlyi diszlokációrendszereket használok, mert ezeken előre tudható, hogy milyen mintázatokat kell tudni kimutatni. Az elemzés alapja, hogy
+\begin{enumerate}
+    \item ismert diszlokcáiósűrűség-eloszláshoz generálok diszkrét eloszlásokat,
+    \item a diszkrét eloszlásokhoz újra folytonos eloszlásokat rendelek, különféle módszerekkel, ezek lesznek a diszkrét rendszer alapján becsült diszlokációsűrűség-eloszlásaim,
+    \item a becsült sűrűségeloszlást összevetem az eredetivel, és megnézem, hogy a különféle módszerek közül melyik adja a legjobb eredményt.különféle módszerekkel
+\end{enumerate}
+
+A módszereket két fő szempont szerint hasonlítom össze.
+\begin{enumerate}
+    \item Valódi térben eltérés négyzet, azaz a tér elég sok pontjára kiszámolom a becsült és valódi tér sűrűségértékeinek a különbségnégyzetét. Ez konkrétan megadja a becslés jóságát. Azt várom, hogy minél több az eloszláshoz generált diszlokáció, annál pontosabb lesz mindegyik becslési módszer, viszont az egyik módszer a többinél hatékonyabb lesz.
+    \item Fourier térben ismert hullámhossz keresése. Ennek során a diszlokációsűrűségre egy gyengébb szinuszos jelet adok, majd megnézem, hogy melyik módszerrel tudom a leghatékonyabban megmutatni ezt a jelet. Ezt a szempontot használva épp a mintázatkereső képességét értékelem ki a módszernek.
+\end{enumerate}
+
+Reményeim szerint a két módszer ugyanazt az eredményt adja, vagyis amelyik helyesebben becsüli a diszlokációsűrűséget, az lesz az, amelyik a mintázatot is hatékonyabban találja meg. A második módszer a következő, triviálisnak gondolt kijelentésnek az ellenőrzése. "Teljesen mindegy, hogy milyen módszerrel becsülöm a diszlokációsűrűséget, hiszen elég nagy diszlokációszámra a módszerem úgyis a valódi eloszláshoz fog tartani!" Látni fogjuk, hogy ez nem igaz, mert a különféle módszerek érzékenységei között lényegi különbségek vannak. Az első módszer pedig arra alkalmas kiváltképp, hogy megállapítsuk vele, hogyan kell 1-1 módszert finomhangolni a legjobb eredmény eléréséhez.
+
+Joggal merülhet fel a kérdés, hogy egy korrelálatlanul kiosztott diszlokáció-elrendeződésre optimális módszer miért volna a legmegfelelőbb egy valódi diszlokációelrendeződésre, amiről tudható, hogy erősen korrelált. Úgy gondolom, hogy mivel diszlokációmintázatban éppen ezt a korreláltságot szeretnénk kimutatni, nem volna jó olyan módszer után kutatni, ami egy valamilyen fajta korreláltságra optimalizált, vagy bármit is feltételez az eloszlásról, tekintve, hogy ezeket részleteiben nem ismerjük, és éppen, hogy aktívan kutatott terület. Ezért azt a módszert keresem, ami semmit sem feltételezve az elrendeződésről, leginkább a gyenge mintázatok területén a legeredményesebb.
+
+\section{A becslési módszerek hangolása}
+
+\section{A becslési módszerek összehasonlítása}
+
+\section{Következtetés és összefoglaló}
+\end{document}
