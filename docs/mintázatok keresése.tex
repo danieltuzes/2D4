@@ -60,13 +60,36 @@ Tehát egy hatékony diszlokációmintázat-elemző kiértékelés első lépés
 \footnote{Ez a probléma lényegében a 2D-s általánosítása egy már régen ismert problémának, miszerint ha vannak mérési eredményeim egyetlen valaminek (pontnak) a mennyiségéről, amelyek értékei nem egyeznek, akkor mi a legvalószínűbb értéke ennek a mennyiségnek. Viszonylag tág körben erre az a magától értetődő válasz a megfelelő, hogy az átlag a legvalószínűbb mennyiség (ez Gauss-eloszlású hiba esetén könnyen igazolható is).}
 
 \section{Diszlokációsűrűség-eloszlás becslés módszerei}
-Az eddig alkalmazott módszereket és egy új módszert mutatok be a diszlokációsűrűség-eloszlás becslésésre.
+Az eddig alkalmazott módszereket és egy új módszert mutatok be a diszlokációsűrűség-eloszlás becslésésre. A vizsgált tér terjedelme $\left[ { - 0.5:0.5} \right] \times \left[ { - 0.5:0.5} \right]$.
 
 \subsection{Box counting}
-A legegyszerűbb módszer a box counting, amelyben a teret első lépésben felosztjuk egyforma méretű négyzetekre (dobozokra, skatulyákra), és azt mondjuk, hogy egy négyzeten belül a diszlokációsűrűség állandó, értéke pedig a benne lévő diszlokációk száma osztva a négyzet területével. Ennek a módszernek a paramétere a négyzet mérete, amelynek optimális mérete valahol az átlagos diszlokációtávolság környéként helyezkedik el.
+A legegyszerűbb módszer a box counting, amelyben a teret első lépésben felosztjuk egyforma méretű, $a \le 1$ oldalhosszúságú négyzetekre (dobozokra, skatulyákra), és azt mondjuk, hogy egy négyzeten belül a diszlokációsűrűség állandó, értéke pedig a benne lévő diszlokációk száma osztva a négyzet területével. Ennek a módszernek a paramétere a négyzet mérete, amelynek optimális mérete valahol az átlagos diszlokációtávolság környéként helyezkedik el.
+
+A négyzetekből $\left( {1/a} \right) \times \left( {1/a} \right)$ darab van, és a sűrűséget minden négyzetben pontosan egyszer értékelem ki.
+
+Ha például 1024 diszlokáció van, akkor körülbelül $32\times 32$ darab négyzetünk lesz. Minden négyzetben a négyzeten belül a sűrűség állandó, a négyzet oldalhossza pedig $1/32 = 0.03125$
 
 \subsection{Gauss-elkenés}
-A Dirac-delták összegként előálló, diszkrét diszlokációsűrűséget konvolváljuk egy Gauss-eloszlással, ezáltal téve őket végessé. 
+A Dirac-delták összegként előálló, diszkrét diszlokációsűrűséget konvolváljuk egy Gauss-eloszlással, ezáltal téve őket végessé. Ennek a módszernek a paramétere a Gauss-eloszlás $\sigma$ félérték-szélessége, amelynek optimális mérete szintén valahol az átlagos diszlokációtávolság környéként helyezkedik el.
+
+Egy nem triviális, numerikus paramétere is van a modellnek, amely megmondja, hogy mekkora felbontásban ábrázoljuk a teret. Míg ugyanis a \textit{box counting} esetében ugyanazt a sűrűségértéket kapnám, ha cellánként több értéket tárolnánk, itt nem. Ahhoz, hogy egy diszlokáció jelenlétét mutató Gauss-eloszlását elégszer mintavételezhessük, az kell, hogy a félérték szélsséghez képest annál minél apróbb lépéseiben tapogassuk le a teret. Egy durva letapogatás azt eredményezné, hogy egyes, mintavételezési ponthoz közeli diszlokációkat sokkal erősebben, míg mintavételezési ponttól távoli diszlokációt kissebb súllyal vennénk figyelembe. A mind nagyobb mintavételezési sűrűség biztosítja, hogy a diszlokációkat mind egyenlőbb súllyal vegyük figyelembe, azonban eltérések mindig lesznek. A becsült pozitív és negatív diszlokációsűrűség terek normálási tényezőjét ezért numerikusan úgy állítom be, hogy a sűrűségből számolt teljes részecskeszám a kívánt értéket adja.
+
+Illetve technikai okokból bevezethetünk egy részmintavételezés (subsampling) számot is. Ennek során egy sűrűségértéket nem egyetlen pont értékéből határozom meg, hogy a ponthoz tartozó területen kiosztott további pontok átlagaként.
+
+Példa 1024 diszlokáció esetén: a félérték szélesség 0.03125, a felbontás $32\times 32$. Minden egyes eltárolt sűrűségértéket pedig $4\times 4$ részmintából határozom meg.
+
+A sűrűségértéket általános az alábbi képlettel határozom meg:
+\[{\rho _ \pm }\left( {\mathbf{r}} \right) = {C_ \pm } \cdot \sum\limits_{i \in {I_ \pm }} {\left( {\frac{1}{{\left| S \right|}}\sum\limits_{s \in S} {{e^{ - \frac{{{{\left| {\left( {{\mathbf{r}} + {{\mathbf{r}}_s}} \right) - {{\mathbf{r}}_i}} \right|}^2}}}{{2{\sigma ^2}}}}}} } \right)} ,\]
+amelyben ${\mathbf{r}}$ az egységnégyzeten belüli $r\times r$-es rács pontjaiba mutat (ahol $r$ a felbontás, vagyis az egy irányban eltárolt térsűrűségértékek száma), $I_\pm$ a pozitív illetve negatív diszlokációk indexhalmaza, $S$ a részmintavételezési-helyvektorok indexhalmaza, ${{\mathbf{r}}_s}$ a cellán belüli, subsampling négyzetrács pontjaiba mutat, amelyekből ${\left| S \right|}$ darab van, ${C_ \pm }$ pedig úgy van megválasztva, hogy \[\sum\limits_{{\mathbf{r}} \in {\text{rácspont}}} {{\rho _ \pm }\left( {\mathbf{r}} \right) \cdot {a^2}}  = \left| {{I_ \pm }} \right|\]
+teljesüljön.
+
+\subsection{Wigner-Seitz}
+Az alapvető gondolat ezekben a módszerekben, hogy egy részecske a térnek azon pontjairól hordoz információt, amely pontokhoz ő a legközelebb áll. Tehát ha például a részecskéhez tartozó sűrűséget akarjuk meghatározni, akkor meg kell nézni, hogy mi a részecskéhez tartozó Wigner-Seitz cella, illetve mekkora ennek a mérete. A cellán belül a térsűrűség állandó, értéke pedig $\frac{1}{\text{a cella területe}}$.
+
+Tekintve, hogy két fajta sűrűség van, és ezekből teljes, illetve előjeles összegeket is definiálhatunk, kétféle almódszerre bontható ez a módszer.
+
+\subsubsection{Pozitív és negatív}
+\subsubsection{Teljes és előjeles}
 
 \section{A becslések elemzési szempontjai}
 Az eddig alkalmazott módszereket és egy új módszert mutatok be a diszlokációsűrűség-eloszlás becslésésre. Az egyszerűség kedvéért először nem egyensúlyi diszlokációrendszereket használok, mert ezeken előre tudható, hogy milyen mintázatokat kell tudni kimutatni. Az elemzés alapja, hogy
