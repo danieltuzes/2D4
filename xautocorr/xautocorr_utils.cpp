@@ -15,8 +15,6 @@
 #include <numeric>
 #include <cmath>
 
-namespace bpo = boost::program_options;
-
 std::istream& operator >> (std::istream& in, disl& d)
 {
     double posx = 0, posy = 0;
@@ -251,6 +249,7 @@ void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fnam
 }
 
 # pragma region Fourier analysis and correlation
+// self-written basic implementation
 void autocorr(const std::vector<double>& data_in, std::vector<double>& data_out)
 {
     int n = static_cast<int>(data_in.size());
@@ -259,6 +258,20 @@ void autocorr(const std::vector<double>& data_in, std::vector<double>& data_out)
         data_out[shift] = 0;
         for (int i = 0; i < n; ++i)
             data_out[shift] += data_in[i] * data_in[(i + shift) % n];
+    }
+}
+
+// self-written basic implementation
+void fouriertr(const std::vector<double>& data_in, std::vector<fftw_complex>& data_out)
+{
+    int n = static_cast<int>(data_in.size());
+    for (int k = 0; k < n; ++k)
+    {
+        for (int j = 0; j < n; ++j)
+        {
+            data_out[k][0] += data_in[j] * cos(2 * (M_PI * j * k) / n);
+            data_out[k][1] -= data_in[j] * sin(2 * (M_PI * j * k) / n);
+        }
     }
 }
 
@@ -281,6 +294,7 @@ void normalize(std::vector<std::vector<double>>& in, double norm)
             value /= sum;
 }
 
+// effective fftw implementation
 std::vector<double> autoCorrelation1D(const std::vector<double>& data)
 {
     static int lsize = (int)data.size();
@@ -306,15 +320,16 @@ std::vector<double> autoCorrelation1D(const std::vector<double>& data)
     return ret;
 }
 
-std::vector<double> FourierAbsVal1D(const std::vector<double>& data)
+// effective fftw implementation
+std::vector<double> FourierAbsVal1D(const std::vector<double>& data_in)
 {
-    const int lsize = (int)data.size(); // logical size
+    const int lsize = (int)data_in.size(); // logical size
     const int psize = lsize / 2 + 1; // physical size
     std::vector<double> ret(psize, 0);
     fftw_complex* tmp;
     tmp = new fftw_complex[psize];
 
-    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&data.front()), tmp, FFTW_ESTIMATE);
+    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&data_in.front()), tmp, FFTW_ESTIMATE);
     fftw_execute(a);
 
     fftw_destroy_plan(a);
@@ -323,6 +338,20 @@ std::vector<double> FourierAbsVal1D(const std::vector<double>& data)
 
     delete[] tmp;
     tmp = nullptr;
+    return ret;
+}
+
+// effective fftw implementation
+std::vector<fftw_complex> FourierTransform1D(const std::vector<double>& data_in)
+{
+    const int lsize = (int)data_in.size(); // logical size
+    const int psize = lsize / 2 + 1; // physical size
+    std::vector<fftw_complex> ret(psize);
+
+    fftw_plan a = fftw_plan_dft_r2c_1d(lsize, const_cast<double*>(&data_in.front()), const_cast<fftw_complex*>(&ret.front()), FFTW_ESTIMATE);
+    fftw_execute(a);
+
+    fftw_destroy_plan(a);
     return ret;
 }
 
@@ -366,25 +395,74 @@ void randomfill(std::vector<double>& in)
 void test_fourier_and_corr()
 {
     const int res = 1024;
-    std::vector<double> in(res);
+    std::vector<double> in(res);    // example data of uncorrelated values
 
     randomfill(in);                 // fill in the vector data with random values for testing
-    std::vector<double> correlation(res, 0);
-    auto FourierComp_fftw = FourierAbsVal1D(in);   // the fourier component of the function
-    auto correlation_fftw = autoCorrelation1D(in); // calculate correlation with fftw
-    autocorr(in, correlation);                     // autocorrelation is calculated by hand
+    std::vector<double> autocorrelation(res, 0);       // to store the autocorrelation calculated by hand
+    autocorr(in, autocorrelation);                     // autocorrelation is calculated by hand
 
-    std::ofstream ofile("test.txt");
+    std::vector<fftw_complex> fouriertransform(res);   // to store the fourier components calculated by hand
+    fouriertr(in, fouriertransform);                   // fourier components are now calculated by hand
+
+    auto FourierComp_fftw = FourierAbsVal1D(in);   // the abs value of the fourier components of the function
+    auto correlation_fftw = autoCorrelation1D(in); // calculates the autocorrelation with fftw
+    auto Fourier_fftw = FourierTransform1D(in);    // the fourier components of the function
+
+
+    std::ofstream ofile("fourier_test.txt");
     if (!ofile)
     {
         std::cerr << "Cannot write file.";
         exit(0);
     }
     else
-        ofile << std::setprecision(16) << "# linedensity[i]\tcorrelation[i]/" << res << "\tcorrelation_fftw[i]\tFourierComp_fftw[i]\n";
+        ofile << "# linedensity[i]\tfouriertransform[0]\tfouriertransform[1]\tFourierTransform1D[0]\tFourierTransform1D[1]\tautocorrelation[i]/" << res << "\tcorrelation_fftw[i]\tFourierComp_fftw[i]\n" << std::setprecision(16);
 
     for (size_t i = 0; i < res; ++i)
-        ofile << in[i] << "\t" << correlation[i] / res << "\t" << correlation_fftw[i] << "\t" << FourierComp_fftw[i < res - i ? i : res - i] << "\n";
+        ofile << in[i] << "\t"
+        << fouriertransform[i][0] << "\t"
+        << fouriertransform[i][1] << "\t"
+        << Fourier_fftw[i < res - i ? i : res - i][0] << "\t"
+        << Fourier_fftw[i < res - i ? i : res - i][1] << "\t"
+        << autocorrelation[i] / res << "\t"
+        << correlation_fftw[i] << "\t"
+        << FourierComp_fftw[i < res - i ? i : res - i] << "\n";
+}
+
+void test_dirac(int k)
+{
+    const int res = 1024;
+    std::vector<double> in_bc(res);    // example data of patterned values
+    for (int i = 0; i < res; ++i)
+        in_bc[i] = sin((i + 0.5) / res * 2 * M_PI * k) + 1;
+
+    std::vector<double> pos;
+    for (int i = 0; i < res; ++i)
+    {
+        int n = static_cast<int>(in_bc[i] * 100);
+        for (int j = 0; j < n; ++j)
+            pos.push_back(i + static_cast<double>(j) / n);
+    }
+
+    std::ofstream ofile_c("dirac_test_cont.txt");
+    std::ofstream ofile_d("dirac_test_disc.txt");
+    std::ofstream ofile_f("dirac_test_fourier.txt");
+    if (!ofile_c || !ofile_d || !ofile_f)
+    {
+        std::cerr << "Cannot write file.";
+        exit(0);
+    }
+    else
+    {
+        ofile_c << "# density[i], the (dislocation, whatever) density\n";
+        ofile_d << "# position[i], the coordinate of a particle (dislocation)\n";
+    }
+    for (auto intensity : in_bc)
+        ofile_c << intensity << "\n";
+
+    for (auto xcoord : pos)
+        ofile_d << xcoord << "\n";
+
 
 }
 #pragma endregion

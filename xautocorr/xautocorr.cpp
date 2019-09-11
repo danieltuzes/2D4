@@ -7,6 +7,9 @@
 
 int main(int argc, char** argv)
 {
+    // test_dirac(3);
+    // return 0;
+
 #pragma region read in variables
     bpo::options_description requiredOptions("Required options"); // must be set from command line or file
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
@@ -176,10 +179,10 @@ int main(int argc, char** argv)
 
 #pragma region define vectors F_absValSqs
     std::vector<std::vector<double>> F_absValSqs; // the abs square of the different Fourier-transformed data; rho_t, kappa, rho_p, rho_n
-    std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };
-    std::string ofname_extra = methodnameabbrev + "_r" + std::to_string(res);
+    std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };  // rho_t, kappa, rho_p, rho_n
+    std::string ofname_extra = methodnameabbrev + "_r" + std::to_string(res); // method name and resolution
 
-    std::vector<std::string> o_k_fn;
+    std::vector<std::string> o_k_fn; // output filenames for the Fourier components of rho_t, kappa, rho_p and rho_n
     for (const auto& name : names)
         o_k_fn.push_back(of + ofname_extra + "_" + name + "_k.txt");
 

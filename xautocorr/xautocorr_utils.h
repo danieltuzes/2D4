@@ -105,5 +105,7 @@ void addFourierAbsValSq1D(std::vector<double>& F_absVal, const std::vector<doubl
 // sandbox playing area
 void test_fourier_and_corr();
 
+void test_dirac(int k);
+
 // fill up the whole vector with some arbitrary content
 void randomfill(std::vector<double>&);
