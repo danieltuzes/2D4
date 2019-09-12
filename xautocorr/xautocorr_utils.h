@@ -30,8 +30,8 @@ using disl = std::tuple<double, double, int>;
 
 using pair = std::pair<double, double>;
 
-// Wigner-Seitz, Box-counting and Gauss-smoothing; na: default value, wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signer, bc: box-counting, gc: Gauss-convolution
-enum method { na, wspn, wsts, bc, gs };
+// Wigner-Seitz, Box-counting and Gauss-smoothing; na: default value, wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signer, bc: box-counting, gc: Gauss-convolution, df: direct Fourier
+enum method { na, wspn, wsts, bc, gs, df };
 
 std::istream& operator >> (std::istream&, disl&);
 std::ostream& operator << (std::ostream&, const disl&);
@@ -102,10 +102,15 @@ void addFourierAbsValSq1D(std::vector<double>& F_absVal, const std::vector<doubl
 
 #pragma endregion
 
-// sandbox playing area
+#pragma region sandbox playing area
+
+// random adatokkal feltölt egy 1D-s tömböt, aztán megnézi a Fourier komponenseit és az autokorrelációját, hogy megbizonyosdjak róla, hogy jól tudom használni az FFTW-t, ugyanis az autokorrelációt én is jól ki tudom számolni
 void test_fourier_and_corr();
 
-void test_dirac(int k);
+// ha már megy az FFTW módszere, akkor megnézem, hogy dirac delták összegére ki tudom-e kézzel én is számolni a Fourier trafót. A Dirac delták összegét boxcounting segítségével elkenem, azon pedig FFTW már jól használható
+void test_dirac(int);
 
-// fill up the whole vector with some arbitrary content
+// feltölti a vektort random értékekkel
 void randomfill(std::vector<double>&);
+
+#pragma endregion

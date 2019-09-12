@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv)
 {
-    // test_dirac(3);
+    // test_dirac(23);
     // return 0;
 
 #pragma region read in variables
@@ -18,8 +18,8 @@ int main(int argc, char** argv)
         ("input-fname,i", bpo::value<std::string>(), "The file name of the dislocation configuration file ending with .dconf. If it ends with .ini, a file containing the file names is expected: 1 filename per line.");
 
     optionalOptions.add_options()
-        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points and the number of the channels in autocorrelation will be the same. Please use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
-        ("method,m", bpo::value<std::string>()->default_value("bc"), "The method to calculate the autocorrelation. wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signed, bc: box-counting, gs: Gauss-smoothing")
+        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points and the number of the Fourier components will be the same (for all methods except df, where it only means the number of Fourier components). Please use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
+        ("method,m", bpo::value<std::string>()->default_value("bc"), "The method to investigate the pattern.\n - wspn: Wigner-Seitz positive and negative\n - wsts: Wigner-Seitz total and signed\n - bc: box-counting\n - gs: Gauss-smoothing\n - df: direct Fourier")
         ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
         ("create-maps", "If set, the program will create the 2D density maps for rho_t and kappa.")
@@ -159,13 +159,18 @@ int main(int argc, char** argv)
         um = gs;
         methodname = "Gauss-smoothing";
     }
+    else if (methodnameabbrev == "df")
+    {
+        um = df;
+        methodname = "direct Fourier";
+    }
 
     // extra infos
     bool create_maps = false;
     if (vm.count("create-maps"))
     {
         create_maps = true;
-        std::cout << "Density maps will be created." << std::endl;
+        std::cout << "Maps will be created for direct or k space density." << std::endl;
     }
 
     int debug_level = vm["debug-level"].as<int>();
@@ -206,6 +211,7 @@ int main(int argc, char** argv)
     {
 #pragma region create maps
         std::vector<std::vector<std::vector<double>>> maps; // the 2D maps for rho_t, kappa, rho_p, rho_n
+        std::vector<std::vector<std::vector<double>>> imaps; // the imaginary 2D maps for rho_t, kappa, rho_p, rho_n for the case df
 
         std::vector<std::string> o_maps_fn;
         for (const auto& name : names)
@@ -213,10 +219,15 @@ int main(int argc, char** argv)
 
         std::vector<std::ofstream> o_maps(4); // output files for the maps; rho_t, kappa, rho_p, rho_n
 
-        if (create_maps || um == bc || um == gs) // bc and gs relies on the maps, but they won't be printed
+        if (create_maps || um == bc || um == gs || um == df) // bc and gs relies on the maps, but they won't be printed; df needs whole k to be calculated
         {
             for (size_t i = 0; i < 4; ++i)
-                maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res, 0)));
+            {
+                if (um != df)
+                    maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
+                else
+                    imaps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
+            }
         }
 
 #pragma endregion
@@ -360,6 +371,32 @@ int main(int argc, char** argv)
             }
         }
 
+        if (um == df)
+        {
+            for (int i = 0; i < static_cast<int>(dislocs.size()); ++i)
+                for (int kx = 0; kx < res; ++kx)
+                    for (int ky = 0; ky < res; ++ky)
+                    {
+                        maps[0][kx][ky] += cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                        imaps[0][kx][ky] -= sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+
+
+                        maps[1][kx][ky] += std::get<2>(dislocs[i]) * cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                        imaps[1][kx][ky] -= std::get<2>(dislocs[i]) * sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+
+                        if (std::get<2>(dislocs[i]) == 1) // positive dislocation; if i<dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
+                        {
+                            maps[2][kx][ky] += cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                            imaps[2][kx][ky] -= sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                        }
+                        else  // negative dislocation
+                        {
+                            maps[3][kx][ky] += cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                            imaps[3][kx][ky] -= sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                        }
+                    }
+        }
+
         if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
         {
             std::ofstream debo_disl_areafile(of + ifname + ofname_extra + "deb_disl.txt");
@@ -385,7 +422,11 @@ int main(int argc, char** argv)
                     std::cerr << "Cannot create " << o_maps_fn[i] << ". Program terminates." << std::endl;
                     exit(-1);
                 }
-                o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+                if (um != df)
+                    o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+                else
+                    o_maps[i] << "# This file contains the Fourier components (real, tab, imag) of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+
                 o_maps[i] << maps[i];
             }
 

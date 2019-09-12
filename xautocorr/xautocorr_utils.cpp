@@ -432,7 +432,7 @@ void test_fourier_and_corr()
 void test_dirac(int k)
 {
     const int res = 1024;
-    std::vector<double> in_bc(res);    // example data of patterned values
+    std::vector<double> in_bc(res);    // example data of patterned values; bc: like a box counting method
     for (int i = 0; i < res; ++i)
         in_bc[i] = sin((i + 0.5) / res * 2 * M_PI * k) + 1;
 
@@ -442,6 +442,19 @@ void test_dirac(int k)
         int n = static_cast<int>(in_bc[i] * 100);
         for (int j = 0; j < n; ++j)
             pos.push_back(i + static_cast<double>(j) / n);
+    }
+
+    std::vector<fftw_complex> fouriertransform_bc(res);     // to store the fourier components calculated by hand
+    fouriertr(in_bc, fouriertransform_bc);                   // fourier components are now calculated by hand
+
+    std::vector<fftw_complex> fouriertransform_dirac(res);
+    for (int k = 0; k < res; ++k)
+    {
+        for (int j = 0; j < static_cast<int>(pos.size()); ++j)
+        {
+            fouriertransform_dirac[k][0] += cos(2 * (M_PI * pos[j] * k) / res);
+            fouriertransform_dirac[k][1] -= sin(2 * (M_PI * pos[j] * k) / res);
+        }
     }
 
     std::ofstream ofile_c("dirac_test_cont.txt");
@@ -456,6 +469,7 @@ void test_dirac(int k)
     {
         ofile_c << "# density[i], the (dislocation, whatever) density\n";
         ofile_d << "# position[i], the coordinate of a particle (dislocation)\n";
+        ofile_f << "# Fourier components (real, tabulator, imag, tabulator, abssq) of the step-like, bc function and of the diract delta sum distribution\n";
     }
     for (auto intensity : in_bc)
         ofile_c << intensity << "\n";
@@ -463,6 +477,13 @@ void test_dirac(int k)
     for (auto xcoord : pos)
         ofile_d << xcoord << "\n";
 
+    for (int i = 0; i < res; ++i)
+        ofile_f << fouriertransform_bc[i][0] << "\t"
+        << fouriertransform_bc[i][1] << "\t"
+        << fouriertransform_bc[i][0] * fouriertransform_bc[i][0] + fouriertransform_bc[i][1] * fouriertransform_bc[i][1] << "\t"
+        << fouriertransform_dirac[i][0] << "\t"
+        << fouriertransform_dirac[i][1] << "\t"
+        << fouriertransform_dirac[i][0] * fouriertransform_dirac[i][0] + fouriertransform_dirac[i][1] * fouriertransform_dirac[i][1] << "\n";
 
 }
 #pragma endregion
