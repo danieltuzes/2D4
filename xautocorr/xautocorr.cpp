@@ -1,14 +1,19 @@
 //
 // xautocorr.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xautocorr 1.0
+#define VERSION_xautocorr 1.1
+/*changelog
+# 1.1
+* direct Fourier method is implemented in a naiive way
+
+# 1.0
+* first version working with the initial idea
+*/
 
 #include "xautocorr_utils.h"
 
 int main(int argc, char** argv)
 {
-    // test_dirac(23);
-    // return 0;
 
 #pragma region read in variables
     bpo::options_description requiredOptions("Required options"); // must be set from command line or file
@@ -112,7 +117,7 @@ int main(int argc, char** argv)
 
     // methods
     size_t subs = vm["sub-sampling"].as<int>(); // subs-sampling rate
-    size_t res = vm["resolution"].as<int>(); // the resolution of the autocorrelation map
+    size_t res = vm["resolution"].as<int>(); // the resolution of the density map
     size_t samp = res * subs; // sampling rate for method ws
     method um = na; // the used method for the calculation
     double sigma;
@@ -211,7 +216,7 @@ int main(int argc, char** argv)
     {
 #pragma region create maps
         std::vector<std::vector<std::vector<double>>> maps; // the 2D maps for rho_t, kappa, rho_p, rho_n
-        std::vector<std::vector<std::vector<double>>> imaps; // the imaginary 2D maps for rho_t, kappa, rho_p, rho_n for the case df
+        std::vector<std::vector<std::vector<std::complex<double>>>> cmaps;  // the complex 2D maps for rho_t, kappa, rho_p, rho_n
 
         std::vector<std::string> o_maps_fn;
         for (const auto& name : names)
@@ -226,7 +231,7 @@ int main(int argc, char** argv)
                 if (um != df)
                     maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
                 else
-                    imaps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
+                    cmaps.push_back(std::vector<std::vector<std::complex<double>>>(res, std::vector<std::complex<double>>(res)));
             }
         }
 
@@ -343,7 +348,7 @@ int main(int argc, char** argv)
             }
         }
 
-        if (um == wsts)
+        if (um == wsts) // Wigner-Seitz total and signed
         {
             for (auto& val : dislocs) // zero out the 3rd element, it will be used to measure the area
                 std::get<2>(val) = 0;
@@ -371,30 +376,25 @@ int main(int argc, char** argv)
             }
         }
 
-        if (um == df)
+        if (um == df) // direct Fourier case
         {
             for (int i = 0; i < static_cast<int>(dislocs.size()); ++i)
                 for (int kx = 0; kx < res; ++kx)
                     for (int ky = 0; ky < res; ++ky)
                     {
-                        maps[0][kx][ky] += cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-                        imaps[0][kx][ky] -= sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
+                        cmaps[0][kx][ky] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
+                        cmaps[1][kx][ky] += static_cast<double>(std::get<2>(dislocs[i])) * exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
 
-
-                        maps[1][kx][ky] += std::get<2>(dislocs[i]) * cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-                        imaps[1][kx][ky] -= std::get<2>(dislocs[i]) * sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-
-                        if (std::get<2>(dislocs[i]) == 1) // positive dislocation; if i<dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
-                        {
-                            maps[2][kx][ky] += cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-                            imaps[2][kx][ky] -= sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-                        }
+                        if (std::get<2>(dislocs[i]) == 1) // positive dislocation; if i < dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
+                            cmaps[2][kx][ky] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
                         else  // negative dislocation
-                        {
-                            maps[3][kx][ky] += cos(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-                            imaps[3][kx][ky] -= sin(2 * (M_PI * ((std::get<0>(dislocs[i]) * kx) + (std::get<1>(dislocs[i]) * ky))) / res);
-                        }
+                            cmaps[3][kx][ky] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
                     }
+
+            for (size_t i = 0; i < 4; ++i)
+                for (size_t kx = 0; kx < res; ++kx)
+                    for (size_t ky = 0; ky < res; ++ky)
+                        F_absValSqs[i][kx] += std::norm(cmaps[i][kx][ky]);
         }
 
         if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
@@ -419,15 +419,21 @@ int main(int argc, char** argv)
                 o_maps[i].open(o_maps_fn[i]);
                 if (!o_maps[i])
                 {
-                    std::cerr << "Cannot create " << o_maps_fn[i] << ". Program terminates." << std::endl;
-                    exit(-1);
+                    std::cerr << "Cannot create " << o_maps_fn[i] << ". Program skips this file." << std::endl;
+                    continue;
                 }
+                
                 if (um != df)
+                {
                     o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+                    o_maps[i] << maps[i];
+                }
                 else
-                    o_maps[i] << "# This file contains the Fourier components (real, tab, imag) of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+                {
+                    o_maps[i] << "# This file contains the Fourier components in the format of real tab imag, corresponding to the density type " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+                    o_maps[i] << c2r_map(cmaps[i]);
+                }
 
-                o_maps[i] << maps[i];
             }
 
     }

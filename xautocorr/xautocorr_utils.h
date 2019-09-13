@@ -3,7 +3,16 @@
 
 #pragma once
 
-#define VERSION_xautocorr_utils 1.0
+#define VERSION_xautocorr_utils 1.1
+/* changelog
+# 1.1
+* new sandbox methods to test analytical 1D Fourier transformation algorithm to test how well a Dirac-delta sum can be transformed
+* new: c2r_map is implemented so that complex maps can be printed out for gnuplot
+
+# 1.0
+* first version working with the initial idea
+
+*/
 
 #define _USE_MATH_DEFINES
 
@@ -11,6 +20,8 @@
 
 #include <boost/program_options.hpp> // to read in program call arguments
 #include <boost/program_options/options_description.hpp> // to add descriptions of the program call arguments
+#include <complex>
+#define M_i std::complex<double>(0,1)
 #include <fftw3.h>
 
 #include <iostream>
@@ -76,6 +87,9 @@ void nearestDislIndex(const std::vector<disl>&, size_t beginIndex, size_t endInd
 
 // returns a vector with pairwise average unique values from map in increasing order
 void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fname);
+
+// turns complex map into a real map to an easier use with gnuplot
+std::vector<std::vector<double>> c2r_map(const std::vector<std::vector<std::complex<double>>>& in);
 
 #pragma region Fourier analysis and correlations
 

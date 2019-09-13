@@ -248,6 +248,15 @@ void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fnam
 
 }
 
+std::vector<std::vector<double>> c2r_map(const std::vector<std::vector<std::complex<double>>>& in)
+{
+    size_t size = in.size();
+    std::vector<std::vector<double>> ret(size, std::vector<double>(2 * size));
+    for (size_t line = 0; line < size; ++line)
+        memcpy(&ret[line], &in[line], size * 2 * sizeof(double));
+    return ret;
+}
+
 # pragma region Fourier analysis and correlation
 // self-written basic implementation
 void autocorr(const std::vector<double>& data_in, std::vector<double>& data_out)
@@ -447,14 +456,11 @@ void test_dirac(int k)
     std::vector<fftw_complex> fouriertransform_bc(res);     // to store the fourier components calculated by hand
     fouriertr(in_bc, fouriertransform_bc);                   // fourier components are now calculated by hand
 
-    std::vector<fftw_complex> fouriertransform_dirac(res);
+    std::vector<std::complex<double>> fouriertransform_dirac(res);
     for (int k = 0; k < res; ++k)
     {
         for (int j = 0; j < static_cast<int>(pos.size()); ++j)
-        {
-            fouriertransform_dirac[k][0] += cos(2 * (M_PI * pos[j] * k) / res);
-            fouriertransform_dirac[k][1] -= sin(2 * (M_PI * pos[j] * k) / res);
-        }
+            fouriertransform_dirac[k] += exp(-2 * (M_PI * pos[j] * k) / res * M_i);
     }
 
     std::ofstream ofile_c("dirac_test_cont.txt");
@@ -481,9 +487,9 @@ void test_dirac(int k)
         ofile_f << fouriertransform_bc[i][0] << "\t"
         << fouriertransform_bc[i][1] << "\t"
         << fouriertransform_bc[i][0] * fouriertransform_bc[i][0] + fouriertransform_bc[i][1] * fouriertransform_bc[i][1] << "\t"
-        << fouriertransform_dirac[i][0] << "\t"
-        << fouriertransform_dirac[i][1] << "\t"
-        << fouriertransform_dirac[i][0] * fouriertransform_dirac[i][0] + fouriertransform_dirac[i][1] * fouriertransform_dirac[i][1] << "\n";
+        << fouriertransform_dirac[i].real() << "\t"
+        << fouriertransform_dirac[i].imag() << "\t"
+        << std::norm(fouriertransform_dirac[i]) << "\n";
 
 }
 #pragma endregion
