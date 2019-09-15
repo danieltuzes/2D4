@@ -4,7 +4,7 @@
 #define VERSION_xautocorr 1.1
 /*changelog
 # 1.1
-* direct Fourier method is implemented in a naiive way
+* direct Fourier method is implemented in a naive way
 
 # 1.0
 * first version working with the initial idea

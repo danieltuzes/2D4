@@ -16,6 +16,7 @@ This is an advanced pattern finder for 2D dislocation configurations. Such confi
 
   * `wspn`: Wigner-Seitz positive and negative. The simulation space is meshed up to domains based on the Wigner-Seitz cell structure of the set of positive and negative dislocations. The positive ρ₊ and negative ρ₋ dislication density is then 1 / the size of the cell. The total dislocation density ρ<sub>t</sub> and signed dislocation κ density are the derived quantities, calculated by the sum and difference of these maps.
   * `wsts`: Wigner-Seitz total and signed. Like `wspn`, but the total dislocation density ρ<sub>t</sub> and signed dislocation density κ will be calculated directly and ρ₊ and ρ₋ are the derived quantities.
+  * `df`: direct Fourier. Instead of approximating the desnity function, one can directly calculate the Fourier transform is discrete Dirac deltas.
 * `--sub-sampling` or `-s` (1): increases the size of the mesh to calculate the densities, but the resolution remains the same. Instead of calculating the densities on a mesh with size resolution × resolution, it is calculated on a mesh with size (s·r) × (s·r). This paramterer takes effect only for Gauss convolution and Wigner-Seitz methods.
 * `--half-width` or `-w`: half-width of the Gauss distribution used in the Gauss convolution method. The hald-width is measured in the units of the simulation space units.
 * `--output-foldername` or `-o` (""): the output foldername relative to the executable.
@@ -65,3 +66,6 @@ In the picture below, the ρ<sub>t</sub> and κ are presented. These are the pri
 
 ρ<sub>+</sub> and ρ<sub>-</sub> are derived quantities, they are calculated in a trivial manner. In both cases one gets a partial partitioning.
 ![1000 64.Dconfwsts R512 Pn.Txt](example_with_64_dislocations/1000_64.dconfwsts_r512_pn.txt.png)
+
+### Direct Fourier
+While all the previous methods rely on approximating the density function, one can calculate the Fourier components directly by applying the formula of Fourier-transformation on the distribution Dirac-delta. In this case, the whole 𝐤 map must be calculated. Then, the relevant pattern in the x direction can be obtained by averaging the norm of the Fourier components at the given k<sub>x</sub> value for all different k<sub>y</sub> values. In this case, the Fourier component ℱ(k<sub>x</sub>,k<sub>y</sub>) is the sum of exp( -2*π*i * (k<sub>x</sub> * x<sub>i</sub> + k<sub>y</sub> * y<sub>i</sub> )), where x<sub>i</sub> and y<sub>i</sub> is the position of the *i*th dislocation.

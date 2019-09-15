@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# latex
+docs/*
+!docs/*.tex
+
 # gcc
 error.txt
 *.bin
