@@ -23,7 +23,7 @@ int main(int argc, char** argv)
         ("input-fname,i", bpo::value<std::string>(), "The file name of the dislocation configuration file ending with .dconf. If it ends with .ini, a file containing the file names is expected: 1 filename per line.");
 
     optionalOptions.add_options()
-        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points and the number of the Fourier components will be the same (for all methods except df, where it only means the number of Fourier components). Please use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
+        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points (for all methods except df, where only Fourier components are calculated). The number of the Fourier components will r/2 + 1. Use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
         ("method,m", bpo::value<std::string>()->default_value("bc"), "The method to investigate the pattern.\n - wspn: Wigner-Seitz positive and negative\n - wsts: Wigner-Seitz total and signed\n - bc: box-counting\n - gs: Gauss-smoothing\n - df: direct Fourier")
         ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
@@ -54,6 +54,7 @@ int main(int argc, char** argv)
     {
         std::cout << "xautocorr (version " << std::setprecision(1) << std::fixed << (VERSION_xautocorr + VERSION_xautocorr_utils) << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
             "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
+        std::cout.unsetf(std::ios_base::floatfield);
     }
 #pragma endregion
 
@@ -116,8 +117,13 @@ int main(int argc, char** argv)
     std::cout << "output-fnameprefix = \t" << of << std::endl;
 
     // methods
-    size_t subs = vm["sub-sampling"].as<int>(); // subs-sampling rate
+    size_t subs = vm["sub-sampling"].as<int>(); // sub-sampling rate
     size_t res = vm["resolution"].as<int>(); // the resolution of the density map
+    if (res < 2)
+    {
+        std::cerr << "Error: resulution is smaller than 2. Program terminates." << std::endl;
+        exit(-1);
+    }
     size_t samp = res * subs; // sampling rate for method ws
     method um = na; // the used method for the calculation
     double sigma;
@@ -201,6 +207,7 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < 4; ++i)
     {
         F_absValSqs.push_back(std::vector<double>(res / 2 + 1));
+
         o_kf[i].open(o_k_fn[i]);
         if (!o_kf[i])
         {
@@ -242,7 +249,7 @@ int main(int argc, char** argv)
         std::ifstream ifile(ifname);
         if (!ifile)
         {
-            std::cerr << "Cannot open " << ifname << "for reading. Program terminates." << std::endl;
+            std::cerr << "Cannot open " << ifname << " for reading. Program terminates." << std::endl;
             exit(1);
         }
         std::cout << "Reading in " << ifname << std::endl;
@@ -379,22 +386,22 @@ int main(int argc, char** argv)
         if (um == df) // direct Fourier case
         {
             for (int i = 0; i < static_cast<int>(dislocs.size()); ++i)
-                for (int kx = 0; kx < res; ++kx)
-                    for (int ky = 0; ky < res; ++ky)
+                for (int ky = 0; ky < res/2+1; ++ky)
+                    for (int kx = 0; kx < res/2+1; ++kx)
                     {
-                        cmaps[0][kx][ky] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
-                        cmaps[1][kx][ky] += static_cast<double>(std::get<2>(dislocs[i])) * exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
+                        cmaps[0][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
+                        cmaps[1][ky][kx] += static_cast<double>(std::get<2>(dislocs[i])) * exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
 
                         if (std::get<2>(dislocs[i]) == 1) // positive dislocation; if i < dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
-                            cmaps[2][kx][ky] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
+                            cmaps[2][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
                         else  // negative dislocation
-                            cmaps[3][kx][ky] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) / res * M_i);
+                            cmaps[3][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
                     }
 
             for (size_t i = 0; i < 4; ++i)
-                for (size_t kx = 0; kx < res; ++kx)
-                    for (size_t ky = 0; ky < res; ++ky)
-                        F_absValSqs[i][kx] += std::norm(cmaps[i][kx][ky]);
+                for (size_t kx = 0; kx < res / 2 + 1; ++kx)
+                    for (size_t ky = 0; ky < res / 2 + 1; ++ky)
+                        F_absValSqs[i][kx] += std::norm(cmaps[i][ky][kx]);
         }
 
         if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
@@ -422,7 +429,7 @@ int main(int argc, char** argv)
                     std::cerr << "Cannot create " << o_maps_fn[i] << ". Program skips this file." << std::endl;
                     continue;
                 }
-                
+
                 if (um != df)
                 {
                     o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";

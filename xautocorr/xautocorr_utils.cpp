@@ -250,10 +250,15 @@ void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fnam
 
 std::vector<std::vector<double>> c2r_map(const std::vector<std::vector<std::complex<double>>>& in)
 {
-    size_t size = in.size();
-    std::vector<std::vector<double>> ret(size, std::vector<double>(2 * size));
-    for (size_t line = 0; line < size; ++line)
-        memcpy(&ret[line], &in[line], size * 2 * sizeof(double));
+    int res = static_cast<int>(in.size());
+
+    std::vector<std::vector<double>> ret(res, std::vector<double>(2 * res));
+    for (int kx = 0; kx < res; ++kx)
+        for (int ky = 0; ky < res; ++ky)
+        {
+            ret[kx][ky * 2] = in[kx][ky].real();
+            ret[kx][ky * 2 + 1] = in[kx][ky].imag();
+        }
     return ret;
 }
 
