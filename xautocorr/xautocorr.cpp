@@ -1,8 +1,12 @@
 //
 // xautocorr.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xautocorr 1.1
+#define VERSION_xautocorr 1.2
 /*changelog
+# 1.2
+* it is working on mutliple simulation, g++ doesn't produce warnings
+* speed up: using table to store complex exponents for different kx and ky pairs
+
 # 1.1
 * direct Fourier method is implemented in a naive way
 
@@ -386,17 +390,29 @@ int main(int argc, char** argv)
         if (um == df) // direct Fourier case
         {
             for (size_t i = 0; i < dislocs.size(); ++i)
+            {
+                std::vector<std::complex<double>> exp_f_x(res / 2 + 1); // factor precalculation to recall it from memory
+                std::vector<std::complex<double>> exp_f_y(res / 2 + 1); // factor precalculation to recall it from memory
+
+                for (size_t ki = 0; ki < res / 2 + 1; ++ki)
+                {
+                    exp_f_x[ki] = exp(-2 * M_PI * std::get<0>(dislocs[i]) * ki * M_i);
+                    exp_f_y[ki] = exp(-2 * M_PI * std::get<1>(dislocs[i]) * ki * M_i);
+                }
+
                 for (size_t ky = 0; ky < res / 2 + 1; ++ky)
                     for (size_t kx = 0; kx < res / 2 + 1; ++kx)
                     {
-                        cmaps[0][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
-                        cmaps[1][ky][kx] += static_cast<double>(std::get<2>(dislocs[i])) * exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
+                        cmaps[0][ky][kx] += exp_f_x[kx] * exp_f_y[ky];
+                        cmaps[1][ky][kx] += static_cast<double>(std::get<2>(dislocs[i])) * exp_f_x[kx] * exp_f_y[ky];
 
                         if (std::get<2>(dislocs[i]) == 1) // positive dislocation; if i < dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
-                            cmaps[2][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
+                            cmaps[2][ky][kx] += exp_f_x[kx] * exp_f_y[ky];
                         else  // negative dislocation
-                            cmaps[3][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
+                            cmaps[3][ky][kx] += exp_f_x[kx] * exp_f_y[ky];
                     }
+            }
+
 
             for (size_t i = 0; i < 4; ++i)
                 for (size_t kx = 0; kx < res / 2 + 1; ++kx)
