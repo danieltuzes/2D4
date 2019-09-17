@@ -385,9 +385,9 @@ int main(int argc, char** argv)
 
         if (um == df) // direct Fourier case
         {
-            for (int i = 0; i < static_cast<int>(dislocs.size()); ++i)
-                for (int ky = 0; ky < res/2+1; ++ky)
-                    for (int kx = 0; kx < res/2+1; ++kx)
+            for (size_t i = 0; i < static_cast<int>(dislocs.size()); ++i)
+                for (size_t ky = 0; ky < res / 2 + 1; ++ky)
+                    for (size_t kx = 0; kx < res / 2 + 1; ++kx)
                     {
                         cmaps[0][ky][kx] += exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
                         cmaps[1][ky][kx] += static_cast<double>(std::get<2>(dislocs[i])) * exp(-2 * M_PI * (std::get<0>(dislocs[i]) * kx + std::get<1>(dislocs[i]) * ky) * M_i);
