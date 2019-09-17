@@ -1,7 +1,12 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen "1.0"
+#define VERSION_init_config_gen 1.1
+/*changelog
+# 1.0
+* first version working with the initial idea
+* refactored code
+*/
 
 #pragma region header
 
@@ -100,7 +105,7 @@ int main(int argc, char** argv)
 
 #pragma region seed-end, seed-start
     
-    int seed_start = seed_start = vm["seed-start"].as<int>(); // the first seed value for the random number generator engine
+    int seed_start = vm["seed-start"].as<int>(); // the first seed value for the random number generator engine
     int seed_end; // the last seed value for the random number generator engine
     
     std::cout << "seed-start =\t" << seed_start << std::endl;
@@ -127,25 +132,7 @@ int main(int argc, char** argv)
     }
     else
         std::cout << "A =\t" << A << std::endl;
-
-    std::vector<std::pair<double, double>> cdfr_p, cdfr_n; // x,y values of the cumulative distribution function of rho_p and rho_n
-    if (A != 0)
-    {
-        int res = (int)sqrt(N) * 10 + 1000; // resolution for the inverse function lookup; heuristic guess
-        double n = vm["linear-wavenumber"].as<int>(); // linear-wavenumber
-        for (int i = 0; i <= res; ++i)
-        {
-            double x = (double)i / res - 0.5; // the x position in dimensionless units, x∈[-0.5:0.5]
-            double yrp = 0.5 + x + A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI); // the y values for the rho_p distribution
-            double yrn; // the y values for the rho_n distribution
-            if (vm["pattern-type"].as<std::string>() == "s") // signed, i.e. κ has patterns
-                yrn = 0.5 + x - A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI);
-            else // total, i.e. ρ_t has patterns
-                yrn = yrp;
-            cdfr_p.push_back(std::pair<double, double>(x, yrp));
-            cdfr_n.push_back(std::pair<double, double>(x, yrn));
-        }
-    }
+    
 #pragma endregion
 
 #pragma region output path, filenames and sorting
@@ -164,6 +151,29 @@ int main(int argc, char** argv)
     std::cout << "bare=\t" << bare << std::endl;
 
 #pragma endregion
+
+#pragma endregion
+
+#pragma region cumulative distribution
+    
+    std::vector<std::pair<double, double>> cdfr_p, cdfr_n; // x,y values of the cumulative distribution function of rho_p and rho_n
+    if (A != 0)
+    {
+        int res = (int)sqrt(N) * 10 + 1000; // resolution for the inverse function lookup; heuristic guess
+        double n = vm["linear-wavenumber"].as<int>(); // linear-wavenumber
+        for (int i = 0; i <= res; ++i)
+        {
+            double x = (double)i / res - 0.5; // the x position in dimensionless units, x∈[-0.5:0.5]
+            double yrp = 0.5 + x + A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI); // the y values for the rho_p distribution
+            double yrn; // the y values for the rho_n distribution
+            if (vm["pattern-type"].as<std::string>() == "s") // signed, i.e. κ has patterns
+                yrn = 0.5 + x - A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI);
+            else // total, i.e. ρ_t has patterns
+                yrn = yrp;
+            cdfr_p.push_back(std::pair<double, double>(x, yrp));
+            cdfr_n.push_back(std::pair<double, double>(x, yrn));
+        }
+    }
 
 #pragma endregion
 
@@ -221,7 +231,8 @@ int main(int argc, char** argv)
     return 0;
 }
 
-double interpolate_y(pair a, pair b, double y) // returns x for y between a and b
+// returns x for y between a and b
+double interpolate_y(pair a, pair b, double y) 
 {
     return a.first + (y - a.second) * (b.first - a.first) / (b.second - a.second);
 }
