@@ -385,7 +385,7 @@ int main(int argc, char** argv)
 
         if (um == df) // direct Fourier case
         {
-            for (size_t i = 0; i < static_cast<int>(dislocs.size()); ++i)
+            for (size_t i = 0; i < dislocs.size(); ++i)
                 for (size_t ky = 0; ky < res / 2 + 1; ++ky)
                     for (size_t kx = 0; kx < res / 2 + 1; ++kx)
                     {
