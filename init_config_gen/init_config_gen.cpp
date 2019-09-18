@@ -1,8 +1,15 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen 1.1
+#define VERSION_init_config_gen 2.0
 /*changelog
+# 2.0
+* sorting input information is taken now by the input named sorted and not unsorted. It can be x, y or u. The latter means no sorting. Default is y, so the behaviour is not changed.
+
+# 1.1
+* potential bug fix
+* version number is not string but number
+
 # 1.0
 * first version working with the initial idea
 * refactored code
@@ -44,9 +51,9 @@ int main(int argc, char** argv)
         ("seed-start,S", bpo::value<int>()->default_value(1000), "An integer used as an initial seed value for the random number generator.")
         ("seed-end,E", bpo::value<int>(), "An integer used as the last seed value for the random number generator, seed-end > seed_start must hold. If set, seed-end - seed-start number of initial configurations will be created.")
         ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the probability density function will be\n1 + A * sin(x * n * 2 pi) with A = pattern-strength for rho_+ and\n1 - A * sin(x * w * 2 pi) for rho_-. A must be in [-1:1].")
-        ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5].")
+        ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5).")
         ("pattern-type,T", bpo::value<std::string>()->default_value("s"), "The pattern type in the density distribution.")
-        ("unsorted,U", "If set, dislocations will not printed out in order starting with positive Burger's vector and highest value in y, but with alternating Burger's vector and uncorrelated x and y coordinates.")
+        ("sorted,s", bpo::value<std::string>()->default_value("y"), "Defines the order of the dislocations in the output file.\n   * x: decreasing Burger's vector, and  decreasing x coordinate\n   * y:  decreasing Burger's vector, and  decreasing y coordinate\n   * u: sign is alternating and x and y coordinates are uncorrelated.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "In which folder should the initial conditions be stored. Symbol ./ means here.")
         ("bare,B", "If set, filenames will not contain the value of the parameter N.")
         ;
@@ -140,10 +147,23 @@ int main(int argc, char** argv)
     std::string of(vm["output-fnameprefix"].as<std::string>()); // the output filename prefix (potentially inculding foldername)
     std::cout << "output-fnameprefix =\t" << of << std::endl;
     
-    bool unsorted = false; // leave the output unsorted?
-    if (vm.count("unsorted") != 0)
-        unsorted = true;
-    std::cout << "unsorted =\t" << unsorted << std::endl;
+    char sorted; // leave the output unsorted?
+    {
+        std::string sortedstr = vm["sorted"].as<std::string>();
+        if (sortedstr.compare("x") == 0)
+            sorted = 'x';
+        else if (sortedstr.compare("y") == 0)
+            sorted = 'y';
+        else if (sortedstr.compare("u") == 0)
+            sorted = 'u';
+        else
+        {
+            std::cerr << "Error: unsupported ordering: " << sortedstr << ". Program terminates." << std::endl;
+            exit(-1);
+        }
+    }
+
+    std::cout << "sorted =\t" << sorted << std::endl;
     
     bool bare = false; // shall the output name contain the number of dislocations?
     if (vm.count("bare") != 0)
@@ -220,8 +240,10 @@ int main(int argc, char** argv)
             dislocs.push_back(disl(x, distr(engine), (n % 2) * 2 - 1)); // x, y coordinates, and the Burger's vector
         }
 
-        if (!unsorted) // sorting if not told otherwise; first the negative, in increasing y value than positive with increasing y value
+        if (sorted == 'y') // first the negative, in increasing y value than positive with increasing y value
             std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
+        if (sorted == 'x') // first the negative, in increasing x value than positive with increasing x value
+            std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<0>(a) + std::get<2>(a)) > (std::get<0>(b) + std::get<2>(b)); });
 
         for_each(dislocs.begin(), dislocs.end(), [&ofile](const disl& a) {ofile << std::get<0>(a) << "\t" << std::get<1>(a) << "\t" << std::get<2>(a) << "\n"; }); // print out to ofile
     }
