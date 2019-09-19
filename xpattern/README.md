@@ -1,4 +1,4 @@
-# 2D4::xautocorr
+# 2D4::xpattern
 This is an advanced pattern finder for 2D dislocation configurations. Such configurations are created by 2D4::init_config_gen and used by 2D4\::2D_DDD_simulation.
 
 ## Dependencies
@@ -7,7 +7,7 @@ This is an advanced pattern finder for 2D dislocation configurations. Such confi
 
 ## Parameters
 * `--input-path` or `-i`: **mandatory argument**, the input filename containing the dislocation configuration (ending in `.dconf`) or the file containging the input filenames (ending in `.ini`) 1 filename per line.
-* `--resolution` or `-r` (1024): the Fourier transform and autocorrelation will be calculated in this many points. (The Fourier will contain 1 extra value.) 
+* `--resolution` or `-r` (1024): the Fourier transform will be calculated in this many points. (The Fourier will contain 1 extra value.) 
 * `--method` or `-m`: how the dislocation density should be calulated. There are 3 different possibilities:
   * `bc`: box counting. A mesh with resolution × resolution number of cells are created and in each cell the dislocation densities are calculated based on how many dislocations can be found inside the cell.
   * `gc`: Gauss convolution. Each dislocation is represented with a Gauss-distribution of half-width `-half-width`. The distribution is a periodic repetition of a Gauss-distributions instead of sum of periodic images, therefore, it is not an exact peroidic convolution (e.g. the derivatives are not continuous), nor normalized. This is not a problem if half-width ≪ 1. The densities are sampled in the centerpoint of the mesh and due to the discrete sampling, the distribution is again not normalized, it is ensured after the calculation: ρ₊ and ρ₋ are calculated separatedly and normalized, then comes the calculation of ρ<sub>t</sub> and κ.

@@ -1,5 +1,5 @@
 //
-// xautocorr.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// xpattern.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #define VERSION_xpattern 1.2
 /*changelog
@@ -56,8 +56,8 @@ int main(int argc, char** argv)
 
     if (!vm.count("hide-copyright"))
     {
-        std::cout << "xautocorr (version " << std::setprecision(1) << std::fixed << (VERSION_xpattern + VERSION_xpattern_utils) << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
-            "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
+        std::cout << "xpattern (version " << std::setprecision(1) << std::fixed << (VERSION_xpattern + VERSION_xpattern_utils) << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
+            "Copyright (C) DÃ¡niel TÃ¼zes <tuzes@metal.elte.hu>\n";
         std::cout.unsetf(std::ios_base::floatfield);
     }
 #pragma endregion

@@ -1,5 +1,5 @@
 //
-// xautocorr_utils.h : contains the function declaration for xautocorr.cpp
+// xpattern_utils.h : contains the function declaration for xpattern.cpp
 
 #pragma once
 

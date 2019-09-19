@@ -7,9 +7,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "2D_DDD_simulation", "2D_DDD
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "init_config_gen", "init_config_gen\init_config_gen.vcxproj", "{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xautocorr", "xautocorr\xautocorr.vcxproj", "{EBB66B65-8969-4020-A338-46026F0498B2}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xpattern", "xpattern\xpattern.vcxproj", "{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A9A9DD76-A278-41B8-98C1-BCFF3D0D9603}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,10 +28,6 @@ Global
 		{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}.Debug|x64.Build.0 = Debug|x64
 		{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}.Release|x64.ActiveCfg = Release|x64
 		{4234E9E2-9233-443B-A8DC-B66EDD59BBFD}.Release|x64.Build.0 = Release|x64
-		{EBB66B65-8969-4020-A338-46026F0498B2}.Debug|x64.ActiveCfg = Debug|x64
-		{EBB66B65-8969-4020-A338-46026F0498B2}.Debug|x64.Build.0 = Debug|x64
-		{EBB66B65-8969-4020-A338-46026F0498B2}.Release|x64.ActiveCfg = Release|x64
-		{EBB66B65-8969-4020-A338-46026F0498B2}.Release|x64.Build.0 = Release|x64
 		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Debug|x64.ActiveCfg = Debug|x64
 		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Debug|x64.Build.0 = Debug|x64
 		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Release|x64.ActiveCfg = Release|x64

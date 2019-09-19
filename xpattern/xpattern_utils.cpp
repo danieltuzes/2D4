@@ -1,5 +1,5 @@
 //
-// xautocorr_utils.cpp : contains the function definitions for xautocorr.cpp
+// xpattern_utils.cpp : contains the function definitions for xpattern.cpp
 
 #include "xpattern_utils.h"
 

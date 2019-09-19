@@ -74,9 +74,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="Header Files">
       <UniqueIdentifier>{6013aefb-16fa-4271-98ac-dde3f86dde21}</UniqueIdentifier>
     </Filter>
@@ -86,5 +83,8 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{6834fa22-3c32-484d-8c46-ddd1aaf96a40}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\README.md" />
   </ItemGroup>
 </Project>

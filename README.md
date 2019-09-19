@@ -11,17 +11,17 @@ The detailed publication of the numerical scheme and the implementation with the
 
 ### Tools
 The toolkit contains the following tools
-1. The **simulation program** *2D_DDD_simulation* that evols the dislocation configuration under the prescribed external stress.
+1. The main component of this toolset is the [**simulation program** *2D_DDD_simulation*](https://github.com/danieltuzes/2D4/tree/master/src) that evols the dislocation configuration under the prescribed external stress.
 2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/2D4/init_config_gen) to create the initial configuration.
-3. **Evaulation programs** to do perform analysis on the simulations obatined.
+3. [**Evaluation program** *xpattern*](https://github.com/danieltuzes/2D4/tree/master/xpattern) to do perform analysis on the simulations obatined.
 
 The rest of this file belongs to the simulation program 2D_DDD_simulation.
 
 ## Build & run
-This project uses several external libraries, such as **umfpack** and **boost** and furthermore, to keep the code simple, some additional include libraries must be set up for your compiler. A convenient Linux-gcc-cmake built procedure (scenario A) is provided along with a Windows-VS-vcpkg built procedure (scenario B).
+This solution uses several external libraries, such as **umfpack**, **boost**, **FFTW** and furthermore, to keep the code simple, some additional include libraries must be set up for your compiler. A convenient Linux-gcc-cmake built procedure (scenario A) is provided along with a Windows-VS-vcpkg built procedure (scenario B).
 
 ### Scenario A
-This is the Linux-gcc-cmake case. To be able to build the simulator, you will need the following dependencies on your computer:
+This is the Linux-gcc-cmake case not maintained in this repository. To be able to build the simulator, you will need the following dependencies on your computer:
 
 * g++ or clang
 * cmake (at least version 3.8)
@@ -57,7 +57,7 @@ You can safely **delete** the files corresponding to scenario B:
 
 ### Scenario B
 This is the Windows-VS-vcpkg case. The project can be compiled for x64 compatible machines only [due to umfpacks's openblas dependency](https://github.com/microsoft/vcpkg/issues/2095), which is available only for x64. This case comes with no python interface yet. Follow these instructions to be able build this project.
-1. Install [vcpkg](https://github.com/microsoft/vcpkg)
+1. Install [vcpkg](https://github.com/microsoft/vcpkg), a C++ package manager for Windows.
    1. Open a PowerShell (abbreviated as PS) and first create the directory where you would like to place it. Let's say, `C:\local`, so in PS, execute `mkdir C:\local`. Move there by executing `cd C:\local`.
    2. Download the vcpkg package with git or by downloading it with a browser from [its website](https://github.com/Microsoft/vcpkg).
 	3. Extract the files with their parent folder vcpkg-master from the compressed file vcpkg-master.zip. Move it to `C:\local`. Navigate your PS there by `cd vcpkg-master`.
@@ -65,10 +65,12 @@ This is the Windows-VS-vcpkg case. The project can be compiled for x64 compatibl
    4. To use the installed packages automatically, execute `.\vcpkg integrate install`.
 2. Install the required dependencies with *vcpkg* by executing
       
-      1. `.\vcpkg install boost-program-options:x64-windows` for boost program options, and
-      2. `.\vcpkg install suitesparse:x64-windows`, this installs the umfpack.
+      1. `.\vcpkg install boost-program-options:x64-windows` for boost program options,
+      2. `.\vcpkg install boost-random:x64-windows` for boost random number generation,
+      3. `.\vcpkg install fftw3:x64-windows` for FFTW, and
+      4. `.\vcpkg install suitesparse:x64-windows`, this installs the umfpack.
       
-	These steps may take at least around 10 minutes.
+	These steps may take at least around 15 minutes.
 3. Use the solution file or set up a new one for the project. Due to an [issue](https://github.com/microsoft/vcpkg/issues/3417), your compiler probably need be informed about umpack's directory.
 	1. With the provided solution the project files, it has been already added by pointing to `%VCPKG_ROOT%`. All you need to do is to add a system variable called VCPKG_ROOT with value pointing to the root directory of vcpkg. In our previous example, it was `C:\local\vcpkg-master`.
 	2. If you do not want to or cannot create the system variable, or want to start your solution and project files from zero, you can manually add it to your project settings. Open project 2D_DDD_simulation in the solution SDDST, then open your project properties under Project, \<Projectname\> properties. Go to VC++ Directories and in the Include Directories add `C:\local\vcpkg-master\packages\suitesparse_x64-windows\include\suitesparse`.
