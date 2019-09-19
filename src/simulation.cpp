@@ -56,8 +56,8 @@ Simulation::~Simulation()
 }
 
 
-void Simulation::integrate(const double &stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> & old,
-                           bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
+void Simulation::integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
+    bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
 {
     calculateJacobian(stepsize, newDislocation);
     calculateSparseFormForJacobian();
@@ -77,16 +77,16 @@ void Simulation::integrate(const double &stepsize, std::vector<Dislocation> &new
             newDislocation[j].x -= sD->x[j];
         }
     }
-    umfpack_di_free_numeric (&sD->Numeric) ;
+    umfpack_di_free_numeric(&sD->Numeric);
 }
 
-void Simulation::calculateSpeeds(const std::vector<Dislocation> &dis, std::vector<double> &res)
+void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res)
 {
     std::fill(res.begin(), res.end(), 0);
 
     for (unsigned int i = 0; i < sD->dc; i++)
     {
-        for (unsigned int j = i+1; j < sD->dc; j++)
+        for (unsigned int j = i + 1; j < sD->dc; j++)
         {
             double dx = dis[i].x - dis[j].x;
             normalize(dx);
@@ -96,12 +96,12 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation> &dis, std::vecto
 
             double tmp = dis[i].b * dis[j].b * sD->tau->xy(dx, dy);
 
-            double r2 = dx*dx+dy*dy;
+            double r2 = dx * dx + dy * dy;
             pH->updateTolerance(r2, i);
             pH->updateTolerance(r2, j);
 
-            res[i] +=  tmp;
-            res[j] -=  tmp;
+            res[i] += tmp;
+            res[j] -= tmp;
         }
 
         for (size_t j = 0; j < sD->pc; j++)
@@ -116,7 +116,7 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation> &dis, std::vecto
             double ySqr = X2(dy);
             double rSqr = xSqr + ySqr;
             double expXY = exp(-sD->KASQR * rSqr);
-            res[i] -= 2.0 * sD->A * X(dx) * X(dy) * ((1.-expXY)/rSqr- sD->KASQR * expXY) / rSqr * dis[i].b;
+            res[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * dis[i].b;
 
             pH->updateTolerance(rSqr, i);
         }
@@ -124,11 +124,11 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation> &dis, std::vecto
     }
 }
 
-void Simulation::calculateG(const double &stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old,
-                            bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end)
+void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
+    bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end)
 {
-    std::vector<double> * isp = &(sD->initSpeed);
-    std::vector<double> * csp = &(sD->speed);
+    std::vector<double>* isp = &(sD->initSpeed);
+    std::vector<double>* csp = &(sD->speed);
     if (useSpeed2)
     {
         isp = &(sD->initSpeed2);
@@ -166,7 +166,7 @@ void Simulation::calculateG(const double &stepsize, std::vector<Dislocation> &ne
 
     for (size_t i = 0; i < sD->dc; i++)
     {
-        sD->g[i] = newDislocation[i].x - (1.0+sD->dVec[i]) * 0.5 * stepsize * (*csp)[i] - old[i].x - (1.0 - sD->dVec[i]) * 0.5 * stepsize * (*isp)[i];
+        sD->g[i] = newDislocation[i].x - (1 + sD->dVec[i]) * 0.5 * stepsize * (*csp)[i] - old[i].x - (1 - sD->dVec[i]) * 0.5 * stepsize * (*isp)[i];
     }
 }
 
@@ -175,24 +175,22 @@ double Simulation::getElement(int j, int si, int ei)
     int len = ei - si;
     if (len > 1)
     {
-        int tmp = len /2;
+        int tmp = len / 2;
         double a;
 
-        if (sD->Ai[si+tmp] > j)
+        if (sD->Ai[si + tmp] > j)
         {
             a = getElement(j, si, si + tmp);
-            if (a != 0.0)
-            {
+            if (a != 0)
                 return a;
-            }
+
         }
         else
         {
             a = getElement(j, si + tmp, ei);
-            if (a != 0.0)
-            {
+            if (a != 0)
                 return a;
-            }
+
         }
     }
     else
@@ -211,7 +209,7 @@ double Simulation::getSimTime()
     return sD->simTime;
 }
 
-void Simulation::calculateJacobian(const double & stepsize, const std::vector<Dislocation> & data)
+void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocation>& data)
 {
     int totalElementCounter = 0;
 
@@ -220,8 +218,8 @@ void Simulation::calculateJacobian(const double & stepsize, const std::vector<Di
         // Previously calculated part
         for (unsigned int i = 0; i < j; i++)
         {
-            double v = getElement(j, sD->Ap[i], sD->Ap[i+1]);
-            if (v != 0.0)
+            double v = getElement(j, sD->Ap[i], sD->Ap[i + 1]);
+            if (v != 0)
             {
                 sD->Ai[totalElementCounter] = i;
                 sD->Ax[totalElementCounter++] = v;
@@ -244,48 +242,48 @@ void Simulation::calculateJacobian(const double & stepsize, const std::vector<Di
                 double multiplier = 1;
                 if (dx * dx + dy * dy > sD->cutOffSqr)
                 {
-                    multiplier = exp(-pow(sqrt(dx*dx+dy*dy)-sD->cutOff, 2) * sD->onePerCutOffSqr);
+                    multiplier = exp(-pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) * sD->onePerCutOffSqr);
                 }
-                tmp -= data[j].b * (- sD->A * cos(0.2e1 * M_PI * dx) / M_PI * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                                        (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
-                                                                                                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                         pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                                                                                                                                                                         pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                                                                         (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                                                                         pow(M_PI, -0.2e1) / 0.2e1))) /
-                                    ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)
-                                    - sD->A * sin(0.2e1 * M_PI * dx) * pow(M_PI, -0.2e1) * sin(0.2e1 * M_PI * dy) * (pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                                            (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)) *
-                                                                                                                     sD->KASQR * sin(0.2e1 * M_PI * dx) / M_PI * log(M_E) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                                                                                                                                                                             pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                                                                             (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                                                                             pow(M_PI, -0.2e1) / 0.2e1) -
-                                                                                                                     (0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
-                                                                                                                                                     0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                                                     pow(M_PI, -0.2e1) / 0.2e1))) *
-                                                                                                                     pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                         (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) *
-                                                                                                                     sin(0.2e1 * M_PI * dx) / M_PI + sD->KASQR * sD->KASQR * pow(M_E, -sD->KASQR *
-                                                                                                                                                                                 ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                                                                                                                                                                                  pow(M_PI, -0.2e1) /
-                                                                                                                                                                                  0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                                                                                  pow(M_PI, -0.2e1) / 0.2e1)) *
-                                                                                                                     sin(0.2e1 * M_PI * dx) / M_PI * log(M_E)) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
-                                                                                                                                                                  0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                                                                  pow(M_PI, -0.2e1) / 0.2e1) / 0.2e1 + sD->A *
-                                    pow(sin(0.2e1 * M_PI * dx), 0.2e1) * pow(M_PI, -0.3e1) * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                                                       (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
-                                                                                                                       ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                        pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                                                                                                                                                                                        pow(M_PI, -0.2e1) / 0.2e1 +
-                                                                                                                                                                                        (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                                                                                                                                                                        pow(M_PI, -0.2e1) / 0.2e1))) *
-                                    pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) / 0.2e1) *  multiplier;
+                tmp -= data[j].b * (-sD->A * cos(0.2e1 * M_PI * dx) / M_PI * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
+                    ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                        pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                            pow(M_PI, -0.2e1) / 0.2e1 +
+                            (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1))) /
+                            ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)
+                    - sD->A * sin(0.2e1 * M_PI * dx) * pow(M_PI, -0.2e1) * sin(0.2e1 * M_PI * dy) * (pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)) *
+                        sD->KASQR * sin(0.2e1 * M_PI * dx) / M_PI * log(M_E) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                            pow(M_PI, -0.2e1) / 0.2e1 +
+                            (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1) -
+                            (0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
+                                0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                                pow(M_PI, -0.2e1) / 0.2e1))) *
+                        pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                        (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) *
+                        sin(0.2e1 * M_PI * dx) / M_PI + sD->KASQR * sD->KASQR * pow(M_E, -sD->KASQR *
+                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                            pow(M_PI, -0.2e1) /
+                            0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1)) *
+                        sin(0.2e1 * M_PI * dx) / M_PI * log(M_E)) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
+                            0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1) / 0.2e1 + sD->A *
+                    pow(sin(0.2e1 * M_PI * dx), 0.2e1) * pow(M_PI, -0.3e1) * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
+                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                                pow(M_PI, -0.2e1) / 0.2e1 +
+                                (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                                pow(M_PI, -0.2e1) / 0.2e1))) *
+                    pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) / 0.2e1) * multiplier;
             }
         }
-        sD->Ax[totalElementCounter++] = - tmp * stepsize;
+        sD->Ax[totalElementCounter++] = -tmp * stepsize;
         // Totally new part
-        for (unsigned int i = j+1; i < sD->dc; i++)
+        for (unsigned int i = j + 1; i < sD->dc; i++)
         {
             dx = data[i].x - data[j].x;
             normalize(dx);
@@ -298,19 +296,19 @@ void Simulation::calculateJacobian(const double & stepsize, const std::vector<Di
                 double multiplier = 1;
                 if (dx * dx + dy * dy > sD->cutOffSqr)
                 {
-                    multiplier = exp(-pow(sqrt(dx*dx+dy*dy)-sD->cutOff, 2) * sD->onePerCutOffSqr);
+                    multiplier = exp(-pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) * sD->onePerCutOffSqr);
                 }
                 sD->Ai[totalElementCounter] = i;
                 sD->Ax[totalElementCounter++] = stepsize * data[i].b * data[j].b * sD->tau->xy_diff_x(dx, dy) * multiplier;
             }
         }
-        sD->Ap[j+1] = totalElementCounter;
+        sD->Ap[j + 1] = totalElementCounter;
     }
 
     for (unsigned int j = 0; j < sD->dc; j++)
     {
         double subSum = 0;
-        for (int i = sD->Ap[j]; i < sD->Ap[j+1]; i++)
+        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
         {
             if (sD->Ai[i] == int(j))
             {
@@ -323,10 +321,10 @@ void Simulation::calculateJacobian(const double & stepsize, const std::vector<Di
         sD->Ax[sD->indexes[j]] = subSum;
         if (subSum > 0)
         {
-            subSum = 1./subSum;
+            subSum = 1. / subSum;
             subSum += 1.;
             subSum *= subSum;
-            sD->dVec[j] = 1./subSum;
+            sD->dVec[j] = 1. / subSum;
         }
         else
         {
@@ -336,24 +334,24 @@ void Simulation::calculateJacobian(const double & stepsize, const std::vector<Di
 
     for (unsigned int j = 0; j < sD->dc; j++)
     {
-        for (int i = sD->Ap[j]; i < sD->Ap[j+1]; i++)
+        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
         {
-            sD->Ax[i] *= (1.0+sD->dVec[sD->Ai[i]]) * 0.5;
+            sD->Ax[i] *= (1 + sD->dVec[sD->Ai[i]]) * 0.5;
         }
-        sD->Ax[sD->indexes[j]] += 1.0;
+        sD->Ax[sD->indexes[j]] += 1;
     }
 }
 
 void Simulation::calculateSparseFormForJacobian()
 {
-    (void) umfpack_di_symbolic (sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
-    (void) umfpack_di_numeric (sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null);
-    umfpack_di_free_symbolic (&(sD->Symbolic));
+    (void)umfpack_di_symbolic(sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
+    (void)umfpack_di_numeric(sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null);
+    umfpack_di_free_symbolic(&(sD->Symbolic));
 }
 
 void Simulation::solveEQSys()
 {
-    (void) umfpack_di_solve (UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null) ;
+    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
 }
 
 void Simulation::calculateXError()
@@ -365,7 +363,7 @@ void Simulation::calculateXError()
     }
 }
 
-double Simulation::calculateOrderParameter(const std::vector<double> &speeds)
+double Simulation::calculateOrderParameter(const std::vector<double>& speeds)
 {
     double orderParameter = 0;
     for (size_t i = 0; i < sD->dc; i++)
@@ -375,7 +373,7 @@ double Simulation::calculateOrderParameter(const std::vector<double> &speeds)
     return orderParameter;
 }
 
-double Simulation::calculateStrainIncrement(const std::vector<Dislocation> &old, const std::vector<Dislocation> &newD)
+double Simulation::calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD)
 {
     double result = 0;
     for (size_t i = 0; i < old.size(); i++)
@@ -387,11 +385,11 @@ double Simulation::calculateStrainIncrement(const std::vector<Dislocation> &old,
 
 void Simulation::run()
 {
-    while( ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
-           ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
-           ((sD->isStepCountLimit && sD->succesfulSteps < sD->stepCountLimit) || !sD->isStepCountLimit) &&
-           ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
-         )
+    while (((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
+        ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
+        ((sD->isStepCountLimit && sD->succesfulSteps < sD->stepCountLimit) || !sD->isStepCountLimit) &&
+        ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
+        )
     {
         step();
     }
@@ -419,23 +417,23 @@ void Simulation::stepStageI()
         sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, sdddstCore::StressProtocolStepType::Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
-        sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0.0, [](double a, double b){return a + fabs(b);}) / double(sD->dc);
-        vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0.0, [](double a, double b){return a + b*b;});
+        sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / double(sD->dc);
+        vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
 
         // First log line
         sD->standardOutputLog <<
-                                 sD->simTime << " " <<
-                                 sD->succesfulSteps << " " <<
-                                 sD->failedSteps << " " <<
-                                 0 << " " <<
-                                 sumAvgSp << " " <<
-                                 sD->cutOff << " " <<
-                                 "-" << " " <<
-                                 sD->externalStressProtocol->getStress(sD->currentStressStateType) << " " <<
-                                 "-" << " " <<
-                                 sD->totalAccumulatedStrainIncrease << " " <<
-                                 vsquare << " " <<
-                                 energy << "\n";
+            sD->simTime << " " <<
+            sD->succesfulSteps << " " <<
+            sD->failedSteps << " " <<
+            0 << " " <<
+            sumAvgSp << " " <<
+            sD->cutOff << " " <<
+            "-" << " " <<
+            sD->externalStressProtocol->getStress(sD->currentStressStateType) << " " <<
+            "-" << " " <<
+            sD->totalAccumulatedStrainIncrease << " " <<
+            vsquare << " " <<
+            energy << "\n";
 
         firstStepRequest = false;
     }
@@ -457,7 +455,7 @@ void Simulation::stepStageII()
 {
     sD->firstSmall = sD->dislocations;
 
-    integrate(0.5*sD->stepSize, sD->firstSmall, sD->dislocations, false, false, Original, EndOfFirstSmallStep);
+    integrate(0.5 * sD->stepSize, sD->firstSmall, sD->dislocations, false, false, Original, EndOfFirstSmallStep);
 }
 
 void Simulation::stepStageIII()
@@ -467,15 +465,15 @@ void Simulation::stepStageIII()
 
     integrate(0.5 * sD->stepSize, sD->secondSmall, sD->firstSmall, true, true, EndOfFirstSmallStep, EndOfSecondSmallStep);
 
-    vsquare1 = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0.0, [](double a, double b){return a + b*b;});
-    vsquare2 = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0.0, [](double a, double b){return a + b*b;});
+    vsquare1 = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+    vsquare2 = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + b * b; });
 
-    energyAccum = (vsquare1+vsquare2) * 0.5 * sD->stepSize * 0.5;
+    energyAccum = (vsquare1 + vsquare2) * 0.5 * sD->stepSize * 0.5;
 
     calculateXError();
 
     /// Precision related error handling
-    if (pH->getMaxErrorRatioSqr() < 1.0)
+    if (pH->getMaxErrorRatioSqr() < 1)
     {
         succesfulStep = true;
         initSpeedCalculationIsNeeded = true;
@@ -506,8 +504,8 @@ void Simulation::stepStageIII()
         sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
-        sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0.0, [](double a, double b){return a + fabs(b);}) / double(sD->dc);
-        vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0.0, [](double a, double b){return a + b*b;});
+        sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+        vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
 
         if (sD->countAvalanches)
         {
@@ -522,14 +520,14 @@ void Simulation::stepStageIII()
             }
         }
 
-        energyAccum += (vsquare2+vsquare)* 0.5 * sD->stepSize * 0.5;
+        energyAccum += (vsquare2 + vsquare) * 0.5 * sD->stepSize * 0.5;
         sD->standardOutputLog <<
-                                 sD->simTime << " " <<
-                                 sD->succesfulSteps << " " <<
-                                 sD->failedSteps << " " <<
-                                 pH->getMaxErrorRatioSqr() << " " <<
-                                 sumAvgSp << " " <<
-                                 sD->cutOff << " ";
+            sD->simTime << " " <<
+            sD->succesfulSteps << " " <<
+            sD->failedSteps << " " <<
+            pH->getMaxErrorRatioSqr() << " " <<
+            sumAvgSp << " " <<
+            sD->cutOff << " ";
 
         if (sD->orderParameterCalculationIsOn)
         {
@@ -597,19 +595,19 @@ void Simulation::stepStageIII()
     }
 }
 
-const std::vector<Dislocation> &Simulation::getStoredDislocationData()
+const std::vector<Dislocation>& Simulation::getStoredDislocationData()
 {
     return sD->dislocations;
 }
 
 #ifdef BUILD_PYTHON_BINDINGS
-Simulation *Simulation::create(boost::python::object simulationData)
+Simulation* Simulation::create(boost::python::object simulationData)
 {
     boost::python::extract<PySdddstCore::PySimulationData&> x(simulationData);
     if (x.check())
     {
         PySdddstCore::PySimulationData& tmp = x();
-        return new Simulation{tmp.get()};
+        return new Simulation{ tmp.get() };
     }
     return nullptr;
 }

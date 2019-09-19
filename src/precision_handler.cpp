@@ -69,12 +69,12 @@ void PrecisionHandler::reset()
     }
 }
 
-void PrecisionHandler::updateTolerance(const double &distanceSqr, const unsigned int &ID)
+void PrecisionHandler::updateTolerance(double distanceSqr, const unsigned int &ID)
 {
     double tmp = distanceSqr * 0.25 * 1e-2;
     if (tmp < minPrecisitySqr && tmp < toleranceAndError[ID].first)
     {
-        if (tmp == 0.0)
+        if (tmp == 0)
         {
             toleranceAndError[ID].first = EPS;
             std::cout << "Two dislocations are in the same place!\n";
@@ -86,7 +86,7 @@ void PrecisionHandler::updateTolerance(const double &distanceSqr, const unsigned
     }
 }
 
-void PrecisionHandler::updateError(const double &error, const unsigned int &ID)
+void PrecisionHandler::updateError(double error, const unsigned int &ID)
 {
     if (toleranceAndError[ID].second < error)
     {
@@ -100,20 +100,19 @@ void PrecisionHandler::updateError(const double &error, const unsigned int &ID)
     }
 }
 
-double PrecisionHandler::getNewStepSize(const double &oldStepSize) const
+double PrecisionHandler::getNewStepSize(double oldStepSize) const
 {
-    if(0.0 == maxErrorRatioSqr)
+    if(0 == maxErrorRatioSqr)
     {
-        return oldStepSize * 2.0;
+        return oldStepSize * 2;
     }
 
     double tmp = 1./sqrt(maxErrorRatioSqr);
 
-    tmp = pow(tmp, 1./3.);
-    if (tmp > 2.0)
-    {
-        tmp = 2.0;
-    }
+    tmp = pow(tmp, 1./3);
+    if (tmp > 2)
+        tmp = 2;
+
 
     return 0.9 * oldStepSize * tmp;
 }

@@ -50,7 +50,7 @@
 //#define STRESSMFNXY2ND	"/home/ispanovity/work/progs/dislocation_dynamics/periodic_sigma/periodic_stress_xy_2nd_order_1024x1024_bin.dat"
 /*#define STRESSMRADIN2	(1000.0/STRESSMSIZE/STRESSMSIZE)*/
 /*#define STRESSMRADOUT2	(1.3*STRESSMRADIN2)*/
-#define STRESSMFACT	(4.0*M_PI)
+#define STRESSMFACT	(4 * M_PI)
 
 #define MAX_H_FOR_DIFF (1.0/(4*stress_matrix_size))
 #define MAX_DELTA_FOR_DIFF 1e-10
@@ -68,7 +68,7 @@ public:
     PeriodicShearStressELTE();
     virtual ~PeriodicShearStressELTE();
 	
-    void loadStress(std::string path, const char* str, int n, double R0 = 0.0);
+    void loadStress(std::string path, const char* str, int n, double R0 = 0);
 
     virtual double xy(double x, double y);
     virtual double xy_diff_x(double x, double y);

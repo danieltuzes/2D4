@@ -25,45 +25,45 @@
 #include <ctime>
 #include <chrono>
 
-inline void normalize(double &n)
+inline void normalize(double& n)
 {
     while (n < -0.5)
     {
-        n += 1.0;
+        n += 1;
     }
 
     while (n >= 0.5)
     {
-        n -= 1.0;
+        n -= 1;
     }
 }
 
-inline double X(const double & x)
+inline double X(double x)
 {
-    return sin(2.0 * M_PI * x) * 0.5 / M_PI;
+    return sin(2 * M_PI * x) * 0.5 / M_PI;
 }
 
-inline double X2(const double & x)
+inline double X2(double x)
 {
-    return (1.0 - cos(2.0 * M_PI * x)) * 0.5 / M_PI / M_PI;
+    return (1 - cos(2 * M_PI * x)) * 0.5 / M_PI / M_PI;
 }
 
-inline double E(const double & x, const double & y, const double & K)
+inline double E(double x, double y, double K)
 {
-    return exp(-K*(X2(x)+X2(y)));
+    return exp(-K * (X2(x) + X2(y)));
 }
 
-inline double X_dx(const double & x)
+inline double X_dx(double x)
 {
-    return cos(2.0*M_PI*x);
+    return cos(2 * M_PI * x);
 }
 
-inline double X2_dx(const double & x)
+inline double X2_dx(double x)
 {
-    return sin(2.0*M_PI*x)/M_PI;
+    return sin(2 * M_PI * x) / M_PI;
 }
 
-inline double E_dx(const double & x, const double & y, const double & K)
+inline double E_dx(double x, double y, double K)
 {
     return -E(x, y, K) * K * X2_dx(x);
 }
@@ -73,11 +73,11 @@ inline double E_dx(const double & x, const double & y, const double & K)
 // https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
 inline double get_wall_time()
 {
-	auto t_start = std::chrono::high_resolution_clock::now();
-	auto t_start_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(t_start);
-	auto t_start_se = t_start_ms.time_since_epoch();
+    auto t_start = std::chrono::high_resolution_clock::now();
+    auto t_start_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(t_start);
+    auto t_start_se = t_start_ms.time_since_epoch();
 
-	double time_in_ms = static_cast<double>(t_start_se.count());
+    double time_in_ms = static_cast<double>(t_start_se.count());
 
     return time_in_ms / 1000.;
 }

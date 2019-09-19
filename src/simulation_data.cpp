@@ -40,11 +40,11 @@
 
 using namespace sdddstCore;
 
-SimulationData::SimulationData(const std::string &dislocationDataFilePath, const std::string &fixpointsDataFilePath):
+SimulationData::SimulationData(const std::string& dislocationDataFilePath, const std::string& fixpointsDataFilePath) :
     cutOffMultiplier(DEFAULT_CUTOFF_MULTIPLIER),
     cutOff(DEFAULT_CUTOFF),
-    cutOffSqr(cutOff*cutOff),
-    onePerCutOffSqr(1./cutOffSqr),
+    cutOffSqr(cutOff* cutOff),
+    onePerCutOffSqr(1. / cutOffSqr),
     prec(DEFAULT_PRECISION),
     pc(0),
     dc(0),
@@ -97,7 +97,7 @@ SimulationData::SimulationData(const std::string &dislocationDataFilePath, const
     initSimulationVariables();
 }
 
-void SimulationData::readDislocationDataFromFile(const std::string &dislocationDataFilePath)
+void SimulationData::readDislocationDataFromFile(const std::string& dislocationDataFilePath)
 {
     if (dislocationDataIsLoaded)
     {
@@ -115,7 +115,7 @@ void SimulationData::readDislocationDataFromFile(const std::string &dislocationD
     assert(in.is_open() && "Cannot open dislocation data file!");
 
     // Iterating through the file
-    while(!in.eof())
+    while (!in.eof())
     {
         std::string data;
         in >> data;
@@ -133,18 +133,18 @@ void SimulationData::readDislocationDataFromFile(const std::string &dislocationD
     updateMemoryUsageAccordingToDislocationCount();
 }
 
-void SimulationData::writeDislocationDataToFile(const std::string &dislocationDataFilePath)
+void SimulationData::writeDislocationDataToFile(const std::string& dislocationDataFilePath)
 {
     std::ofstream out(dislocationDataFilePath);
     assert(out.is_open() && "Cannot open the data file to write!");
     out << std::scientific << std::setprecision(16);
-    for (auto & i: dislocations)
+    for (auto& i : dislocations)
     {
         out << i.x << " " << i.y << " " << i.b << "\n";
     }
 }
 
-void SimulationData::readPointDefectDataFromFile(const std::string &pointDefectDataFilePath)
+void SimulationData::readPointDefectDataFromFile(const std::string& pointDefectDataFilePath)
 {
     if (pointDefectDataFilePath.empty())
     {
@@ -173,12 +173,12 @@ void SimulationData::readPointDefectDataFromFile(const std::string &pointDefectD
     }
 }
 
-void SimulationData::writePointDefectDataToFile(const std::string &pointDefectDataFilePath)
+void SimulationData::writePointDefectDataToFile(const std::string& pointDefectDataFilePath)
 {
     std::ofstream out(pointDefectDataFilePath);
     assert(out.is_open() && "Cannot open the data file to write!");
     out << std::scientific << std::setprecision(16);
-    for (auto & i: points)
+    for (auto& i : points)
     {
         out << i.x << " " << i.y << "\n";
     }
@@ -192,18 +192,17 @@ void SimulationData::initSimulationVariables()
 void SimulationData::updateCutOff()
 {
     double multiplier = cutOffMultiplier;
-    if (cutOffMultiplier >=  1./12. * sqrt(2.0 * double(dc)))
-    {
+    if (cutOffMultiplier >= sqrt(2.0 * dc) / 12)
         multiplier = 1e20;
-    }
-    cutOff = 1./sqrt(dc) * multiplier;
+
+    cutOff = multiplier / sqrt(dc);
     cutOffSqr = cutOff * cutOff;
-    onePerCutOffSqr = 1./cutOffSqr;
+    onePerCutOffSqr = 1 / cutOffSqr;
 }
 
 #ifdef BUILD_PYTHON_BINDINGS
 
-Field const &SimulationData::getField()
+Field const& SimulationData::getField()
 {
     return *tau;
 }
@@ -218,7 +217,7 @@ void SimulationData::setField(boost::python::object field)
     }
 }
 
-const StressProtocol &SimulationData::getStressProtocol()
+const StressProtocol& SimulationData::getStressProtocol()
 {
     return *externalStressProtocol;
 }
@@ -269,11 +268,11 @@ void SimulationData::updateMemoryUsageAccordingToDislocationCount()
     bigStep.resize(dc);
     firstSmall.resize(dc);
     secondSmall.resize(dc);
-    Ap = (int*) calloc(dc+1, sizeof(int));
-    Ai = (int*) calloc(dc*dc, sizeof(int));
-    Ax = (double*) calloc(dc*dc, sizeof(double));
-    x = (double*) calloc(dc, sizeof(double));
-    assert(Ap && "Memory allication for Ap failed!");
+    Ap = (int*)calloc(dc + 1, sizeof(int));
+    Ai = (int*)calloc(dc * dc, sizeof(int));
+    Ax = (double*)calloc(dc * dc, sizeof(double));
+    x = (double*)calloc(dc, sizeof(double));
+    assert(Ap && "Memory allocation for Ap failed!");
     assert(Ai && "Memory allocation for Ai failed!");
     assert(Ax && "Memory allocation for Ax failed!");
     assert(x && "Memory allocation for x failed!");

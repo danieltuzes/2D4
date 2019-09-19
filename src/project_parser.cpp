@@ -43,8 +43,8 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("point-defect-configuration", boost::program_options::value<std::string>(), "plain text file path containing point defect data in (x y) pairs")
         ("logfile-path,L", boost::program_options::value<std::string>(), "path for the plain text log file (it will be overwritten if it already exists)")
         ("time-limit,t", boost::program_options::value<double>(), "the simulation stops if simulation time reached this limit")
-        ("step-count-limit,C", boost::program_options::value<unsigned int>(), "the simulation will stop after successful N=SCL steps")
-        ("strain-increase-limit", boost::program_options::value<double>(), "the simulation will stop after arg total strain increase is reached")
+        ("step-count-limit,C", boost::program_options::value<unsigned int>(), "the simulation will stop after this many steps")
+        ("strain-increase-limit", boost::program_options::value<double>(), "the simulation stops if strain increase reaches this value")
         ("avalanche-detection-limit", boost::program_options::value<unsigned int>(), "the simulation will stop after the threshold was reached with the given numer of events from above")
         ("avalanche-speed-threshold", boost::program_options::value<double>()->default_value(1e-3), "speed threshold for counting avalanches")
         ("initial-stepsize", boost::program_options::value<double>()->default_value(1e-6), "first tried step size for the simulation")
@@ -53,7 +53,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("calculate-strain,S", "turns on strain calculation for the simulation")
         ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
         ("position-precision,P", boost::program_options::value<double>()->default_value(1e-5), "minimum precision for the positions for the adaptive step size protocol")
-        ("save-sub-configurations,o", boost::program_options::value<std::string>(), "saves the current configuration after every N=SCD successful step to the given destination")
+        ("save-sub-configurations,o", boost::program_options::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
         ("sub-configuration-delay,N", boost::program_options::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
         ("sub-configuration-delay-during-avalanche,n", boost::program_options::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
         ;
@@ -66,7 +66,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     externalStressProtocolOptions.add_options()
         ("no-external-stress,s", "no external stress during the simulation (default)")
         ("fixed-rate-external-stress,f", boost::program_options::value<double>(), "external stress is linear with time, rate should be specified as an arg")
-        ("spring-constant", boost::program_options::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with the    previous option together)")
+        ("spring-constant", boost::program_options::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with the previous option together)")
         ;
 
     boost::program_options::options_description options;

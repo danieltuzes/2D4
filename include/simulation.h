@@ -41,10 +41,10 @@ public:
     Simulation(std::shared_ptr<SimulationData> _sD);
     ~Simulation();
 
-    void integrate(const double & stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old, bool useSpeed2, bool calculateInitSpeed, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end);
+    void integrate(double stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old, bool useSpeed2, bool calculateInitSpeed, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end);
     void calculateSpeeds(const std::vector<Dislocation> & dis, std::vector<double>  & res);
-    void calculateG(const double & stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end);
-    void calculateJacobian(const double &stepsize, const std::vector<Dislocation> &data);
+    void calculateG(double stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end);
+    void calculateJacobian(double stepsize, const std::vector<Dislocation> &data);
     void calculateXError();
 
     void calculateSparseFormForJacobian();

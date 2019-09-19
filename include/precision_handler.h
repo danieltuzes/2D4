@@ -35,11 +35,11 @@ public:
     unsigned long getSize() const;
 
     void reset();
-    void updateTolerance(const double & distanceSqr, const unsigned int &ID);
+    void updateTolerance(double distanceSqr, const unsigned int &ID);
 
-    void updateError(const double & error, const unsigned int &ID);
+    void updateError(double error, const unsigned int &ID);
 
-    double getNewStepSize(const double & oldStepSize) const;
+    double getNewStepSize(double oldStepSize) const;
 
     double getMinPrecisity() const;
     void setMinPrecisity(double value);
