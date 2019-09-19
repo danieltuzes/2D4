@@ -1,7 +1,7 @@
 //
 // xautocorr_utils.cpp : contains the function definitions for xautocorr.cpp
 
-#include "xautocorr_utils.h"
+#include "xpattern_utils.h"
 
 #include <boost/program_options.hpp> // to read in program call arguments
 #include <boost/program_options/options_description.hpp> // to add descriptions of the program call arguments

@@ -1,7 +1,7 @@
 //
 // xautocorr.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xautocorr 1.2
+#define VERSION_xpattern 1.2
 /*changelog
 # 1.2
 * it is working on mutliple simulation, g++ doesn't produce warnings
@@ -14,7 +14,7 @@
 * first version working with the initial idea
 */
 
-#include "xautocorr_utils.h"
+#include "xpattern_utils.h"
 
 int main(int argc, char** argv)
 {
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     if (!vm.count("hide-copyright"))
     {
-        std::cout << "xautocorr (version " << std::setprecision(1) << std::fixed << (VERSION_xautocorr + VERSION_xautocorr_utils) << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
+        std::cout << "xautocorr (version " << std::setprecision(1) << std::fixed << (VERSION_xpattern + VERSION_xpattern_utils) << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
             "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
         std::cout.unsetf(std::ios_base::floatfield);
     }
@@ -223,7 +223,7 @@ int main(int argc, char** argv)
 
 #pragma endregion
 
-    for (const auto& ifname : ifnames)
+    for (const auto& ifname : ifnames) // do the analysis on the dislocation configuration file(s)
     {
 #pragma region create maps
         std::vector<std::vector<std::vector<double>>> maps; // the 2D maps for rho_t, kappa, rho_p, rho_n

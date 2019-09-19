@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "init_config_gen", "init_con
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xautocorr", "xautocorr\xautocorr.vcxproj", "{EBB66B65-8969-4020-A338-46026F0498B2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xpattern", "xpattern\xpattern.vcxproj", "{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +29,10 @@ Global
 		{EBB66B65-8969-4020-A338-46026F0498B2}.Debug|x64.Build.0 = Debug|x64
 		{EBB66B65-8969-4020-A338-46026F0498B2}.Release|x64.ActiveCfg = Release|x64
 		{EBB66B65-8969-4020-A338-46026F0498B2}.Release|x64.Build.0 = Release|x64
+		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Debug|x64.ActiveCfg = Debug|x64
+		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Debug|x64.Build.0 = Debug|x64
+		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Release|x64.ActiveCfg = Release|x64
+		{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

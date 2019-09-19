@@ -18,15 +18,15 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="xautocorr.cpp">
+    <ClCompile Include="xpattern.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="xautocorr_utils.cpp">
+    <ClCompile Include="xpattern_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="xautocorr_utils.h">
+    <ClInclude Include="xpattern_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

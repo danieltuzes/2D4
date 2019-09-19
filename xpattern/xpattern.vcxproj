@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{EBB66B65-8969-4020-A338-46026F0498B2}</ProjectGuid>
-    <RootNamespace>xautocorr</RootNamespace>
+    <ProjectGuid>{1D02CB03-A8BC-4A3F-B473-928BC866F2E5}</ProjectGuid>
+    <RootNamespace>xpattern</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -59,7 +59,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>C:\Users\daniel\source\2D4\xautocorr;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\daniel\source\2D4\xpattern;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -86,11 +86,11 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="xautocorr.cpp" />
-    <ClCompile Include="xautocorr_utils.cpp" />
+    <ClCompile Include="xpattern.cpp" />
+    <ClCompile Include="xpattern_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="xautocorr_utils.h" />
+    <ClInclude Include="xpattern_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

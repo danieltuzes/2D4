@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define VERSION_xautocorr_utils 1.1
+#define VERSION_xpattern_utils 1.1
 /* changelog
 # 1.1
 * new sandbox methods to test analytical 1D Fourier transformation algorithm to test how well a Dirac-delta sum can be transformed
