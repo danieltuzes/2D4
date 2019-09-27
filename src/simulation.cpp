@@ -32,7 +32,7 @@
 
 using namespace sdddstCore;
 
-Simulation::Simulation(std::shared_ptr<SimulationData> _sD) :
+Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
     succesfulStep(true),
     lastWriteTimeFinished(0),
     initSpeedCalculationIsNeeded(true),
@@ -40,10 +40,9 @@ Simulation::Simulation(std::shared_ptr<SimulationData> _sD) :
     energy(0),
     energyAccum(0),
     vsquare(0),
-    sD(_sD),
+    sD(sD),
     pH(new PrecisionHandler)
 {
-
     // Format setting
     sD->standardOutputLog << std::scientific << std::setprecision(16);
 
@@ -55,7 +54,16 @@ Simulation::~Simulation()
 {
 }
 
-
+/**
+	@brief integrate:	evolve the dislocation system in time
+	@param stepsize:	how large time step should be made
+	@param newDislocation:	the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
+	@param old:	the input dislocation configuration, no need to be in the range of [-0.5:0.5)
+	@param useSpeed2:	
+	@param calculateInitSpeed:	
+	@param origin:	
+	@param end:	
+*/
 void Simulation::integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
     bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
 {
@@ -64,18 +72,13 @@ void Simulation::integrate(double stepsize, std::vector<Dislocation>& newDisloca
     for (size_t i = 0; i < sD->ic; i++)
     {
         if (i > 0)
-        {
             calculateG(stepsize, newDislocation, old, useSpeed2, false, false, origin, end);
-        }
         else
-        {
             calculateG(stepsize, newDislocation, old, useSpeed2, calculateInitSpeed, sD->externalStressProtocol->getType() == "zero-stress" ? true : false, origin, end);
-        }
+
         solveEQSys();
         for (size_t j = 0; j < sD->dc; j++)
-        {
             newDislocation[j].x -= sD->x[j];
-        }
     }
     umfpack_di_free_numeric(&sD->Numeric);
 }
@@ -84,7 +87,7 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vecto
 {
     std::fill(res.begin(), res.end(), 0);
 
-    for (unsigned int i = 0; i < sD->dc; i++)
+    for (unsigned int i = 0; i < sD->dc; i++) // typically unefficient
     {
         for (unsigned int j = i + 1; j < sD->dc; j++)
         {
@@ -94,7 +97,7 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vecto
             double dy = dis[i].y - dis[j].y;
             normalize(dy);
 
-            double tmp = dis[i].b * dis[j].b * sD->tau->xy(dx, dy);
+            double tmp = dis[i].b * dis[j].b * sD->tau->xy(dx, dy); // The sign of Burgers vectors can be deduced from i and j
 
             double r2 = dx * dx + dy * dy;
             pH->updateTolerance(r2, i);
@@ -139,9 +142,8 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
     {
         double t = sD->simTime;
         if (origin == sdddstCore::StressProtocolStepType::EndOfFirstSmallStep)
-        {
             t += sD->stepSize * 0.5;
-        }
+
 
         sD->externalStressProtocol->calculateStress(t, old, origin);
         sD->currentStressStateType = origin;
@@ -149,25 +151,20 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
     }
 
     if (useInitSpeedForFirstStep)
-    {
         csp = isp;
-    }
     else
     {
         double t = sD->simTime + sD->stepSize;
         if (end == EndOfFirstSmallStep)
-        {
             t -= sD->stepSize * 0.5;
-        }
+
         sD->externalStressProtocol->calculateStress(t, newDislocation, end);
         sD->currentStressStateType = end;
         calculateSpeeds(newDislocation, *csp);
     }
 
     for (size_t i = 0; i < sD->dc; i++)
-    {
         sD->g[i] = newDislocation[i].x - (1 + sD->dVec[i]) * 0.5 * stepsize * (*csp)[i] - old[i].x - (1 - sD->dVec[i]) * 0.5 * stepsize * (*isp)[i];
-    }
 }
 
 double Simulation::getElement(int j, int si, int ei)
@@ -279,25 +276,26 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocatio
                                 (0.1e1 - cos(0.2e1 * M_PI * dy)) *
                                 pow(M_PI, -0.2e1) / 0.2e1))) *
                     pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) / 0.2e1) * multiplier;
+                // see simulation_tmp_simplified.cpp. What is this joke? log(M_E)? 0.2e1?
             }
         }
         sD->Ax[totalElementCounter++] = -tmp * stepsize;
+        
         // Totally new part
         for (unsigned int i = j + 1; i < sD->dc; i++)
         {
             dx = data[i].x - data[j].x;
             normalize(dx);
 
-            dy = data[i].y - data[j].y;
+            dy = data[i].y - data[j].y; // az y értékek sosem változnak meg, ezért ha a diszlokációk rendezve vannak tárolva, akkor csak az ellentétes típusúak között kell maximum 1 kivonást elvégezni a normalize függvényben
             normalize(dy);
 
-            if (pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) < 36.8 * sD->cutOffSqr)
+            if (pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) < 36.8 * sD->cutOffSqr) // 36.8?? why
             {
                 double multiplier = 1;
                 if (dx * dx + dy * dy > sD->cutOffSqr)
-                {
                     multiplier = exp(-pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) * sD->onePerCutOffSqr);
-                }
+
                 sD->Ai[totalElementCounter] = i;
                 sD->Ax[totalElementCounter++] = stepsize * data[i].b * data[j].b * sD->tau->xy_diff_x(dx, dy) * multiplier;
             }
@@ -311,25 +309,22 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocatio
         for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
         {
             if (sD->Ai[i] == int(j))
-            {
                 sD->indexes[j] = i;
-            }
+
             subSum += sD->Ax[i];
         }
 
-        subSum *= -1.;
+        subSum *= -1; // why
         sD->Ax[sD->indexes[j]] = subSum;
-        if (subSum > 0)
+        if (subSum > 0) // why
         {
-            subSum = 1. / subSum;
+            subSum = 1 / subSum;
             subSum += 1.;
             subSum *= subSum;
             sD->dVec[j] = 1. / subSum;
         }
         else
-        {
             sD->dVec[j] = 0.;
-        }
     }
 
     for (unsigned int j = 0; j < sD->dc; j++)
@@ -375,17 +370,17 @@ double Simulation::calculateOrderParameter(const std::vector<double>& speeds)
 
 double Simulation::calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD)
 {
-    double result = 0;
+    double ret = 0;
     for (size_t i = 0; i < old.size(); i++)
-    {
-        result += newD[i].b * (newD[i].x - old[i].x);
-    }
-    return result;
+        ret += newD[i].b * (newD[i].x - old[i].x); // x is not in the range of [-0.5: 0.5), the difference is the real distance
+
+    return ret;
 }
 
 void Simulation::run()
 {
-    while (((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
+    while (
+        ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
         ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
         ((sD->isStepCountLimit && sD->succesfulSteps < sD->stepCountLimit) || !sD->isStepCountLimit) &&
         ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
@@ -486,17 +481,15 @@ void Simulation::stepStageIII()
 
         sD->dislocations.swap(sD->secondSmall);
         for (size_t i = 0; i < sD->dc; i++)
-        {
             normalize(sD->dislocations[i].x);
-        }
+
         sD->simTime += sD->stepSize;
         sD->succesfulSteps++;
 
         double orderParameter = 0;
         if (sD->orderParameterCalculationIsOn)
-        {
             orderParameter = calculateOrderParameter(sD->speed);
-        }
+
 
         double current_wall_time = get_wall_time();
 
@@ -515,9 +508,7 @@ void Simulation::stepStageIII()
                 sD->inAvalanche = false;
             }
             else if (sumAvgSp > sD->avalancheSpeedThreshold)
-            {
                 sD->inAvalanche = true;
-            }
         }
 
         energyAccum += (vsquare2 + vsquare) * 0.5 * sD->stepSize * 0.5;
@@ -530,25 +521,17 @@ void Simulation::stepStageIII()
             sD->cutOff << " ";
 
         if (sD->orderParameterCalculationIsOn)
-        {
             sD->standardOutputLog << orderParameter;
-        }
         else
-        {
             sD->standardOutputLog << "-";
-        }
-
 
         sD->standardOutputLog << " " << sD->externalStressProtocol->getStress(Original) << " " << current_wall_time - lastWriteTimeFinished;
 
         if (sD->calculateStrainDuringSimulation)
-        {
             sD->standardOutputLog << " " << sD->totalAccumulatedStrainIncrease;
-        }
         else
-        {
             sD->standardOutputLog << " -";
-        }
+
 
         if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
         {
@@ -582,9 +565,8 @@ void Simulation::stepStageIII()
 
     }
     else
-    {
         sD->failedSteps++;
-    }
+
 
     sD->stepSize = pH->getNewStepSize(sD->stepSize);
     pH->reset();

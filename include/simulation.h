@@ -35,56 +35,58 @@
 
 namespace sdddstCore {
 
-class Simulation
-{
-public:
-    Simulation(std::shared_ptr<SimulationData> _sD);
-    ~Simulation();
+    class Simulation
+    {
+    public:
+        Simulation(std::shared_ptr<SimulationData> sD);
+        ~Simulation();
 
-    void integrate(double stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old, bool useSpeed2, bool calculateInitSpeed, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end);
-    void calculateSpeeds(const std::vector<Dislocation> & dis, std::vector<double>  & res);
-    void calculateG(double stepsize, std::vector<Dislocation> &newDislocation, const std::vector<Dislocation> &old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end);
-    void calculateJacobian(double stepsize, const std::vector<Dislocation> &data);
-    void calculateXError();
+        void integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end);
 
-    void calculateSparseFormForJacobian();
-    void solveEQSys();
+        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect)
+        void calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res);
+        void calculateG(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end);
+        void calculateJacobian(double stepsize, const std::vector<Dislocation>& data);
+        void calculateXError();
 
-    double calculateOrderParameter(const std::vector<double> & speeds);
-    double calculateStrainIncrement(const std::vector<Dislocation> & old, const std::vector<Dislocation> & newD);
+        void calculateSparseFormForJacobian();
+        void solveEQSys();
 
-    double getElement(int j, int si, int ei);
+        double calculateOrderParameter(const std::vector<double>& speeds);
+        double calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD);
 
-    double getSimTime();
+        double getElement(int j, int si, int ei);
 
-    void run();
+        double getSimTime();
 
-    bool step();
+        void run();
 
-    void stepStageI();
-    void stepStageII();
-    void stepStageIII();
+        bool step();
 
-    const std::vector<Dislocation> & getStoredDislocationData();
+        void stepStageI();
+        void stepStageII();
+        void stepStageIII();
+
+        const std::vector<Dislocation>& getStoredDislocationData();
 
 #ifdef BUILD_PYTHON_BINDINGS
-    static Simulation * create(boost::python::object simulationData);
+        static Simulation* create(boost::python::object simulationData);
 #endif
 
-private:
-    bool succesfulStep;
-    double lastWriteTimeFinished;
-    bool initSpeedCalculationIsNeeded;
-    bool firstStepRequest;
-    double energy;
-    double energyAccum;
-    double vsquare;
-    double vsquare1;
-    double vsquare2;
+    private:
+        bool succesfulStep;
+        double lastWriteTimeFinished;
+        bool initSpeedCalculationIsNeeded;
+        bool firstStepRequest;
+        double energy;
+        double energyAccum;
+        double vsquare;
+        double vsquare1;
+        double vsquare2;
 
-    std::shared_ptr<SimulationData> sD;
-    std::unique_ptr<PrecisionHandler> pH;
-};
+        std::shared_ptr<SimulationData> sD;
+        std::unique_ptr<PrecisionHandler> pH;
+    };
 
 }
 

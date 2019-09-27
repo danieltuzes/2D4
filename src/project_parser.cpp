@@ -45,11 +45,11 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("time-limit,t", boost::program_options::value<double>(), "the simulation stops if simulation time reached this limit")
         ("step-count-limit,C", boost::program_options::value<unsigned int>(), "the simulation will stop after this many steps")
         ("strain-increase-limit", boost::program_options::value<double>(), "the simulation stops if strain increase reaches this value")
-        ("avalanche-detection-limit", boost::program_options::value<unsigned int>(), "the simulation will stop after the threshold was reached with the given numer of events from above")
+        ("avalanche-detection-limit", boost::program_options::value<unsigned int>(), "the simulation will stop after the threshold was reached with the given number of events from above")
         ("avalanche-speed-threshold", boost::program_options::value<double>()->default_value(1e-3), "speed threshold for counting avalanches")
         ("initial-stepsize", boost::program_options::value<double>()->default_value(1e-6), "first tried step size for the simulation")
         ("cutoff-multiplier,c", boost::program_options::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
-        ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not overleap this value")
+        ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not overlap this value")
         ("calculate-strain,S", "turns on strain calculation for the simulation")
         ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
         ("position-precision,P", boost::program_options::value<double>()->default_value(1e-5), "minimum precision for the positions for the adaptive step size protocol")
@@ -121,19 +121,19 @@ void sdddstCore::ProjectParser::printLicense() // if used multiple times, should
 void sdddstCore::ProjectParser::processInput(boost::program_options::variables_map & vm)
 {
     // Check for required options
-    if (0 == vm.count("dislocation-configuration"))
+    if (!vm.count("dislocation-configuration"))
     {
         std::cerr << "dislocation-configuration is missing!\n";
         exit(-1);
     }
 
-    if (0 == vm.count("result-dislocation-configuration"))
+    if (!vm.count("result-dislocation-configuration"))
     {
         std::cerr << "result-dislocation-configuration is missing!\n";
         exit(-1);
     }
 
-    if (vm.count("point-defect-configuration") == 1)
+    if (vm.count("point-defect-configuration"))
     {
         sD = std::shared_ptr<SimulationData>(new SimulationData(vm["dislocation-configuration"].as<std::string>(),
             vm["point-defect-configuration"].as<std::string>()));
@@ -221,7 +221,7 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
 
     sD->endDislocationConfigurationPath = vm["result-dislocation-configuration"].as<std::string>();
 
-    if (vm.count("periodic-stress-field-elte") == 0)
+    if (!vm.count("periodic-stress-field-elte"))
     {
         sD->tau = std::unique_ptr<Field>(new AnalyticField());
     }
@@ -232,12 +232,7 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         tmp->loadStress(vm["periodic-stress-field-elte"].as<std::string>(), "xy_diff_x", 1024);
         sD->tau = std::move(tmp);
     }
-    /*
-      "no-external-stress", "no external stress during the simulation (default)")
-                  ("fixed-rate-external-stress", boost::program_options::value<double>(), "external stress is linear with time, rate should be specified as an arg")
-                  ("spring-constant"
 
-                   ;*/
     if (vm.count("no-external-stress") && vm.count("fixed-rate-external-stress"))
     {
         std::cerr << "Only one stress protocol can be defined at the same time!\n";

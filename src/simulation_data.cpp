@@ -89,30 +89,22 @@ SimulationData::SimulationData(const std::string& dislocationDataFilePath, const
     subconfigDistanceCounter(0),
     currentStressStateType(sdddstCore::StressProtocolStepType::Original),
     speedThresholdForCutoffChange(0),
-    isSpeedThresholdForCutoffChange(false),
-    dislocationDataIsLoaded(false)
+    isSpeedThresholdForCutoffChange(false)
 {
     readDislocationDataFromFile(dislocationDataFilePath);
     readPointDefectDataFromFile(fixpointsDataFilePath);
     initSimulationVariables();
 }
 
-void SimulationData::readDislocationDataFromFile(const std::string& dislocationDataFilePath)
+void SimulationData::readDislocationDataFromFile(std::string dislocationDataFilePath)
 {
-    if (dislocationDataIsLoaded)
-    {
-        std::cerr << "Dislocation data was already loaded! Exiting...\n";
-        exit(-10);
-    }
-    if (dislocationDataFilePath.empty())
-    {
-        return;
-    }
-
-    dislocationDataIsLoaded = true;
-
     std::ifstream in(dislocationDataFilePath);
-    assert(in.is_open() && "Cannot open dislocation data file!");
+    if (!in)
+    {
+        std::cerr << "Cannot open dislocation data file " << dislocationDataFilePath << ". Program terminates." << std::endl;
+        assert(in.is_open() && "Cannot open the data file to read!"); // if debug mode is active, program will print this too; good to show whether program is in debug mode
+        exit(-1);
+    }
 
     // Iterating through the file
     while (!in.eof())
@@ -133,18 +125,17 @@ void SimulationData::readDislocationDataFromFile(const std::string& dislocationD
     updateMemoryUsageAccordingToDislocationCount();
 }
 
-void SimulationData::writeDislocationDataToFile(const std::string& dislocationDataFilePath)
+void SimulationData::writeDislocationDataToFile(std::string dislocationDataFilePath)
 {
     std::ofstream out(dislocationDataFilePath);
-    assert(out.is_open() && "Cannot open the data file to write!");
+    assert(out.is_open() && "Cannot open the data file to write!"); // why? miért csak debugban?
     out << std::scientific << std::setprecision(16);
     for (auto& i : dislocations)
-    {
         out << i.x << " " << i.y << " " << i.b << "\n";
-    }
+
 }
 
-void SimulationData::readPointDefectDataFromFile(const std::string& pointDefectDataFilePath)
+void SimulationData::readPointDefectDataFromFile(std::string pointDefectDataFilePath)
 {
     if (pointDefectDataFilePath.empty())
     {
@@ -154,7 +145,7 @@ void SimulationData::readPointDefectDataFromFile(const std::string& pointDefectD
     pc = 0;
     points.resize(0);
     std::ifstream in(pointDefectDataFilePath);
-    assert(in.is_open() && "Cannot open fixpoints data file!");
+    assert(in.is_open() && "Cannot open fixpoints data file!"); // why? miért csak debugban?
 
     // Iterating through the file
     while (!in.eof())
@@ -173,10 +164,10 @@ void SimulationData::readPointDefectDataFromFile(const std::string& pointDefectD
     }
 }
 
-void SimulationData::writePointDefectDataToFile(const std::string& pointDefectDataFilePath)
+void SimulationData::writePointDefectDataToFile(std::string pointDefectDataFilePath)
 {
     std::ofstream out(pointDefectDataFilePath);
-    assert(out.is_open() && "Cannot open the data file to write!");
+    assert(out.is_open() && "Cannot open the data file to write!"); // why? miért csak debugban?
     out << std::scientific << std::setprecision(16);
     for (auto& i : points)
     {
@@ -268,9 +259,9 @@ void SimulationData::updateMemoryUsageAccordingToDislocationCount()
     bigStep.resize(dc);
     firstSmall.resize(dc);
     secondSmall.resize(dc);
-    Ap = (int*)calloc(dc + 1, sizeof(int));
-    Ai = (int*)calloc(dc * dc, sizeof(int));
-    Ax = (double*)calloc(dc * dc, sizeof(double));
+    Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
+    Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
+    Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));
     x = (double*)calloc(dc, sizeof(double));
     assert(Ap && "Memory allocation for Ap failed!");
     assert(Ai && "Memory allocation for Ai failed!");

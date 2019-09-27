@@ -27,23 +27,22 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
 
-namespace sdddstCore {
-
-class ProjectParser
+namespace sdddstCore
 {
-public:
-    ProjectParser(int argc, char ** argv);
-    ~ProjectParser();
+    class ProjectParser
+    {
+    public:
+        ProjectParser(int argc, char** argv);
+        ~ProjectParser();
 
-    std::shared_ptr<SimulationData> getSimulationData();
+        std::shared_ptr<SimulationData> getSimulationData();
 
-    void printLicense();
+        void printLicense();
 
-private:
-    void processInput(boost::program_options::variables_map & vm);
-    std::shared_ptr<SimulationData> sD;
-};
-
+    private:
+        void processInput(boost::program_options::variables_map& vm);
+        std::shared_ptr<SimulationData> sD;
+    };
 }
 
 #endif

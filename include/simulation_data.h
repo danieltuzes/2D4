@@ -36,219 +36,228 @@
 
 namespace sdddstCore {
 
-class SimulationData
-{
-public:
-    /**
-     * @brief SimulationData can be created with giving the file path for the dislocation and the point defect
-     * data files
-     * @param dislocationDataFilePath
-     * @param pointDefectDataFilePath
-     */
-    SimulationData(const std::string & dislocationDataFilePath, const std::string & pointDefectDataFilePath);
+    class SimulationData
+    {
+    public:
+        /**
+         * @brief SimulationData can be created with giving the file path for the dislocation and the point defect
+         * data files
+         * @param dislocationDataFilePath
+         * @param pointDefectDataFilePath
+         */
+        SimulationData(const std::string& dislocationDataFilePath, const std::string& pointDefectDataFilePath);
 
-    ///////////////////
-    /// UTILITIES
-    ///
+        ///////////////////
+        /// UTILITIES
+        ///
 
-    /// Data file handling utilities
-    void readDislocationDataFromFile(const std::string & dislocationDataFilePath);
-    void writeDislocationDataToFile(const std::string & dislocationDataFilePath);
-    void readPointDefectDataFromFile(const std::string & pointDefectDataFilePath);
-    void writePointDefectDataToFile(const std::string & pointDefectDataFilePath);
+        /// Data file handling utilities
+        void readDislocationDataFromFile(std::string dislocationDataFilePath);
+        void writeDislocationDataToFile(std::string dislocationDataFilePath);
+        void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
+        void writePointDefectDataToFile(std::string pointDefectDataFilePath);
 
-    /// Other utilities
-    void initSimulationVariables();
-    void updateCutOff();
+        /// Other utilities
+        void initSimulationVariables();
+        void updateCutOff();
 
-    //////////////////
-    /// DATA FIELDS
-    ///
+        //////////////////
+        /// DATA FIELDS
+        ///
 
-    std::vector<Dislocation> dislocations; //Valid dislocation position data -> state of the simulation at simTime
-    std::vector<PointDefect> points; //The positions of the fix points
-    std::vector<double> g; // the g vector from the calculations
-    // Used to store initial speeds for the big step and for the first small step
-    std::vector<double> initSpeed;
-    // Used to store initial speeds for the second small step
-    std::vector<double> initSpeed2;
-    // Stores speed during the NR iteration for the big step and for the first small step
-    std::vector<double> speed;
-    // Stores speed during the NR iteration for the second small step
-    std::vector<double> speed2;
-    // Stores the d values for the integration scheme
-    std::vector<double> dVec;
+        //Valid dislocation position data -> state of the simulation at simTime
+        std::vector<Dislocation> dislocations;
 
-    // The value of the cut off multiplier
-    double cutOffMultiplier;
+        //The positions of the fix points
+        std::vector<PointDefect> points;
 
-    // The value of the cutoff
-    double cutOff;
+        // the g vector from the calculations
+        std::vector<double> g;
 
-    // The value of the cutoff^2
-    double cutOffSqr;
+        // Used to store initial speeds for the big step and for the first small step
+        std::vector<double> initSpeed;
 
-    // The value of the 1/(cutoff^2)
-    double onePerCutOffSqr;
+        // Used to store initial speeds for the second small step
+        std::vector<double> initSpeed2;
 
-    // Precisity of the simulation
-    double prec;
+        // Stores speed during the NR iteration for the big step and for the first small step
+        std::vector<double> speed;
 
-    // Count of the point defects in the system
-    unsigned int pc;
+        // Stores speed during the NR iteration for the second small step
+        std::vector<double> speed2;
 
-    // Count of the dislocations in the system
-    unsigned int dc;
+        // Stores the d values for the integration scheme
+        std::vector<double> dVec;
 
-    // Count of the iterations during the NR
-    unsigned int ic;
+        // The value of the cut off multiplier
+        double cutOffMultiplier;
 
-    // Simulation time limit. After it is reached there should be no more calculations
-    double timeLimit;
+        // The value of the cutoff
+        double cutOff;
 
-    // The current step size of the simulation
-    double stepSize;
+        // The value of the cutoff^2
+        double cutOffSqr;
 
-    // The current time in the simulation
-    double simTime;
+        // The value of the 1/(cutoff^2)
+        double onePerCutOffSqr;
 
-    // Scaling factor for point defect interaction strength calculation
-    double KASQR;
+        // Precisity of the simulation, set from position-precision
+        double prec;
 
-    // Interaction strength between a point defect and a dislocation
-    double A;
+        // Count of the point defects in the system
+        unsigned int pc;
 
-    // The dislocation data after the big step
-    std::vector<Dislocation> bigStep;
-    // The dislocation data after the first small step
-    std::vector<Dislocation> firstSmall;
-    // The dislocation data after the second small step
-    std::vector<Dislocation> secondSmall;
+        // Count of the dislocations in the system
+        unsigned int dc;
 
-    // The used field
-    std::unique_ptr<Field> tau;
+        // Count of the iterations during the NR
+        unsigned int ic;
 
-    // UMFPack specified sparse format stored Jacobian
-    int * Ap;
-    int * Ai;
-    double * Ax;
-    // Result data
-    double * x;
+        // Simulation time limit. After it is reached there should be no more calculations
+        double timeLimit;
 
-    // UMFPack required variables
-    double *null;
-    void *Symbolic, *Numeric;
+        // The current step size of the simulation
+        double stepSize;
 
-    // Diagonal indexes in the Jacobian
-    std::vector<int> indexes;
+        // The current time in the simulation
+        double simTime;
 
-    // Number of the successfuly finished steps
-    size_t succesfulSteps;
+        // Scaling factor for point defect interaction strength calculation
+        double KASQR;
 
-    // Number of the unsuccessfuly finished steps
-    size_t failedSteps;
+        // Interaction strength between a point defect and a dislocation
+        double A;
 
-    // If strain is calculated, the total accumulated strain during the simulation
-    double totalAccumulatedStrainIncrease;
+        // The dislocation data after the big step
+        std::vector<Dislocation> bigStep;
 
-    // True, if a simulation limit is set on the total accumulated strain
-    bool isStrainIncreaseLimit;
+        // The dislocation data after the first small step
+        std::vector<Dislocation> firstSmall;
 
-    // The total accumulated strain increase limit if set
-    double totalAccumulatedStrainIncreaseLimit;
+        // The dislocation data after the second small step
+        std::vector<Dislocation> secondSmall;
 
-    // True, if there is an upper limit set for the step size
-    bool isMaxStepSizeLimit;
+        // The used interaction field
+        std::unique_ptr<Field> tau;
 
-    // The upper limit of a step size if is set
-    double maxStepSizeLimit;
+        // UMFPack specified sparse format stored Jacobian
+        int* Ap;
+        int* Ai;
+        double* Ax;
+        // Result data
+        double* x;
 
-    // True if a simulation time limit is set for the simulation
-    bool isTimeLimit;
+        // UMFPack required variables
+        double* null;
+        void* Symbolic, * Numeric;
 
-    // True if a step count limit is set for the simulation
-    bool isStepCountLimit;
+        // Diagonal indexes in the Jacobian
+        std::vector<int> indexes;
 
-    // The step count limit if set
-    unsigned int stepCountLimit;
+        // Number of the successfully finished steps
+        size_t succesfulSteps;
 
-    // True if the strain should be calculated during the simulation
-    bool calculateStrainDuringSimulation;
+        // Number of the unsuccessfully finished steps
+        size_t failedSteps;
 
-    // True if the order parameter should be calculated during the simulation
-    bool orderParameterCalculationIsOn;
+        // If strain is calculated, the total accumulated strain during the simulation
+        double totalAccumulatedStrainIncrease;
 
-    // The standard log entries will be written into this stream
-    std::ofstream standardOutputLog;
+        // True, if a simulation limit is set on the total accumulated strain
+        bool isStrainIncreaseLimit;
 
-    // The final configuration will be written into this file
-    std::string endDislocationConfigurationPath;
+        // The total accumulated strain increase limit if set
+        double totalAccumulatedStrainIncreaseLimit;
 
-    // External stress can be applied to the simulation with a specified protocol
-    std::unique_ptr<StressProtocol> externalStressProtocol;
+        // True, if there is an upper limit set for the step size
+        bool isMaxStepSizeLimit;
 
-    // True if avalanches should be counted for limit
-    bool countAvalanches;
+        // The upper limit of a step size if is set
+        double maxStepSizeLimit;
 
-    // This speed threshold is used if avalanche counting is needed
-    double avalancheSpeedThreshold;
+        // True if a simulation time limit is set for the simulation
+        bool isTimeLimit;
 
-    // How many avalanches should be recorderd before stop
-    unsigned int avalancheTriggerLimit;
+        // True if a step count limit is set for the simulation
+        bool isStepCountLimit;
 
-    // The current count of avalanches
-    unsigned int avalancheCount;
+        // The step count limit if set
+        unsigned int stepCountLimit;
 
-    // True if avalanche limit is used and speed is above threshold
-    bool inAvalanche;
+        // True if the strain should be calculated during the simulation
+        bool calculateStrainDuringSimulation;
 
-    // True if subconfigs should be saved
-    bool isSaveSubConfigs;
+        // True if the order parameter should be calculated during the simulation
+        bool orderParameterCalculationIsOn;
 
-    // The path where the sub configs should be saved
-    std::string subConfigPath;
+        // The standard log entries will be written into this stream
+        std::ofstream standardOutputLog;
 
-    // The number of successful steps between two sub config output
-    unsigned int subConfigDelay;
+        // The final configuration will be written into this file
+        std::string endDislocationConfigurationPath;
 
-    // The number of successful steps between two sub config output during avalanches if avalanche detection is on
-    unsigned int subConfigDelayDuringAvalanche;
+        // External stress can be applied to the simulation with a specified protocol
+        std::unique_ptr<StressProtocol> externalStressProtocol;
 
-    // The number of elapsed steps since the last subconfig written
-    unsigned int subconfigDistanceCounter;
+        // True if avalanches should be counted for limit
+        bool countAvalanches;
 
-    // What kind of stress state should be used
-    sdddstCore::StressProtocolStepType currentStressStateType;
+        // This speed threshold is used if avalanche counting is needed
+        double avalancheSpeedThreshold;
 
-    // Cutoff multiplier changing threshold
-    double speedThresholdForCutoffChange;
+        // How many avalanches should be recorded before stop
+        unsigned int avalancheTriggerLimit;
 
-    bool isSpeedThresholdForCutoffChange;
+        // The current count of avalanches
+        unsigned int avalancheCount;
+
+        // True if avalanche limit is used and speed is above threshold
+        bool inAvalanche;
+
+        // True if subconfigs should be saved
+        bool isSaveSubConfigs;
+
+        // The path where the sub configs should be saved
+        std::string subConfigPath;
+
+        // The number of successful steps between two sub config output
+        unsigned int subConfigDelay;
+
+        // The number of successful steps between two sub config output during avalanches if avalanche detection is on
+        unsigned int subConfigDelayDuringAvalanche;
+
+        // The number of elapsed steps since the last subconfig written
+        unsigned int subconfigDistanceCounter;
+
+        // What kind of stress state should be used
+        sdddstCore::StressProtocolStepType currentStressStateType;
+
+        // Cutoff multiplier changing threshold
+        double speedThresholdForCutoffChange;
+
+        bool isSpeedThresholdForCutoffChange;
 
 #ifdef BUILD_PYTHON_BINDINGS
 
-    Field const &getField();
-    void setField(boost::python::object field);
+        Field const& getField();
+        void setField(boost::python::object field);
 
-    StressProtocol const &getStressProtocol();
-    void setStressProtocol(boost::python::object protocol);
+        StressProtocol const& getStressProtocol();
+        void setStressProtocol(boost::python::object protocol);
 
 #endif
 
-private:
-    /**
-     * @brief updateMemoryUsageAccordingToDislocationCount allocates memory related to dislocation count
-     */
-    void updateMemoryUsageAccordingToDislocationCount();
+    private:
+        /**
+         * @brief updateMemoryUsageAccordingToDislocationCount allocates memory related to dislocation count
+         */
+        void updateMemoryUsageAccordingToDislocationCount();
 
-    /**
-     * @brief deleteDislocationCountRelatedData free memory what was allocated for dislocation related data
-     */
-    void deleteDislocationCountRelatedData();
-
-    // True if the dislocation data is already in place
-    bool dislocationDataIsLoaded;
-};
+        /**
+         * @brief deleteDislocationCountRelatedData free memory what was allocated for dislocation related data
+         */
+        void deleteDislocationCountRelatedData();
+    };
 
 }
 

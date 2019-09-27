@@ -21,7 +21,10 @@
 #define SDDDST_CORE_PRECISION_HANDLER_H
 
 #include <vector>
+#include <algorithm>
 #include <string>
+#include <cmath>
+#include <iostream>
 
 namespace sdddstCore {
 
@@ -35,9 +38,9 @@ public:
     unsigned long getSize() const;
 
     void reset();
-    void updateTolerance(double distanceSqr, const unsigned int &ID);
+    void updateTolerance(double distanceSqr, unsigned int ID);
 
-    void updateError(double error, const unsigned int &ID);
+    void updateError(double error, unsigned int ID);
 
     double getNewStepSize(double oldStepSize) const;
 
@@ -53,8 +56,8 @@ public:
 
 private:
     std::vector<std::pair<double, double> > toleranceAndError;
-    double minPrecisity;
-    double minPrecisitySqr;
+    double minPrecisity; // set from position-precision
+    double minPrecisitySqr; // square of minPrecisity (stored to save calculation time?)
     double maxErrorRatioSqr;
     unsigned int selectedID;
 };

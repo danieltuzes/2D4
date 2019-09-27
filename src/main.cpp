@@ -20,7 +20,7 @@
 #include "project_parser.h"
 #include "simulation.h"
 
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
     // Parsing the configuration
     sdddstCore::ProjectParser parser(argc, argv);

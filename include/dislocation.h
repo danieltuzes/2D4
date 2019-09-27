@@ -31,12 +31,9 @@ struct Dislocation
     double b;
     bool operator==(Dislocation a)
     {
-        if (a.x == x &&
-            a.y == y &&
-            a.b == b)
-        {
+        if (a.x == x && a.y == y && a.b == b)
             return true;
-        }
+
         return false;
     }
 

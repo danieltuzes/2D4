@@ -87,10 +87,10 @@ double f_dx(double dx, double cos2piy, double dy)
         + pow(dx2pi, 3) / 6
         + dx2pi;
     return (
-        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / pow(coshminuscos, 2) +
-        ((cosysinhx * dx) / (pow(coshminuscos, 2)) -
-        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / (pow(coshminuscos, 3)) * dx * sinh(dx2pi) * 2) * M_PI * 2
-        ) * 2 * pow(M_PI, 2);
+        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / (coshminuscos * coshminuscos) +
+        ((cosysinhx * dx) / (coshminuscos * coshminuscos) -
+        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / (coshminuscos * coshminuscos * coshminuscos) * dx * sinh(dx2pi) * 2) * M_PI * 2
+        ) * 2 * M_PI * M_PI;
 
 
 }
@@ -130,7 +130,7 @@ double AnalyticField::xy(double dx, double dy)
             g<ANALYTIC_FIELD_N - 1>(dx, cos2piy, dy);
     }
 
-    return dx * f(dx - (double(ANALYTIC_FIELD_N + 1)), cos2piy, dy) +
+    return dx * f(dx - ANALYTIC_FIELD_N - 1, cos2piy, dy) +
         (1 - dx) * f(dx + ANALYTIC_FIELD_N, cos2piy, dy) +
         f(dx - ANALYTIC_FIELD_N, cos2piy, dy) +
         g<ANALYTIC_FIELD_N - 1>(dx, cos2piy, dy);

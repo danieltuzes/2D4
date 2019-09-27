@@ -28,51 +28,51 @@
 
 namespace sdddstCore {
 
-enum StressProtocolStepType
-{
-    Original,
-    EndOfBigStep,
-    EndOfFirstSmallStep,
-    EndOfSecondSmallStep
-};
-
-/**
- * @brief The StressProtocol class is the base class for all external stress protocol classes,
- * all parameters for calculation is used from a SimulationData object or should be preset
- */
-class StressProtocol
-{
-public:
-    StressProtocol();
-    virtual ~StressProtocol();
+    enum StressProtocolStepType
+    {
+        Original,
+        EndOfBigStep,
+        EndOfFirstSmallStep,
+        EndOfSecondSmallStep
+    };
 
     /**
-     * @brief calculateStress calculates the stress value for the given situation
-     * @param simulationTime
-     * @param dislocations
-     * @param type
+     * @brief The StressProtocol class is the base class for all external stress protocol classes,
+     * all parameters for calculation is used from a SimulationData object or should be preset
      */
-    virtual void calculateStress(double simulationTime, const std::vector<Dislocation> &dislocations, StressProtocolStepType type);
+    class StressProtocol
+    {
+    public:
+        StressProtocol();
+        virtual ~StressProtocol();
 
-    /**
-     * @brief getStress returns with the stress value at the given situation
-     * @param type
-     * @return
-     */
-    virtual double getStress(StressProtocolStepType type);
+        /**
+         * @brief calculateStress calculates the stress value for the given situation
+         * @param simulationTime
+         * @param dislocations
+         * @param type
+         */
+        virtual void calculateStress(double simulationTime, const std::vector<Dislocation>& dislocations, StressProtocolStepType type);
 
-    /**
-     * @brief getTriggerState can be used to check if there is an ongoing avalanche or not
-     * @return trigger state
-     */
-    virtual bool getTriggerState();
+        /**
+         * @brief getStress returns with the stress value at the given situation
+         * @param type
+         * @return
+         */
+        virtual double getStress(StressProtocolStepType type);
 
-    /**
-     * @brief getType
-     * @return returns with the type of the applied stress field
-     */
-    virtual std::string getType();
-};
+        /**
+         * @brief getTriggerState can be used to check if there is an ongoing avalanche or not
+         * @return trigger state
+         */
+        virtual bool getTriggerState();
+
+        /**
+         * @brief getType
+         * @return returns with the type of the applied stress field
+         */
+        virtual std::string getType();
+    };
 
 }
 

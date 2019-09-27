@@ -20,12 +20,9 @@
 #include "constants.h"
 #include "precision_handler.h"
 
-#include <cmath>
-#include <iostream>
-
 using namespace sdddstCore;
 
-PrecisionHandler::PrecisionHandler():
+PrecisionHandler::PrecisionHandler() :
     minPrecisity(1e-6),
     minPrecisitySqr(1e-12),
     maxErrorRatioSqr(0),
@@ -42,16 +39,10 @@ PrecisionHandler::~PrecisionHandler()
 void PrecisionHandler::setSize(unsigned int size)
 {
     if (toleranceAndError.size() < size)
-    {
         while (toleranceAndError.size() != size)
-        {
-            toleranceAndError.push_back(std::make_pair(minPrecisitySqr, 0));
-        }
-    }
+            toleranceAndError.emplace_back(minPrecisitySqr, 0);
     else
-    {
         toleranceAndError.resize(size);
-    }
 }
 
 unsigned long PrecisionHandler::getSize() const
@@ -62,14 +53,14 @@ unsigned long PrecisionHandler::getSize() const
 void PrecisionHandler::reset()
 {
     maxErrorRatioSqr = 0;
-    for (auto & i : toleranceAndError)
+    for (auto& i : toleranceAndError)
     {
         i.first = minPrecisitySqr;
         i.second = 0;
     }
 }
 
-void PrecisionHandler::updateTolerance(double distanceSqr, const unsigned int &ID)
+void PrecisionHandler::updateTolerance(double distanceSqr, unsigned int ID) // const int& is more expensive than unsigned int
 {
     double tmp = distanceSqr * 0.25 * 1e-2;
     if (tmp < minPrecisitySqr && tmp < toleranceAndError[ID].first)
@@ -80,13 +71,12 @@ void PrecisionHandler::updateTolerance(double distanceSqr, const unsigned int &I
             std::cout << "Two dislocations are in the same place!\n";
         }
         else
-        {
             toleranceAndError[ID].first = tmp;
-        }
+
     }
 }
 
-void PrecisionHandler::updateError(double error, const unsigned int &ID)
+void PrecisionHandler::updateError(double error, unsigned int ID)
 {
     if (toleranceAndError[ID].second < error)
     {
@@ -102,19 +92,12 @@ void PrecisionHandler::updateError(double error, const unsigned int &ID)
 
 double PrecisionHandler::getNewStepSize(double oldStepSize) const
 {
-    if(0 == maxErrorRatioSqr)
-    {
+    if (0 == maxErrorRatioSqr)
         return oldStepSize * 2;
-    }
 
-    double tmp = 1./sqrt(maxErrorRatioSqr);
+    double factor = std::min(2., 1. / pow(maxErrorRatioSqr, -1. / 6)); // heuristic multiplier (why?)
 
-    tmp = pow(tmp, 1./3);
-    if (tmp > 2)
-        tmp = 2;
-
-
-    return 0.9 * oldStepSize * tmp;
+    return 0.9 * oldStepSize * factor;
 }
 
 double PrecisionHandler::getMinPrecisity() const
@@ -138,8 +121,8 @@ double PrecisionHandler::getMaxErrorRatioSqr() const
 std::string PrecisionHandler::__str__() const
 {
     return "N: " + std::to_string(toleranceAndError.size()) +
-            " Prec: " + std::to_string(minPrecisity) +
-            " New stepsize factor: " + std::to_string(getNewStepSize(1.0));
+        " Prec: " + std::to_string(minPrecisity) +
+        " New stepsize factor: " + std::to_string(getNewStepSize(1.0));
 }
 
 std::string PrecisionHandler::__repr__() const

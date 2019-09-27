@@ -27,15 +27,11 @@
 
 inline void normalize(double& n)
 {
-    while (n < -0.5)
-    {
+    while (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if" (why)
         n += 1;
-    }
 
-    while (n >= 0.5)
-    {
+    while (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if" (why)
         n -= 1;
-    }
 }
 
 inline double X(double x)
@@ -81,9 +77,5 @@ inline double get_wall_time()
 
     return time_in_ms / 1000.;
 }
-
-// From:
-// https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
-
 
 #endif
