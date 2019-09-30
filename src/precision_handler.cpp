@@ -95,7 +95,7 @@ double PrecisionHandler::getNewStepSize(double oldStepSize) const
     if (0 == maxErrorRatioSqr)
         return oldStepSize * 2;
 
-    double factor = std::min(2., 1. / pow(maxErrorRatioSqr, -1. / 6)); // heuristic multiplier (why?)
+    double factor = std::min(2., pow(maxErrorRatioSqr, -1. / 6)); // heuristic multiplier (why?)
 
     return 0.9 * oldStepSize * factor;
 }

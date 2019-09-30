@@ -30,8 +30,8 @@
 #define DEFAULT_TIME_LIMIT 0.0
 #define DEFAULT_STEP_SIZE 1.0
 #define DEFAULT_SIM_TIME 0.0
-#define DEFAULT_KASQR 1.65*1.65*1e6 / 256.0
-#define DEFAULT_A 1e-4 * 16.0
+#define DEFAULT_KASQR (1.65 * 1.65 * 1e6 / 256)
+#define DEFAULT_A (1e-4 * 16)
 #define DEFAULT_EXTERNAL_FIELD 0.0
 
 #endif
