@@ -134,14 +134,10 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
     }
 
     if (vm.count("point-defect-configuration"))
-    {
-        sD = std::shared_ptr<SimulationData>(new SimulationData(vm["dislocation-configuration"].as<std::string>(),
-            vm["point-defect-configuration"].as<std::string>()));
-    }
+        sD = std::shared_ptr<SimulationData>(new SimulationData(vm["dislocation-configuration"].as<std::string>(), vm["point-defect-configuration"].as<std::string>()));
     else
-    {
         sD = std::shared_ptr<SimulationData>(new SimulationData(vm["dislocation-configuration"].as<std::string>(), ""));
-    }
+
 
     if (vm.count("time-limit"))
     {

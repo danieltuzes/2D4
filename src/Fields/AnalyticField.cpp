@@ -56,20 +56,20 @@ double g<0>(double dx, double cos2piy, double dy)
 
 double f_dx(double dx, double cos2piy, double dy)
 {
-    double cosh2pix = cosh(M_PI * 2 * dx);
-    double sinh2pix = sinh(M_PI * 2 * dx);
+    double dx2pi = dx * 2 * M_PI;
 
     if (dx * dx + dy * dy > 1e-6) 
     {
+        double cosh2pix = cosh(dx2pi);
+        double sinh2pix = sinh(dx2pi);
         double coshpixyd = cosh2pix - cos2piy;  // cosh2pix - cos2piy
         return ((cosh2pix * cos2piy - 1) / std::pow(coshpixyd,2) +
             dx * (sinh2pix * cos2piy * 2 * M_PI / std::pow(coshpixyd,2) -
-            (cosh2pix * cos2piy - 1) / std::pow(coshpixyd,3) * 4 * M_PI * sinh2pix)) * M_PI * M_PI * 2;
+            (cosh2pix * cos2piy - 1) / std::pow(coshpixyd,3) * 4 * M_PI * sinh2pix)) * M_PI * 2 * M_PI;
     }
 
     // closer dislocations
-    double dx2pi = dx * 2 * M_PI;
-    double dy2pi = dy * 2 * M_PI;
+    double dy2pi = dy * M_PI * 2;
     double cosh2pixminus1 = std::pow(dx2pi, 6) / 720 + std::pow(dx2pi, 4) / 24 + std::pow(dx2pi, 2) * 0.5;
     double cos2piyminus1 = -std::pow(dy2pi, 6) / 720 + std::pow(dy2pi, 4) / 24 - std::pow(dy2pi, 2) * 0.5;
     double coshminuscos = (std::pow(dy2pi, 6) + std::pow(dx2pi, 6)) / 720 + (std::pow(dx2pi, 4) - std::pow(dy2pi, 4)) / 24 + (std::pow(dx2pi, 2) + std::pow(dy2pi, 2)) * 0.5;
@@ -91,9 +91,9 @@ double f_dx(double dx, double cos2piy, double dy)
         + dx2pi;
     return (
         (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / std::pow(coshminuscos,2) +
-        ((cosysinhx * dx) / (coshminuscos * coshminuscos) -
-        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / std::pow(coshminuscos,3) * dx * sinh(dx2pi) * 2) * M_PI * 2
-        ) * 2 * M_PI * M_PI;
+        ((cosysinhx * dx) / std::pow(coshminuscos,2) -
+        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / std::pow(coshminuscos,3) * dx * sinh(dx2pi) * 2) * 2 * M_PI
+        ) * M_PI * 2 * M_PI;
 }
 
 template<int images>

@@ -28,7 +28,7 @@
 
 namespace sdddstCore {
 
-    enum StressProtocolStepType
+    enum class StressProtocolStepType
     {
         Original,
         EndOfBigStep,

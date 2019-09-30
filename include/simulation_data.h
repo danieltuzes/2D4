@@ -45,7 +45,7 @@ namespace sdddstCore {
          * @param dislocationDataFilePath
          * @param pointDefectDataFilePath
          */
-        SimulationData(const std::string& dislocationDataFilePath, const std::string& pointDefectDataFilePath);
+        SimulationData(const std::string& dislocationConfigurationPath, const std::string& pointDefectDataFilePath);
 
         ///////////////////
         /// UTILITIES
@@ -53,9 +53,9 @@ namespace sdddstCore {
 
         /// Data file handling utilities
         void readDislocationDataFromFile(std::string dislocationDataFilePath);
-        void writeDislocationDataToFile(std::string dislocationDataFilePath);
+        void writeDislocationDataToFile(std::string dislocationDataFilePath) const;
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
-        void writePointDefectDataToFile(std::string pointDefectDataFilePath);
+        void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
         /// Other utilities
         void initSimulationVariables();
@@ -67,6 +67,7 @@ namespace sdddstCore {
 
         //Valid dislocation position data -> state of the simulation at simTime
         std::vector<Dislocation> dislocations;
+        std::vector<OrdDisl> oDisl;
 
         //The positions of the fix points
         std::vector<PointDefect> points;
@@ -130,12 +131,15 @@ namespace sdddstCore {
 
         // The dislocation data after the big step
         std::vector<Dislocation> bigStep;
+        std::vector<OrdDisl> oBigStep;
 
         // The dislocation data after the first small step
         std::vector<Dislocation> firstSmall;
+        std::vector<OrdDisl> oFirstSmall;
 
         // The dislocation data after the second small step
         std::vector<Dislocation> secondSmall;
+        std::vector<OrdDisl> oSecondSmall;
 
         // The used interaction field
         std::unique_ptr<Field> tau;
@@ -193,7 +197,10 @@ namespace sdddstCore {
         // The standard log entries will be written into this stream
         std::ofstream standardOutputLog;
 
-        // The final configuration will be written into this file
+        // The path to the initial dislocation configuration
+        std::string startDislocationConfigurationPath;
+
+        // The path to the final dislocation configuration
         std::string endDislocationConfigurationPath;
 
         // External stress can be applied to the simulation with a specified protocol
@@ -230,7 +237,7 @@ namespace sdddstCore {
         unsigned int subconfigDistanceCounter;
 
         // What kind of stress state should be used
-        sdddstCore::StressProtocolStepType currentStressStateType;
+        StressProtocolStepType currentStressStateType;
 
         // Cutoff multiplier changing threshold
         double speedThresholdForCutoffChange;
@@ -245,18 +252,12 @@ namespace sdddstCore {
         StressProtocol const& getStressProtocol();
         void setStressProtocol(boost::python::object protocol);
 
+        // deleteDislocationCountRelatedData free memory what was allocated for dislocation related data
+        // void deleteDislocationCountRelatedData(); */
+
 #endif
 
     private:
-        /**
-         * @brief updateMemoryUsageAccordingToDislocationCount allocates memory related to dislocation count
-         */
-        void updateMemoryUsageAccordingToDislocationCount();
-
-        /**
-         * @brief deleteDislocationCountRelatedData free memory what was allocated for dislocation related data
-         */
-        void deleteDislocationCountRelatedData();
     };
 
 }

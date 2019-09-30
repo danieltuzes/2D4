@@ -22,35 +22,41 @@
 
 #include <string>
 
-namespace sdddstCore {
-
-struct Dislocation
+namespace sdddstCore
 {
-    double x;
-    double y;
-    double b;
-    bool operator==(Dislocation a)
+    class OrdDisl // a simplified dislocation structure
     {
-        if (a.x == x && a.y == y && a.b == b)
-            return true;
+    public:
+        OrdDisl() : x(0), y(0) {};
+        OrdDisl(double x, double y) : x(x), y(y) {};
 
-        return false;
-    }
+        double x;
+        double y;
+        // Burgers vector will be deduced from the index of the dislocation
+    };
 
+    class Dislocation
+    {
+    public:
+        Dislocation() : x(0), y(0), b(0) {};
+        Dislocation(double x, double y, double b) : x(x), y(y), b(b) {};
+
+        double x;
+        double y;
+        double b;
 #ifdef BUILD_PYTHON_BINDINGS
-    std::string __str__() const
-    {
-        return "x: " + std::to_string(this->x) +
-               " y: " + std::to_string(this->y) +
-               " b: " + std::to_string(this->b);
-    }
-    std::string __repr__() const
-    {
-       return __str__();
-    }
+        std::string __str__() const
+        {
+            return "x: " + std::to_string(this->x) +
+                " y: " + std::to_string(this->y) +
+                " b: " + std::to_string(this->b);
+        }
+        std::string __repr__() const
+        {
+            return __str__();
+        }
 #endif
-};
-
+    };
 }
 
 #endif

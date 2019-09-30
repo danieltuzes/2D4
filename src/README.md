@@ -6,8 +6,8 @@ At this moment, all the information on how to use this component can be found in
 ## Roadmap
 Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével, úgy mint cache hit és matematikai azonosságok használatával. Ezen túl kell fordító szintjén is a fejlesztés, valamint új funkció implementálása, amihez meg kell érteni a kód egy részét, és egyéni szájíz szerint át kell írni. A tervezett lépések:
 
-1. Gábor sdddst kódját github másolni és futtatni 64-es és 1024-es méretekre, 1-1-et
-2. A saját szíjíz szerint átírtat (de std::pow-val), új funkciót nem tartalmazót is lefuttatni ugyanazokra (hiba javítva)
+1. Gábor sdddst kódját github másolni és futtatni 64-es és 1024-es méretekre, 1-1-et. A saját szíjíz szerint átírtat (de std::pow-val), új funkciót nem tartalmazót is lefuttatni ugyanazokra, és megnézni, hogy ugyanazok-e. Két hiba volt, a precision handler 98. sorában és az analytic fieldben rossz zárójelezés volt a 32. (?) sor környékén. A `0203ff356cc3358aaebe232baaae672aaa42e307` már csak az előbbi bugot, az utána következő már azt sem tartalmazza. Az eredmények eltérnek az eredetitől az `ffast-math` kapcsoló miatt és az átzárójelezett műveletek miatt.
+
 3. Sebességtesztet csinálni, és megmérni, mennyit számít
 
    1. a Release kapcsoló?
@@ -25,15 +25,15 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
     | 3. futtatás | 2.0273999929428101e+01 | 1.9748000144958496e+01 | 1.4757000207901001e+01 | 1.0744999885559082e+01 | 1.0612999916076660e+01 | 1.0647000074386597e+01 | 1.0644999980926514e+01 |
 
 4. Forráskódot egyszerűsíteni és szépíteni
-   1. a *Simulation* és *SimulationData* class public függvényeinek `const` minősítéseit helyesen kiírni
+   1. **✓** a ***Simulation*** és *SimulationData* class public függvényeinek `const` minősítéseit helyesen kiírni
    2. megjegyzéseket írni, hogy melyik változó és függvény micsoda
 
 4. Új funkciókat implementálni
 
-   1. dconf kiírásnál a Burgers vector értéke legyen csak 1 v -1, nem kell fixed scientific
-   2. **✓** logfile-hoz headert írni és kerüljön bele az eltelt számítógépes idő 
-   3. feszültségérték kezdeti értéke lehessen konstans
-   4. a diszlokációkat beolvasásnál rendezze
+   1. **✓** dconf kiírásnál a Burgers vector értéke legyen csak 1 v -1, nem kell fixed scientific
+   2. **✓** logfile-hoz headert írni és kerüljön bele az eltelt számítógépes időt 
+   4. feszültségérték kezdeti értéke lehessen konstans
+   3. a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
    5. a diszlokációk burgersvectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
-   6. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    7. sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   6. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre

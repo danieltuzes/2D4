@@ -29,12 +29,12 @@ sdddstCore::StressProtocol::~StressProtocol()
     //Nothing to do
 }
 
-void sdddstCore::StressProtocol::calculateStress(double, const std::vector<sdddstCore::Dislocation>&, sdddstCore::StressProtocolStepType)
+void sdddstCore::StressProtocol::calculateStress(double, const std::vector<Dislocation>&, StressProtocolStepType)
 {
     //Nothing to do
 }
 
-double sdddstCore::StressProtocol::getStress(sdddstCore::StressProtocolStepType)
+double sdddstCore::StressProtocol::getStress(StressProtocolStepType)
 {
     return 0;
 }

@@ -40,7 +40,7 @@
 
 using namespace sdddstCore;
 
-SimulationData::SimulationData(const std::string& dislocationDataFilePath, const std::string& fixpointsDataFilePath) :
+SimulationData::SimulationData(const std::string& startDislocationConfigurationPath, const std::string& fixpointsDataFilePath) :
     cutOffMultiplier(DEFAULT_CUTOFF_MULTIPLIER),
     cutOff(DEFAULT_CUTOFF),
     cutOffSqr(cutOff* cutOff),
@@ -75,6 +75,7 @@ SimulationData::SimulationData(const std::string& dislocationDataFilePath, const
     calculateStrainDuringSimulation(false),
     orderParameterCalculationIsOn(false),
     standardOutputLog(),
+    startDislocationConfigurationPath(startDislocationConfigurationPath),
     endDislocationConfigurationPath(""),
     externalStressProtocol(nullptr),
     countAvalanches(false),
@@ -87,52 +88,90 @@ SimulationData::SimulationData(const std::string& dislocationDataFilePath, const
     subConfigDelay(0),
     subConfigDelayDuringAvalanche(0),
     subconfigDistanceCounter(0),
-    currentStressStateType(sdddstCore::StressProtocolStepType::Original),
+    currentStressStateType(StressProtocolStepType::Original),
     speedThresholdForCutoffChange(0),
     isSpeedThresholdForCutoffChange(false)
 {
-    readDislocationDataFromFile(dislocationDataFilePath);
+    readDislocationDataFromFile(startDislocationConfigurationPath);
     readPointDefectDataFromFile(fixpointsDataFilePath);
     initSimulationVariables();
 }
 
 void SimulationData::readDislocationDataFromFile(std::string dislocationDataFilePath)
 {
-    std::ifstream in(dislocationDataFilePath);
-    if (!in)
+    std::ifstream ifile(dislocationDataFilePath);
+    if (!ifile)
     {
         std::cerr << "Cannot open dislocation data file " << dislocationDataFilePath << ". Program terminates." << std::endl;
-        assert(in.is_open() && "Cannot open the data file to read!"); // if debug mode is active, program will print this too; good to show whether program is in debug mode
+        assert(ifile.is_open() && "Cannot open the data file to read!"); // if debug mode is active, program will print this too; good to show whether the program is in debug mode
         exit(-1);
     }
 
-    // Iterating through the file
-    while (!in.eof())
+    // Reading in dislocations
+    for (double x; ifile >> x;)
     {
-        std::string data;
-        in >> data;
-        if (data == "")
+        double y, b;
+        if (!(ifile >> y && ifile >> b))
         {
-            break;
+            std::cerr << "Error in " << dislocationDataFilePath << ". Cannot read in the y coordinate and Burger's vector for an x coordinate with value ~ " << x << ". Program terminates." << std::endl;
+            exit(-1);
         }
-        Dislocation tmp;
-        tmp.x = std::stod(data);
-        in >> tmp.y;
-        in >> tmp.b;
-        dislocations.push_back(tmp);
+
+        int b_int = rint(b);
+        if (abs(b - b_int) > 1e-5)
+        {
+            std::cerr << "Error in " << dislocationDataFilePath << ". Burger's vector supposed to be an integer, -1 or 1, but value " << b << " is found. Program terminates." << std::endl;
+            exit(-1);
+        }
+
+        dislocations.emplace_back(x, y, b);
         dc++;
     }
-    updateMemoryUsageAccordingToDislocationCount();
+
+    // order dislocations and store it in oDisl
+
+    // update memory usage according to dislocation count
+    g.resize(dc);
+    initSpeed.resize(dc);
+    initSpeed2.resize(dc);
+    speed.resize(dc);
+    speed2.resize(dc);
+    dVec.resize(dc);
+    bigStep.resize(dc);
+    firstSmall.resize(dc);
+    secondSmall.resize(dc);
+    Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
+    Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
+    Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));
+    x = (double*)calloc(dc, sizeof(double));
+    assert(Ap && "Memory allocation for Ap failed!");
+    assert(Ai && "Memory allocation for Ai failed!");
+    assert(Ax && "Memory allocation for Ax failed!");
+    assert(x && "Memory allocation for x failed!");
+    indexes.resize(dc);
 }
 
-void SimulationData::writeDislocationDataToFile(std::string dislocationDataFilePath)
+void SimulationData::writeDislocationDataToFile(std::string dislocationDataFilePath) const
 {
-    std::ofstream out(dislocationDataFilePath);
-    assert(out.is_open() && "Cannot open the data file to write!"); // why? miért csak debugban?
-    out << std::scientific << std::setprecision(16);
+    std::ofstream ofile(dislocationDataFilePath);
+    if (!ofile)
+    {
+        std::cerr << "Warning: the program was unable to create the file " << dislocationDataFilePath << ".\n";
+        dislocationDataFilePath = startDislocationConfigurationPath + "_final.dconf";
+        std::cerr << "The program tries to write it next to the initial configuration path: " << dislocationDataFilePath;
+        ofile.open(dislocationDataFilePath);
+        if (!ofile)
+        {
+            std::cerr << "Warning: the program was unable to create the file " << dislocationDataFilePath << ".\n"
+                << "No output for the final dislocation configuration will be created. Sorry.\n";
+            return;
+        }
+    }
+    ofile << std::setprecision(14);
     for (auto& i : dislocations)
-        out << i.x << " " << i.y << " " << i.b << "\n";
-
+        ofile << i.x << "\t"
+        << i.y << "\t"
+        << rint(i.b) << "\n";
 }
 
 void SimulationData::readPointDefectDataFromFile(std::string pointDefectDataFilePath)
@@ -164,15 +203,13 @@ void SimulationData::readPointDefectDataFromFile(std::string pointDefectDataFile
     }
 }
 
-void SimulationData::writePointDefectDataToFile(std::string pointDefectDataFilePath)
+void SimulationData::writePointDefectDataToFile(std::string pointDefectDataFilePath) const
 {
     std::ofstream out(pointDefectDataFilePath);
     assert(out.is_open() && "Cannot open the data file to write!"); // why? miért csak debugban?
     out << std::scientific << std::setprecision(16);
     for (auto& i : points)
-    {
         out << i.x << " " << i.y << "\n";
-    }
 }
 
 void SimulationData::initSimulationVariables()
@@ -183,7 +220,7 @@ void SimulationData::initSimulationVariables()
 void SimulationData::updateCutOff()
 {
     double multiplier = cutOffMultiplier;
-    if (cutOffMultiplier >= sqrt(2.0 * dc) / 12)
+    if (cutOffMultiplier >= sqrt(2 * dc) / 12)
         multiplier = 1e20;
 
     cutOff = multiplier / sqrt(dc);
@@ -222,8 +259,7 @@ void SimulationData::setStressProtocol(boost::python::object protocol)
         externalStressProtocol.reset(tmp.release());
     }
 }
-#endif
-
+/*
 void SimulationData::deleteDislocationCountRelatedData()
 {
     dc = 0;
@@ -246,26 +282,5 @@ void SimulationData::deleteDislocationCountRelatedData()
     free(x);
     x = nullptr;
     indexes.resize(0);
-}
-
-void SimulationData::updateMemoryUsageAccordingToDislocationCount()
-{
-    g.resize(dc);
-    initSpeed.resize(dc);
-    initSpeed2.resize(dc);
-    speed.resize(dc);
-    speed2.resize(dc);
-    dVec.resize(dc);
-    bigStep.resize(dc);
-    firstSmall.resize(dc);
-    secondSmall.resize(dc);
-    Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
-    Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
-    Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));
-    x = (double*)calloc(dc, sizeof(double));
-    assert(Ap && "Memory allocation for Ap failed!");
-    assert(Ai && "Memory allocation for Ai failed!");
-    assert(Ax && "Memory allocation for Ax failed!");
-    assert(x && "Memory allocation for x failed!");
-    indexes.resize(dc);
-}
+}*/
+#endif

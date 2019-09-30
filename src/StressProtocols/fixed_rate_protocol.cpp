@@ -36,37 +36,37 @@ sdddstCore::FixedRateProtocol::~FixedRateProtocol()
     stressValues = nullptr;
 }
 
-void sdddstCore::FixedRateProtocol::calculateStress(double simulationTime, const std::vector<Dislocation> &, sdddstCore::StressProtocolStepType type)
+void sdddstCore::FixedRateProtocol::calculateStress(double simulationTime, const std::vector<Dislocation>&, StressProtocolStepType type)
 {
     double value = simulationTime * rate;
     switch (type)
     {
-    case sdddstCore::StressProtocolStepType::Original:
+    case StressProtocolStepType::Original:
         stressValues[0] = value;
         break;
-    case sdddstCore::StressProtocolStepType::EndOfBigStep:
+    case StressProtocolStepType::EndOfBigStep:
         stressValues[1] = value;
         break;
-    case sdddstCore::StressProtocolStepType::EndOfFirstSmallStep:
+    case StressProtocolStepType::EndOfFirstSmallStep:
         stressValues[2] = value;
         break;
-    case sdddstCore::StressProtocolStepType::EndOfSecondSmallStep:
+    case StressProtocolStepType::EndOfSecondSmallStep:
         stressValues[3] = value;
         break;
     }
 }
 
-double sdddstCore::FixedRateProtocol::getStress(sdddstCore::StressProtocolStepType type)
+double sdddstCore::FixedRateProtocol::getStress(StressProtocolStepType type)
 {
     switch (type)
     {
-    case sdddstCore::StressProtocolStepType::Original:
+    case StressProtocolStepType::Original:
         return stressValues[0];
-    case sdddstCore::StressProtocolStepType::EndOfBigStep:
+    case StressProtocolStepType::EndOfBigStep:
         return stressValues[1];
-    case sdddstCore::StressProtocolStepType::EndOfFirstSmallStep:
+    case StressProtocolStepType::EndOfFirstSmallStep:
         return stressValues[2];
-    case sdddstCore::StressProtocolStepType::EndOfSecondSmallStep:
+    case StressProtocolStepType::EndOfSecondSmallStep:
         return stressValues[3];
     }
     return 0;

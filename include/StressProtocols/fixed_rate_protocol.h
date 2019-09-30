@@ -31,7 +31,7 @@ public:
     virtual ~FixedRateProtocol();
 
     virtual void calculateStress(double simulationTime, const std::vector<Dislocation> &dislocations, StressProtocolStepType type);
-    virtual double getStress(sdddstCore::StressProtocolStepType type);
+    virtual double getStress(StressProtocolStepType type);
 
     virtual std::string getType();
 

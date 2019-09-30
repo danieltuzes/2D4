@@ -53,14 +53,14 @@ Simulation::~Simulation()
 }
 
 /**
-	@brief integrate:	evolve the dislocation system in time
-	@param stepsize:	how large time step should be made
-	@param newDislocation:	the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
-	@param old:	the input dislocation configuration, no need to be in the range of [-0.5:0.5)
-	@param useSpeed2:	
-	@param calculateInitSpeed:	
-	@param origin:	
-	@param end:	
+    @brief integrate:	evolve the dislocation system in time
+    @param stepsize:	how large time step should be made
+    @param newDislocation:	the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
+    @param old:	the input dislocation configuration, no need to be in the range of [-0.5:0.5)
+    @param useSpeed2:
+    @param calculateInitSpeed:
+    @param origin:
+    @param end:
 */
 void Simulation::integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
     bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
@@ -81,7 +81,7 @@ void Simulation::integrate(double stepsize, std::vector<Dislocation>& newDisloca
     umfpack_di_free_numeric(&sD->Numeric);
 }
 
-void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res)
+void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res) const
 {
     std::fill(res.begin(), res.end(), 0);
 
@@ -126,7 +126,7 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vecto
 }
 
 void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
-    bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, sdddstCore::StressProtocolStepType origin, sdddstCore::StressProtocolStepType end)
+    bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const
 {
     std::vector<double>* isp = &(sD->initSpeed);
     std::vector<double>* csp = &(sD->speed);
@@ -139,7 +139,7 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
     if (calculateInitSpeed)
     {
         double t = sD->simTime;
-        if (origin == sdddstCore::StressProtocolStepType::EndOfFirstSmallStep)
+        if (origin == StressProtocolStepType::EndOfFirstSmallStep)
             t += sD->stepSize * 0.5;
 
 
@@ -153,7 +153,7 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
     else
     {
         double t = sD->simTime + sD->stepSize;
-        if (end == EndOfFirstSmallStep)
+        if (end == StressProtocolStepType::EndOfFirstSmallStep)
             t -= sD->stepSize * 0.5;
 
         sD->externalStressProtocol->calculateStress(t, newDislocation, end);
@@ -165,7 +165,7 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
         sD->g[i] = newDislocation[i].x - (1 + sD->dVec[i]) * 0.5 * stepsize * (*csp)[i] - old[i].x - (1 - sD->dVec[i]) * 0.5 * stepsize * (*isp)[i];
 }
 
-double Simulation::getElement(int j, int si, int ei)
+double Simulation::getElement(int j, int si, int ei) const
 {
     int len = ei - si;
     if (len > 1)
@@ -178,28 +178,21 @@ double Simulation::getElement(int j, int si, int ei)
             a = getElement(j, si, si + tmp);
             if (a != 0)
                 return a;
-
         }
         else
         {
             a = getElement(j, si + tmp, ei);
             if (a != 0)
                 return a;
+        }
+    }
+    else if (sD->Ai[si] == j)
+        return sD->Ax[si];
 
-        }
-    }
-    else
-    {
-        if (sD->Ai[si] == j)
-        {
-            return sD->Ax[si];
-        }
-        return 0;
-    }
     return 0;
 }
 
-double Simulation::getSimTime()
+double Simulation::getSimTime() const
 {
     return sD->simTime;
 }
@@ -278,7 +271,7 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocatio
             }
         }
         sD->Ax[totalElementCounter++] = -tmp * stepsize;
-        
+
         // Totally new part
         for (unsigned int i = j + 1; i < sD->dc; i++)
         {
@@ -309,20 +302,15 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocatio
             if (sD->Ai[i] == int(j))
                 sD->indexes[j] = i;
 
-            subSum += sD->Ax[i];
+            subSum -= sD->Ax[i];
         }
 
-        subSum *= -1; // why
         sD->Ax[sD->indexes[j]] = subSum;
+
         if (subSum > 0) // why
-        {
-            subSum = 1 / subSum;
-            subSum += 1.;
-            subSum *= subSum;
-            sD->dVec[j] = 1. / subSum;
-        }
+            sD->dVec[j] = std::pow(1 - 1 / (subSum + 1), 2);
         else
-            sD->dVec[j] = 0.;
+            sD->dVec[j] = 0;
     }
 
     for (unsigned int j = 0; j < sD->dc; j++)
@@ -356,17 +344,16 @@ void Simulation::calculateXError()
     }
 }
 
-double Simulation::calculateOrderParameter(const std::vector<double>& speeds)
+double Simulation::calculateOrderParameter(const std::vector<double>& speeds) const
 {
     double orderParameter = 0;
     for (size_t i = 0; i < sD->dc; i++)
-    {
         orderParameter += sD->dislocations[i].b * speeds[i];
-    }
+
     return orderParameter;
 }
 
-double Simulation::calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD)
+double Simulation::calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD) const
 {
     double ret = 0;
     for (size_t i = 0; i < old.size(); i++)
@@ -394,12 +381,12 @@ void Simulation::run()
 
 void Simulation::stepStageI()
 {
-    sD->currentStressStateType = sdddstCore::StressProtocolStepType::Original;
+    sD->currentStressStateType = StressProtocolStepType::Original;
     if (firstStepRequest)
     {
         startTime = get_wall_time();
         lastWriteTimeFinished = get_wall_time();
-        sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, sdddstCore::StressProtocolStepType::Original);
+        sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, StressProtocolStepType::Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
         double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / double(sD->dc);
@@ -431,7 +418,7 @@ void Simulation::stepStageI()
     /////////////////////////////////
     /// Integrating procedure begins
 
-    integrate(sD->stepSize, sD->bigStep, sD->dislocations, false, initSpeedCalculationIsNeeded, Original, EndOfBigStep);
+    integrate(sD->stepSize, sD->bigStep, sD->dislocations, false, initSpeedCalculationIsNeeded, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
 
     // This can not get before the first integration step
     succesfulStep = false;
@@ -440,14 +427,14 @@ void Simulation::stepStageI()
 void Simulation::stepStageII()
 {
     sD->firstSmall = sD->dislocations;
-    integrate(0.5 * sD->stepSize, sD->firstSmall, sD->dislocations, false, false, Original, EndOfFirstSmallStep);
+    integrate(0.5 * sD->stepSize, sD->firstSmall, sD->dislocations, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
 }
 
 void Simulation::stepStageIII()
 {
     sD->secondSmall = sD->firstSmall;
 
-    integrate(0.5 * sD->stepSize, sD->secondSmall, sD->firstSmall, true, true, EndOfFirstSmallStep, EndOfSecondSmallStep);
+    integrate(0.5 * sD->stepSize, sD->secondSmall, sD->firstSmall, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
 
     double vsquare1 = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
     double vsquare2 = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + b * b; });
@@ -479,8 +466,8 @@ void Simulation::stepStageIII()
         if (sD->orderParameterCalculationIsOn)
             orderParameter = calculateOrderParameter(sD->speed);
 
-        sD->currentStressStateType = Original;
-        sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, Original);
+        sD->currentStressStateType = StressProtocolStepType::Original;
+        sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, StressProtocolStepType::Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
         double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
@@ -510,7 +497,7 @@ void Simulation::stepStageIII()
         else
             sD->standardOutputLog << "-" << "\t";
 
-        sD->standardOutputLog << sD->externalStressProtocol->getStress(Original) << "\t"
+        sD->standardOutputLog << sD->externalStressProtocol->getStress(StressProtocolStepType::Original) << "\t"
             << get_wall_time() - lastWriteTimeFinished << "\t";
 
         if (sD->calculateStrainDuringSimulation)
@@ -563,12 +550,13 @@ void Simulation::stepStageIII()
     }
 }
 
-const std::vector<Dislocation>& Simulation::getStoredDislocationData()
-{
-    return sD->dislocations;
-}
 
 #ifdef BUILD_PYTHON_BINDINGS
+/*const std::vector<Dislocation>& Simulation::getStoredDislocationData()
+{
+    return sD->dislocations;
+}*/
+
 Simulation* Simulation::create(boost::python::object simulationData)
 {
     boost::python::extract<PySdddstCore::PySimulationData&> x(simulationData);
