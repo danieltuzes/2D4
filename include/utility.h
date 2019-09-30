@@ -67,7 +67,7 @@ inline double E_dx(double x, double y, double K)
 
 // From:
 // https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
-inline double get_wall_time()
+double get_wall_time()
 {
     auto t_start = std::chrono::high_resolution_clock::now();
     auto t_start_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(t_start);

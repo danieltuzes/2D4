@@ -38,8 +38,6 @@ Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
     initSpeedCalculationIsNeeded(true),
     firstStepRequest(true),
     energy(0),
-    energyAccum(0),
-    vsquare(0),
     sD(sD),
     pH(new PrecisionHandler)
 {
@@ -276,7 +274,7 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocatio
                                 (0.1e1 - cos(0.2e1 * M_PI * dy)) *
                                 pow(M_PI, -0.2e1) / 0.2e1))) *
                     pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) / 0.2e1) * multiplier;
-                // see simulation_tmp_simplified.cpp. What is this joke? log(M_E)? 0.2e1?
+                // see simulation_tmp_simplified What is this joke? log(M_E)? 0.2e1?
             }
         }
         sD->Ax[totalElementCounter++] = -tmp * stepsize;
@@ -386,49 +384,42 @@ void Simulation::run()
         ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
         )
     {
-        step();
+        stepStageI();
+        stepStageII();
+        stepStageIII();
     }
-    sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
-}
 
-bool Simulation::step()
-{
-    stepStageI();
-    stepStageII();
-    stepStageIII();
-    return succesfulStep;
+    sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
 }
 
 void Simulation::stepStageI()
 {
-    energyAccum = 0;
-
-    double sumAvgSp = 0;
-    vsquare = 0;
     sD->currentStressStateType = sdddstCore::StressProtocolStepType::Original;
     if (firstStepRequest)
     {
+        startTime = get_wall_time();
         lastWriteTimeFinished = get_wall_time();
         sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, sdddstCore::StressProtocolStepType::Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
-        sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / double(sD->dc);
-        vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+        double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / double(sD->dc);
+        double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
 
-        // First log line
-        sD->standardOutputLog <<
-            sD->simTime << " " <<
-            sD->succesfulSteps << " " <<
-            sD->failedSteps << " " <<
-            0 << " " <<
-            sumAvgSp << " " <<
-            sD->cutOff << " " <<
-            "-" << " " <<
-            sD->externalStressProtocol->getStress(sD->currentStressStateType) << " " <<
-            "-" << " " <<
-            sD->totalAccumulatedStrainIncrease << " " <<
-            vsquare << " " <<
-            energy << "\n";
+        // First two line in the log file
+        sD->standardOutputLog << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl;
+        sD->standardOutputLog << sD->simTime << "\t"
+            << sD->succesfulSteps << "\t"
+            << sD->failedSteps << "\t"
+            << 0 << "\t"
+            << sumAvgSp << "\t"
+            << sD->cutOff << "\t"
+            << "-" << "\t"
+            << sD->externalStressProtocol->getStress(sD->currentStressStateType) << "\t"
+            << "-" << "\t"
+            << sD->totalAccumulatedStrainIncrease << "\t"
+            << vsquare << "\t"
+            << energy << "\t"
+            << startTime << std::endl;
 
         firstStepRequest = false;
     }
@@ -449,21 +440,19 @@ void Simulation::stepStageI()
 void Simulation::stepStageII()
 {
     sD->firstSmall = sD->dislocations;
-
     integrate(0.5 * sD->stepSize, sD->firstSmall, sD->dislocations, false, false, Original, EndOfFirstSmallStep);
 }
 
 void Simulation::stepStageIII()
 {
-    double sumAvgSp = 0;
     sD->secondSmall = sD->firstSmall;
 
     integrate(0.5 * sD->stepSize, sD->secondSmall, sD->firstSmall, true, true, EndOfFirstSmallStep, EndOfSecondSmallStep);
 
-    vsquare1 = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
-    vsquare2 = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + b * b; });
+    double vsquare1 = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+    double vsquare2 = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + b * b; });
 
-    energyAccum = (vsquare1 + vsquare2) * 0.5 * sD->stepSize * 0.5;
+    double energyThisStep = (vsquare1 + vsquare2) * 0.5 * sD->stepSize * 0.5;
 
     calculateXError();
 
@@ -490,15 +479,12 @@ void Simulation::stepStageIII()
         if (sD->orderParameterCalculationIsOn)
             orderParameter = calculateOrderParameter(sD->speed);
 
-
-        double current_wall_time = get_wall_time();
-
         sD->currentStressStateType = Original;
         sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
-        sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
-        vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+        double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+        double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
 
         if (sD->countAvalanches)
         {
@@ -511,26 +497,26 @@ void Simulation::stepStageIII()
                 sD->inAvalanche = true;
         }
 
-        energyAccum += (vsquare2 + vsquare) * 0.5 * sD->stepSize * 0.5;
-        sD->standardOutputLog <<
-            sD->simTime << " " <<
-            sD->succesfulSteps << " " <<
-            sD->failedSteps << " " <<
-            pH->getMaxErrorRatioSqr() << " " <<
-            sumAvgSp << " " <<
-            sD->cutOff << " ";
+        energyThisStep += (vsquare2 + vsquare) * 0.5 * sD->stepSize * 0.5;
+        sD->standardOutputLog << sD->simTime << "\t"
+            << sD->succesfulSteps << "\t"
+            << sD->failedSteps << "\t"
+            << pH->getMaxErrorRatioSqr() << "\t"
+            << sumAvgSp << "\t"
+            << sD->cutOff << "\t";
 
         if (sD->orderParameterCalculationIsOn)
-            sD->standardOutputLog << orderParameter;
+            sD->standardOutputLog << orderParameter << "\t";
         else
-            sD->standardOutputLog << "-";
+            sD->standardOutputLog << "-" << "\t";
 
-        sD->standardOutputLog << " " << sD->externalStressProtocol->getStress(Original) << " " << current_wall_time - lastWriteTimeFinished;
+        sD->standardOutputLog << sD->externalStressProtocol->getStress(Original) << "\t"
+            << get_wall_time() - lastWriteTimeFinished << "\t";
 
         if (sD->calculateStrainDuringSimulation)
-            sD->standardOutputLog << " " << sD->totalAccumulatedStrainIncrease;
+            sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
         else
-            sD->standardOutputLog << " -";
+            sD->standardOutputLog << "-" << "\t";
 
 
         if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
@@ -539,11 +525,11 @@ void Simulation::stepStageIII()
             sD->updateCutOff();
         }
 
-        energy += energyAccum;
+        energy += energyThisStep;
 
-        sD->standardOutputLog << " " << vsquare << " " << energy;
-
-        sD->standardOutputLog << "\n";
+        sD->standardOutputLog << vsquare << "\t"
+            << energy << "\t"
+            << get_wall_time() - startTime << std::endl;
 
         if (sD->isSaveSubConfigs)
         {

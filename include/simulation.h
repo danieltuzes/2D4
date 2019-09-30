@@ -61,8 +61,6 @@ namespace sdddstCore {
 
         void run();
 
-        bool step();
-
         void stepStageI();
         void stepStageII();
         void stepStageIII();
@@ -76,13 +74,10 @@ namespace sdddstCore {
     private:
         bool succesfulStep;
         double lastWriteTimeFinished;
+        double startTime;
         bool initSpeedCalculationIsNeeded;
         bool firstStepRequest;
         double energy;
-        double energyAccum;
-        double vsquare;
-        double vsquare1;
-        double vsquare2;
 
         std::shared_ptr<SimulationData> sD;
         std::unique_ptr<PrecisionHandler> pH;

@@ -23,6 +23,7 @@
 #include "Fields/Field.h"
 #include "constants.h"
 
+#include <cmath>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
