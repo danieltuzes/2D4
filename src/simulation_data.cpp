@@ -29,15 +29,6 @@
 #include "stress_protocol_wrapper.h"
 #endif
 
-
-#include <iostream>
-#include <fstream>
-#include <cassert>
-#include <iomanip>
-#include <sstream>
-#include <cmath>
-
-
 using namespace sdddstCore;
 
 SimulationData::SimulationData(const std::string& startDislocationConfigurationPath, const std::string& fixpointsDataFilePath) :
@@ -107,6 +98,8 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
         exit(-1);
     }
 
+    std::vector<DislwId> dislocs_w_id;
+    double sum_b = 0; // the sum of the Burger's vector, it must be 0
     // Reading in dislocations
     for (double x; ifile >> x;)
     {
@@ -117,18 +110,34 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
             exit(-1);
         }
 
-        int b_int = rint(b);
-        if (abs(b - b_int) > 1e-5)
+        if (fabs(b - rint(b)) > 1e-5)
         {
             std::cerr << "Error in " << dislocationDataFilePath << ". Burger's vector supposed to be an integer, -1 or 1, but value " << b << " is found. Program terminates." << std::endl;
             exit(-1);
         }
 
-        dislocations.emplace_back(x, y, b);
+        dislocs_w_id.emplace_back(x, y, b, dislocs_w_id.size());
+        sum_b += b;
         dc++;
     }
+    
+    if (sum_b)
+    {
+        std::cerr << "Error in " << dislocationDataFilePath << ". The sum of the Burger's vector supposed to be 0, but it is " << sum_b << ". Program terminates." << std::endl;
+        exit(-1);
+    }
 
-    // order dislocations and store it in oDisl
+    // order dislocations
+    std::sort(dislocs_w_id.begin(), dislocs_w_id.end(), [](const DislwId& l, const DislwId& r) {return l.y + l.b > r.y + r.b; });
+    for (const auto& disloc_w_id : dislocs_w_id)
+        disl_sorted.emplace_back(disloc_w_id.x, disloc_w_id.y);
+
+    disl_order.resize(dislocs_w_id.size());
+    for (size_t i = 0; i < dislocs_w_id.size(); ++i)
+    {
+        dislocations.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y, dislocs_w_id[i].b);
+        disl_order[dislocs_w_id[i].id] = i;
+    }
 
     // update memory usage according to dislocation count
     g.resize(dc);
@@ -168,10 +177,10 @@ void SimulationData::writeDislocationDataToFile(std::string dislocationDataFileP
         }
     }
     ofile << std::setprecision(14);
-    for (auto& i : dislocations)
-        ofile << i.x << "\t"
-        << i.y << "\t"
-        << rint(i.b) << "\n";
+    for (auto id : disl_order)
+        ofile << dislocations[id].x << "\t"
+        << dislocations[id].y << "\t"
+        << dislocations[id].b << "\n";
 }
 
 void SimulationData::readPointDefectDataFromFile(std::string pointDefectDataFilePath)

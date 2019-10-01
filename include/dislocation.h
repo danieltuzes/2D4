@@ -24,17 +24,32 @@
 
 namespace sdddstCore
 {
-    class OrdDisl // a simplified dislocation structure
+    // dislocation without Burger's vector, that can be deduced from the ID of the element in the vector
+    class DislwoB
     {
     public:
-        OrdDisl() : x(0), y(0) {};
-        OrdDisl(double x, double y) : x(x), y(y) {};
+        DislwoB() : x(0), y(0) {};
+        DislwoB(double x, double y) : x(x), y(y) {};
 
         double x;
         double y;
         // Burgers vector will be deduced from the index of the dislocation
     };
 
+    // dislocation with ID, ID is in increasing from 0
+    class DislwId
+    {
+    public:
+        DislwId() : x(0), y(0), b(0), id(0) {};
+        DislwId(double x, double y, double b, size_t id) : x(x), y(y), b(b), id(id) {};
+
+        double x;
+        double y;
+        double b;
+        size_t id;
+    };
+
+    // the original class defined by PGabor
     class Dislocation
     {
     public:

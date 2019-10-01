@@ -33,7 +33,7 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
    1. **✓** dconf kiírásnál a Burgers vector értéke legyen csak 1 v -1, nem kell fixed scientific
    2. **✓** logfile-hoz headert írni és kerüljön bele az eltelt számítógépes időt 
    4. feszültségérték kezdeti értéke lehessen konstans
-   3. a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
+   3. **✓** a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
    5. a diszlokációk burgersvectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    7. sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    6. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre

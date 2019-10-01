@@ -25,10 +25,19 @@
 #include "Fields/Field.h"
 #include "StressProtocols/stress_protocol.h"
 
-#include <fstream>
 #include <string>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+
 #include <vector>
+#include <map>
 #include <memory>
+#include <cassert>
+#include <cmath>
+#include <algorithm>
+#include <numeric>
 
 #ifdef BUILD_PYTHON_BINDINGS
 #include <boost/python.hpp>
@@ -67,7 +76,12 @@ namespace sdddstCore {
 
         //Valid dislocation position data -> state of the simulation at simTime
         std::vector<Dislocation> dislocations;
-        std::vector<OrdDisl> oDisl;
+
+        // the sorted dislocations, Burger's vector is not needed
+        std::vector<DislwoB> disl_sorted;
+        
+        // the order of the dislocations, useful for writing out in the original order
+        std::vector<unsigned int> disl_order;
 
         //The positions of the fix points
         std::vector<PointDefect> points;
@@ -131,15 +145,15 @@ namespace sdddstCore {
 
         // The dislocation data after the big step
         std::vector<Dislocation> bigStep;
-        std::vector<OrdDisl> oBigStep;
+        std::vector<DislwoB> oBigStep;
 
         // The dislocation data after the first small step
         std::vector<Dislocation> firstSmall;
-        std::vector<OrdDisl> oFirstSmall;
+        std::vector<DislwoB> oFirstSmall;
 
         // The dislocation data after the second small step
         std::vector<Dislocation> secondSmall;
-        std::vector<OrdDisl> oSecondSmall;
+        std::vector<DislwoB> oSecondSmall;
 
         // The used interaction field
         std::unique_ptr<Field> tau;
