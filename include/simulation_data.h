@@ -238,7 +238,7 @@ namespace sdddstCore {
         // True if subconfigs should be saved
         bool isSaveSubConfigs;
 
-        // The path where the sub configs should be saved
+        // The path (and fname prefix) where the sub configs should be saved
         std::string subConfigPath;
 
         // The number of successful steps between two sub config output

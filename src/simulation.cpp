@@ -105,6 +105,7 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vecto
             res[j] -= tmp;
         }
 
+        // iterate over point defects and calulate their stress contribution
         for (size_t j = 0; j < sD->pc; j++)
         {
             double dx = dis[i].x - sD->points[j].x;
@@ -121,7 +122,8 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vecto
 
             pH->updateTolerance(rSqr, i);
         }
-        res[i] += dis[i].b * sD->externalStressProtocol->getStress(sD->currentStressStateType);
+
+        res[i] += dis[i].b * sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
     }
 }
 
@@ -143,7 +145,7 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
             t += sD->stepSize * 0.5;
 
 
-        sD->externalStressProtocol->calculateStress(t, old, origin);
+        sD->externalStressProtocol->calcExtStress(t, origin);
         sD->currentStressStateType = origin;
         calculateSpeeds(old, *isp);
     }
@@ -156,7 +158,7 @@ void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDisloc
         if (end == StressProtocolStepType::EndOfFirstSmallStep)
             t -= sD->stepSize * 0.5;
 
-        sD->externalStressProtocol->calculateStress(t, newDislocation, end);
+        sD->externalStressProtocol->calcExtStress(t, end);
         sD->currentStressStateType = end;
         calculateSpeeds(newDislocation, *csp);
     }
@@ -386,7 +388,7 @@ void Simulation::stepStageI()
     {
         startTime = get_wall_time();
         lastWriteTimeFinished = get_wall_time();
-        sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, StressProtocolStepType::Original);
+        sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
         double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / double(sD->dc);
@@ -401,12 +403,12 @@ void Simulation::stepStageI()
             << sumAvgSp << "\t"
             << sD->cutOff << "\t"
             << "-" << "\t"
-            << sD->externalStressProtocol->getStress(sD->currentStressStateType) << "\t"
+            << sD->externalStressProtocol->getExtStress(sD->currentStressStateType) << "\t"
             << "-" << "\t"
             << sD->totalAccumulatedStrainIncrease << "\t"
             << vsquare << "\t"
             << energy << "\t"
-            << startTime << std::endl;
+            << 0 << std::endl;
 
         firstStepRequest = false;
     }
@@ -467,7 +469,7 @@ void Simulation::stepStageIII()
             orderParameter = calculateOrderParameter(sD->speed);
 
         sD->currentStressStateType = StressProtocolStepType::Original;
-        sD->externalStressProtocol->calculateStress(sD->simTime, sD->dislocations, StressProtocolStepType::Original);
+        sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
         calculateSpeeds(sD->dislocations, sD->initSpeed);
         initSpeedCalculationIsNeeded = false;
         double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
@@ -497,7 +499,7 @@ void Simulation::stepStageIII()
         else
             sD->standardOutputLog << "-" << "\t";
 
-        sD->standardOutputLog << sD->externalStressProtocol->getStress(StressProtocolStepType::Original) << "\t"
+        sD->standardOutputLog << sD->externalStressProtocol->getExtStress(StressProtocolStepType::Original) << "\t"
             << get_wall_time() - lastWriteTimeFinished << "\t";
 
         if (sD->calculateStrainDuringSimulation)
@@ -526,7 +528,7 @@ void Simulation::stepStageIII()
                 std::stringstream ss;
                 ss << std::setprecision(16);
                 ss << sD->simTime;
-                sD->writeDislocationDataToFile(sD->subConfigPath + "/" + ss.str() + ".dconf");
+                sD->writeDislocationDataToFile(sD->subConfigPath + ss.str() + ".dconf");
             }
             else
             {

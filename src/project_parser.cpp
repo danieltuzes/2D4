@@ -64,8 +64,8 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ;
 
     externalStressProtocolOptions.add_options()
-        ("no-external-stress,s", "no external stress during the simulation (default)")
-        ("fixed-rate-external-stress,f", boost::program_options::value<double>(), "external stress is linear with time, rate should be specified as an arg")
+        ("const-external-stress,s", boost::program_options::value<double>()->default_value(0), "the constant in the external stress during the simulation (default is 0)")
+        ("fixed-rate-external-stress,r", boost::program_options::value<double>(), "the slope of external stress - time function (default is 0)")
         ("spring-constant", boost::program_options::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with the previous option together)")
         ;
 
@@ -87,24 +87,17 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     }
 
     if (!vm.count("hide-copyright")) // if the user doesn't hide the bloaty copyright text
-    {
         printLicense();
-    }
+
     if (vm.count("help")) // if the user only interested in the help, there is no need to check the variables
     {
         std::cout << options << std::endl;
         exit(0);
     }
     else // check the variables if they are set up properly
-    {
         processInput(vm);
-    }
 }
 
-sdddstCore::ProjectParser::~ProjectParser()
-{
-
-}
 
 std::shared_ptr<sdddstCore::SimulationData> sdddstCore::ProjectParser::getSimulationData()
 {
@@ -146,14 +139,10 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
     }
 
     if (vm.count("initial-stepsize"))
-    {
         sD->stepSize = vm["initial-stepsize"].as<double>();
-    }
 
     if (vm.count("position-precision"))
-    {
         sD->prec = vm["position-precision"].as<double>();
-    }
 
     if (vm.count("cutoff-multiplier"))
     {
@@ -180,19 +169,13 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
     }
 
     if (vm.count("calculate-strain"))
-    {
         sD->calculateStrainDuringSimulation = true;
-    }
 
     if (vm.count("calculate-order-parameter"))
-    {
         sD->orderParameterCalculationIsOn = true;
-    }
 
     if (vm.count("logfile-path"))
-    {
         sD->standardOutputLog = std::ofstream(vm["logfile-path"].as<std::string>());
-    }
 
     if (vm.count("step-count-limit"))
     {
@@ -216,11 +199,16 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
     }
 
     sD->endDislocationConfigurationPath = vm["result-dislocation-configuration"].as<std::string>();
+    {
+        if (!std::ofstream(sD->endDislocationConfigurationPath)) // it is better to check now than being surprised after days
+        {
+            std::cerr << "Cannot create result dislocation configuration file at " << sD->endDislocationConfigurationPath << ". Program terminates.\n";
+            exit(-1);
+        }
+    }
 
     if (!vm.count("periodic-stress-field-elte"))
-    {
         sD->tau = std::unique_ptr<Field>(new AnalyticField());
-    }
     else
     {
         std::unique_ptr<sdddstCoreELTE::PeriodicShearStressELTE> tmp(new sdddstCoreELTE::PeriodicShearStressELTE());
@@ -229,22 +217,11 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         sD->tau = std::move(tmp);
     }
 
-    if (vm.count("no-external-stress") && vm.count("fixed-rate-external-stress"))
-    {
-        std::cerr << "Only one stress protocol can be defined at the same time!\n";
-        exit(-20);
-    }
-    else if (vm.count("fixed-rate-external-stress"))
-    {
-        std::unique_ptr<FixedRateProtocol> tmp(new FixedRateProtocol);
-        tmp->setRate(vm["fixed-rate-external-stress"].as<double>());
-
-        sD->externalStressProtocol = std::unique_ptr<StressProtocol>(std::move(tmp));
-    }
+    double ext_stress = vm["const-external-stress"].as<double>();
+    if (vm.count("fixed-rate-external-stress"))
+        sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new FixedRateProtocol(ext_stress, vm["fixed-rate-external-stress"].as<double>()));
     else
-    {
-        sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new StressProtocol());
-    }
+        sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new StressProtocol(ext_stress));
 
     if (vm.count("change-cutoff-to-inf-under-threshold"))
     {

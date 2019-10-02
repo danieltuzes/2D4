@@ -163,19 +163,13 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
 void SimulationData::writeDislocationDataToFile(std::string dislocationDataFilePath) const
 {
     std::ofstream ofile(dislocationDataFilePath);
+    bool ofileopenerror = false;
     if (!ofile)
     {
         std::cerr << "Warning: the program was unable to create the file " << dislocationDataFilePath << ".\n";
-        dislocationDataFilePath = startDislocationConfigurationPath + "_final.dconf";
-        std::cerr << "The program tries to write it next to the initial configuration path: " << dislocationDataFilePath;
-        ofile.open(dislocationDataFilePath);
-        if (!ofile)
-        {
-            std::cerr << "Warning: the program was unable to create the file " << dislocationDataFilePath << ".\n"
-                << "No output for the final dislocation configuration will be created. Sorry.\n";
-            return;
-        }
+        return;
     }
+
     ofile << std::setprecision(14);
     for (auto id : disl_order)
         ofile << dislocations[id].x << "\t"

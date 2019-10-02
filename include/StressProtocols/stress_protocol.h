@@ -43,8 +43,8 @@ namespace sdddstCore {
     class StressProtocol
     {
     public:
+        StressProtocol(double initExtStress);
         StressProtocol();
-        virtual ~StressProtocol();
 
         /**
          * @brief calculateStress calculates the stress value for the given situation
@@ -52,28 +52,24 @@ namespace sdddstCore {
          * @param dislocations
          * @param type
          */
-        virtual void calculateStress(double simulationTime, const std::vector<Dislocation>& dislocations, StressProtocolStepType type);
+        virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
 
         /**
          * @brief getStress returns with the stress value at the given situation
          * @param type
          * @return
          */
-        virtual double getStress(StressProtocolStepType type);
-
-        /**
-         * @brief getTriggerState can be used to check if there is an ongoing avalanche or not
-         * @return trigger state
-         */
-        virtual bool getTriggerState();
+        virtual double getExtStress(StressProtocolStepType type) const;
 
         /**
          * @brief getType
          * @return returns with the type of the applied stress field
          */
-        virtual std::string getType();
-    };
+        virtual std::string getType() const;
 
+    protected:
+        double initExtStress;
+    };
 }
 
 #endif

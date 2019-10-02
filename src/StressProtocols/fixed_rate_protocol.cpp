@@ -19,26 +19,17 @@
 
 #include "StressProtocols/fixed_rate_protocol.h"
 
-sdddstCore::FixedRateProtocol::FixedRateProtocol():
-    StressProtocol(),
-    rate(0),
-    stressValues(new double[4])
-{
-    stressValues[0] = 0;
-    stressValues[1] = 0;
-    stressValues[2] = 0;
-    stressValues[3] = 0;
-}
+sdddstCore::FixedRateProtocol::FixedRateProtocol(double initExtStress, double newRate) :
+    StressProtocol(initExtStress),
+    m_rate(newRate),
+    stressValues{ initExtStress, initExtStress, initExtStress, initExtStress } {}
 
-sdddstCore::FixedRateProtocol::~FixedRateProtocol()
-{
-    delete[] stressValues;
-    stressValues = nullptr;
-}
+sdddstCore::FixedRateProtocol::FixedRateProtocol() :
+    FixedRateProtocol(0, 0) {}
 
-void sdddstCore::FixedRateProtocol::calculateStress(double simulationTime, const std::vector<Dislocation>&, StressProtocolStepType type)
+void sdddstCore::FixedRateProtocol::calcExtStress(double simulationTime, StressProtocolStepType type)
 {
-    double value = simulationTime * rate;
+    double value = simulationTime * m_rate + initExtStress;
     switch (type)
     {
     case StressProtocolStepType::Original:
@@ -56,7 +47,7 @@ void sdddstCore::FixedRateProtocol::calculateStress(double simulationTime, const
     }
 }
 
-double sdddstCore::FixedRateProtocol::getStress(StressProtocolStepType type)
+double sdddstCore::FixedRateProtocol::getExtStress(StressProtocolStepType type) const
 {
     switch (type)
     {
@@ -72,17 +63,17 @@ double sdddstCore::FixedRateProtocol::getStress(StressProtocolStepType type)
     return 0;
 }
 
-std::string sdddstCore::FixedRateProtocol::getType()
+std::string sdddstCore::FixedRateProtocol::getType() const
 {
     return "fixed-rate-stress";
 }
 
-double sdddstCore::FixedRateProtocol::getRate() const
+double sdddstCore::FixedRateProtocol::rate() const
 {
-    return rate;
+    return m_rate;
 }
 
-void sdddstCore::FixedRateProtocol::setRate(double value)
+void sdddstCore::FixedRateProtocol::rate(double new_rate)
 {
-    rate = value;
+    m_rate = new_rate;
 }

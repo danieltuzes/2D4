@@ -24,24 +24,24 @@
 
 namespace sdddstCore {
 
-class FixedRateProtocol : public StressProtocol
-{
-public:
-    FixedRateProtocol();
-    virtual ~FixedRateProtocol();
+    class FixedRateProtocol : public StressProtocol
+    {
+    public:
+        FixedRateProtocol(double initExtStress, double initRate);
+        FixedRateProtocol();
 
-    virtual void calculateStress(double simulationTime, const std::vector<Dislocation> &dislocations, StressProtocolStepType type);
-    virtual double getStress(StressProtocolStepType type);
+        virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
+        virtual double getExtStress(StressProtocolStepType type) const;
 
-    virtual std::string getType();
+        virtual std::string getType() const;
 
-    double getRate() const;
-    void setRate(double value);
+        double rate() const;
+        void rate(double new_rate);
 
-private:
-    double rate;
-    double * stressValues;
-};
+    private:
+        double m_rate;
+        double stressValues[4];
+    };
 
 }
 

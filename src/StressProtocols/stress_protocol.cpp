@@ -19,32 +19,18 @@
 
 #include "StressProtocols/stress_protocol.h"
 
-sdddstCore::StressProtocol::StressProtocol()
+sdddstCore::StressProtocol::StressProtocol(double initExtStress) : initExtStress(initExtStress) {}
+
+sdddstCore::StressProtocol::StressProtocol() : StressProtocol(0) {}
+
+void sdddstCore::StressProtocol::calcExtStress(double, StressProtocolStepType) {}
+
+double sdddstCore::StressProtocol::getExtStress(StressProtocolStepType) const
 {
-    //Nothing to do
+    return initExtStress;
 }
 
-sdddstCore::StressProtocol::~StressProtocol()
+std::string sdddstCore::StressProtocol::getType() const
 {
-    //Nothing to do
-}
-
-void sdddstCore::StressProtocol::calculateStress(double, const std::vector<Dislocation>&, StressProtocolStepType)
-{
-    //Nothing to do
-}
-
-double sdddstCore::StressProtocol::getStress(StressProtocolStepType)
-{
-    return 0;
-}
-
-bool sdddstCore::StressProtocol::getTriggerState()
-{
-    return false;
-}
-
-std::string sdddstCore::StressProtocol::getType()
-{
-    return "zero-stress";
+    return "const-stress";
 }

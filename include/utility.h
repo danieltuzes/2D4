@@ -27,10 +27,10 @@
 
 inline void normalize(double& n)
 {
-    while (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if" (why)
+    while (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if", but it isn't faster
         n += 1;
 
-    while (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if" (why)
+    while (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if", but it isn't faster
         n -= 1;
 }
 

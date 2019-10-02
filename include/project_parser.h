@@ -33,7 +33,6 @@ namespace sdddstCore
     {
     public:
         ProjectParser(int argc, char** argv);
-        ~ProjectParser();
 
         std::shared_ptr<SimulationData> getSimulationData();
 
