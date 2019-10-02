@@ -10,30 +10,51 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 
 3. Sebességtesztet csinálni, és megmérni, mennyit számít
 
-   1. a Release kapcsoló?
-   1. az O3 march=native kapcsoló?
-   2. az ffast-math
-   4. unordered - ordered diszlokáció
+   1. a **Release** kapcsoló?
+   1. az **O3 march=native** kapcsoló?
+   2. az **ffast-math**
+   4. **unordered - ordered** diszlokáció
    3. az f_dx-ben okosan zárójelezett hatványok
 
-   Az eredmények azt mutatják, hogy 1-3. gyorsít, 4. és 5. nem gyorsít a programon 64-es rendszerméret mellett.
-
-    | #           | eredeti, nem release   | + Release              | + O3 native            | + fast-math            | + ordered              | (+ hatv átcsop)        | (+ if(true) x)         |
-    |-------------|------------------------|------------------------|------------------------|------------------------|------------------------|------------------------|------------------------|
-    | 1. futtatás | 2.0118000030517578e+01 | 2.0917999982833862e+01 | 1.5968999862670898e+01 | 1.1220000028610229e+01 | 1.0274999856948853e+01 | 1.1256000041961670e+01 | 1.0776000022888184e+01 |
-    | 2. futtatás | 2.0361999988555908e+01 | 2.0230999946594238e+01 | 1.3758000135421753e+01 | 1.0907999992370605e+01 | 1.0813000202178955e+01 | 1.0667000055313110e+01 | 1.0984999895095825e+01 |
-    | 3. futtatás | 2.0273999929428101e+01 | 1.9748000144958496e+01 | 1.4757000207901001e+01 | 1.0744999885559082e+01 | 1.0612999916076660e+01 | 1.0647000074386597e+01 | 1.0644999980926514e+01 |
+   Az [eredmények](speedtests.md#első-ötletek) azt mutatják, hogy 1-3. gyorsít, 4. és 5. nem gyorsít a programon 64-es rendszerméret mellett. Az első 3-at teljesítményi okokból, a 4-et kompatibilitási okokból tartom meg.
 
 4. Forráskódot egyszerűsíteni és szépíteni
-   1. **✓** a ***Simulation*** és *SimulationData* class public függvényeinek `const` minősítéseit helyesen kiírni
+   1. **✓** a `Simulation`, `SimulationData` és `StressProtocol` classok public függvényeinek `const` minősítéseit helyesen kiírni
    2. megjegyzéseket írni, hogy melyik változó és függvény micsoda
 
 4. Új funkciókat implementálni
-
    1. **✓** dconf kiírásnál a Burgers vector értéke legyen csak 1 v -1, nem kell fixed scientific
    2. **✓** logfile-hoz headert írni és kerüljön bele az eltelt számítógépes időt 
-   4. feszültségérték kezdeti értéke lehessen konstans
-   3. **✓** a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
-   5. a diszlokációk burgersvectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   3. feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
+   4. Lehessen állapotokat kiíratni adott szimulációs időgyakorisággal
+   5. **✓** a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
+   6. a diszlokációk burgersvectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    7. sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
-   6. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   9. **✓** a `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni
+
+### Új funkciók implementálása
+
+   1. **✓** dconf kiírásnál a Burgers vector értéke legyen csak 1 v -1, nem kell fixed scientific
+   
+		A beolvasásnál ellenőrzi, hogy a Burger's vector kb egész-e, és ha igen, egészekre kerekíti. Ellenőrzi, hogy 0-e az össz Burger's vector. Ha bármelyikre a válasz nem, akkor kilép. Továbbá a pozíció kiírási típusa defaulton van pontosságát is csökkentettem, az utolsó jegyek úgysem érvényesek, így viszont könnyebben áttekinthető az érték.
+
+   2. **✓** logfile-hoz headert írni és kerüljön bele az eltelt számítógépes időt
+
+		Belekerült a header #-vel kezdve (gnuplot kihagyja a sort), és a cellahatárolók tabulátorok, sokkal könnyebb áttekinteni.
+
+   3. feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
+
+		A kezdeti érték lehet konstans, és lineárisan növekvő is. A konstans 0 és a monoton növők ugyanazokat a diszlokációelrendeződéseket adják 64-es rendszerre, 1000 időre és 1e-4 rátájú feszültségemelésre.
+
+   4. Lehessen állapotokat kiíratni adott szimulációs időgyakorisággal
+   5. **✓** a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
+
+		Rendezi és elmenti a visszarendezés sorrendjét `disl_order` néven, kiírásnál pedig ennek segítségével íratja ki. Ugyanez érvényes a subconfigokra is.
+
+   6. a diszlokációk Burger's vectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   7. sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+   9. **✓** A `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni. A [sebességteszt](speedtests.md#normalize) szerint kb. 0.1% az előny. Így marad a `while`.
+
+		

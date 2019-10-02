@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     try {
         bpo::store(bpo::parse_command_line(argc, argv, options), vm, false);
     }
-    catch (bpo::error& e)
+    catch (bpo::error & e)
     {
         std::cerr << e.what() << std::endl;
         exit(-1);
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     if (!vm.count("hide-copyright"))
     {
         std::cout << "init_config_gen (version " << VERSION_init_config_gen << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
-            "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
+            << "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
     }
 #pragma endregion
 
@@ -111,10 +111,10 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region seed-end, seed-start
-    
+
     int seed_start = vm["seed-start"].as<int>(); // the first seed value for the random number generator engine
     int seed_end; // the last seed value for the random number generator engine
-    
+
     std::cout << "seed-start =\t" << seed_start << std::endl;
     if (vm.count("seed-end") != 0)
         seed_end = vm["seed-end"].as<int>();
@@ -139,14 +139,14 @@ int main(int argc, char** argv)
     }
     else
         std::cout << "A =\t" << A << std::endl;
-    
+
 #pragma endregion
 
 #pragma region output path, filenames and sorting
 
     std::string of(vm["output-fnameprefix"].as<std::string>()); // the output filename prefix (potentially inculding foldername)
     std::cout << "output-fnameprefix =\t" << of << std::endl;
-    
+
     char sorted; // leave the output unsorted?
     {
         std::string sortedstr = vm["sorted"].as<std::string>();
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
     }
 
     std::cout << "sorted =\t" << sorted << std::endl;
-    
+
     bool bare = false; // shall the output name contain the number of dislocations?
     if (vm.count("bare") != 0)
         bare = true;
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region cumulative distribution
-    
+
     std::vector<std::pair<double, double>> cdfr_p, cdfr_n; // x,y values of the cumulative distribution function of rho_p and rho_n
     if (A != 0)
     {
@@ -254,7 +254,7 @@ int main(int argc, char** argv)
 }
 
 // returns x for y between a and b
-double interpolate_y(pair a, pair b, double y) 
+double interpolate_y(pair a, pair b, double y)
 {
     return a.first + (y - a.second) * (b.first - a.first) / (b.second - a.second);
 }
