@@ -148,6 +148,9 @@ A különféle módszerekben megjelenő szabad paramétertől nem független a b
 Milyen $A$ mellett érdemes optimalizálni a módszereket? $A=0$ mellett triviálisan adódnának a szabad paraméterek értékei, mert a cél az volna, hogy minél jobban elkent PDF-et kapjuk: a box counting esetén minél kevesebb box, a Gauss-elkenésnél pedig mind nagyobb félérték-szélesség. A nagy mintázat esetén erre a finom kiértékelés esetén eleve nincs szükség, ezért abban a tartományban optimalizálok, ahol azt várom, hogy szemmel még nem elhetséges a mintázat érzékelése, de ezekkel a módszerekkel viszont érzékelhető a mintázat. Ezért $A=0.05$, azaz $5\%$-nál optimalizálom a módszereket.
 
 \section{A becslési módszerek összehasonlítása}
+A diszlokáció-szimulációkban egy adott realizációban a szimuláció során a részecskéknek csak az $x$ koordinátája változik meg, valamint a rendszer önmagához is hasonló. A hasonlóság ugyan csökken idővel, de a random konfigurációkhoz képest még mindig önmagával a leghasonlóbb. Éppen ezért a legjobb, ha a módszerek összehasonlításában a módszer hatékonyságát azzal mérjük, hogy mennyire képes megmutatni a mintázat-változást egy adott konfigurációhoz képest. Ezért az összehasonlításokban a mintázat nélküli realizációkat hasonlítjuk össze olyan mintázatosakkal, amelyben minden egyes mintázatos realizációt egy minta nélküliből származtatunk úgy, hogy a diszlokációkat megfelelő módon, kis mértékben elmozdítjuk.
+
+
 
 \section{Következtetés és összefoglaló}
 \end{document}
