@@ -20,7 +20,9 @@
 #ifndef SDDDST_CORE_DISLOCATION_H
 #define SDDDST_CORE_DISLOCATION_H
 
+#ifdef BUILD_PYTHON_BINDINGS
 #include <string>
+#endif
 
 namespace sdddstCore
 {

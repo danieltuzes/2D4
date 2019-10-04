@@ -80,7 +80,7 @@ sdddstCore::CyclicLoadProtocol::CyclicLoadProtocol() :
 
 void sdddstCore::CyclicLoadProtocol::calcExtStress(double simulationTime, StressProtocolStepType type)
 {
-    double periodicTime = simulationTime - floor((simulationTime / m_timePeriod + 1. / 4)) * m_timePeriod;
+    double periodicTime = simulationTime - std::floor((simulationTime / m_timePeriod + 1. / 4)) * m_timePeriod;
 
     double value = m_rate * periodicTime;
     if (periodicTime > m_timePeriod / 4)

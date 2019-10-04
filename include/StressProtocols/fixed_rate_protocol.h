@@ -20,6 +20,7 @@
 #ifndef SDDDST_CORE_FIXED_RATE_PROTOCOL_H
 #define SDDDST_CORE_FIXED_RATE_PROTOCOL_H
 
+#include <cmath>
 #include "stress_protocol.h"
 
 namespace sdddstCore {

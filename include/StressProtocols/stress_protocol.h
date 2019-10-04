@@ -23,7 +23,6 @@
 #include "dislocation.h"
 
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace sdddstCore {
