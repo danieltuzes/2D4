@@ -120,7 +120,8 @@ Ebben a módszerben $\rho_+$ és $\rho_-$ lehetnek 0 értékűek, sőt! Pontosan
 \end{figure}
 \end{center}
 
-\section{A becslések elemzési szempontjai}
+\section{A becslései módszerek elemzése}
+\subsection{Elemzési szempontok}
 Az eddig alkalmazott módszereket és egy új módszert mutatok be a diszlokációsűrűség-eloszlás becslésésre. Az egyszerűség kedvéért először nem egyensúlyi diszlokációrendszereket használok, mert ezeken előre tudható, hogy milyen mintázatokat kell tudni kimutatni. Az elemzés alapja, hogy
 \begin{enumerate}
     \item ismert diszlokcáiósűrűség-eloszláshoz generálok diszkrét eloszlásokat,
@@ -138,7 +139,7 @@ Reményeim szerint a két módszer ugyanazt az eredményt adja, vagyis amelyik h
 
 Joggal merülhet fel a kérdés, hogy egy korrelálatlanul kiosztott diszlokáció-elrendeződésre optimális módszer miért volna a legmegfelelőbb egy valódi diszlokációelrendeződésre, amiről tudható, hogy erősen korrelált. Úgy gondolom, hogy mivel diszlokációmintázatban éppen ezt a korreláltságot szeretnénk kimutatni, nem volna jó olyan módszer után kutatni, ami egy valamilyen fajta korreláltságra optimalizált, vagy bármit is feltételez az eloszlásról, tekintve, hogy ezeket részleteiben nem ismerjük, és éppen, hogy aktívan kutatott terület. Ezért azt a módszert keresem, ami semmit sem feltételezve az elrendeződésről, leginkább a gyenge mintázatok területén a legeredményesebb.
 
-\section{A becslési módszerek hangolása}
+\subsection{A becslési módszerek hangolása}
 Legyen a valószínűség-sűrűségeloszlás függvénye
 \[{\rho _ + }\left( x \right) = 1 + A \cdot \sin \left( {2\pi n \cdot x} \right),\]
 amelyben $n$ a mintázat hullámhosszával fordítottan arányos (lineáris hullámszám, $n \in \mathbb{N}$), $A$ pedig a mintázat erőssége.
@@ -147,9 +148,10 @@ A különféle módszerekben megjelenő szabad paramétertől nem független a b
 
 Milyen $A$ mellett érdemes optimalizálni a módszereket? $A=0$ mellett triviálisan adódnának a szabad paraméterek értékei, mert a cél az volna, hogy minél jobban elkent PDF-et kapjuk: a box counting esetén minél kevesebb box, a Gauss-elkenésnél pedig mind nagyobb félérték-szélesség. A nagy mintázat esetén erre a finom kiértékelés esetén eleve nincs szükség, ezért abban a tartományban optimalizálok, ahol azt várom, hogy szemmel még nem lehetséges a mintázat érzékelése, de ezekkel a módszerekkel viszont érzékelhető a mintázat. Ezért $A=0.05$, azaz $5\%$-nál optimalizálom a módszereket.
 
-\section{A becslési módszerek összehasonlítása}
+\subsection{A becslési módszerek összehasonlítása}
 A diszlokáció-szimulációkban egy adott realizációban a szimuláció során a részecskéknek csak az $x$ koordinátája változik meg, valamint a rendszer önmagához is hasonló. A hasonlóság ugyan csökken idővel, de a random konfigurációkhoz képest még mindig önmagával a leghasonlóbb. Éppen ezért a legjobb, ha a módszerek összehasonlításában a módszer hatékonyságát azzal mérjük, hogy mennyire képes megmutatni a mintázat-változást egy adott konfigurációhoz képest. Ezért az összehasonlításokban a mintázat nélküli realizációkat hasonlítjuk össze olyan mintázatosakkal, amelyben minden egyes mintázatos realizációt egy minta nélküliből származtatunk úgy, hogy a diszlokációkat megfelelő módon, kis mértékben elmozdítjuk.
 
+\section{Alkalmazás diszlokcáiószimulációkon}
 
 \section{Következtetés és összefoglaló}
 \end{document}
