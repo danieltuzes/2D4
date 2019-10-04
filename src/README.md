@@ -45,7 +45,7 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 
    3. feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
 
-		A kezdeti érték lehet konstans, és lineárisan növekvő is. A konstans 0 és a monoton növők ugyanazokat a diszlokációelrendeződéseket adják 64-es rendszerre, 1000 időre és 1e-4 rátájú feszültségemelésre.
+		A kezdeti érték lehet konstans, és lineárisan növekvő is. A konstans 0 és a monoton növők ugyanazokat a diszlokációelrendeződéseket adják 64-es rendszerre, 1000 időre és 1e-4 rátájú feszültségemelésre. Lehet ciklikusan terhelni.
 
    4. Lehessen állapotokat kiíratni adott szimulációs időgyakorisággal
    5. **✓** a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe

@@ -24,25 +24,36 @@
 
 namespace sdddstCore {
 
+    // the external stress is increasing linearly with time without limitation
     class FixedRateProtocol : public StressProtocol
     {
     public:
-        FixedRateProtocol(double initExtStress, double initRate);
+        FixedRateProtocol(double initExtStress, double stressRate);
         FixedRateProtocol();
 
         virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
         virtual double getExtStress(StressProtocolStepType type) const;
-
-        virtual std::string getType() const;
-
-        double rate() const;
-        void rate(double new_rate);
 
     private:
         double m_rate;
         double stressValues[4];
     };
 
+    // the external stress is periodic in time with a given time period, linearly increasing and decreasing in a triangular shaped function centered to initExtStress
+    class CyclicLoadProtocol : public StressProtocol
+    {
+    public:
+        CyclicLoadProtocol(double initExtStress, double stressRate, double period);
+        CyclicLoadProtocol();
+
+        virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
+        virtual double getExtStress(StressProtocolStepType type) const;
+
+    private:
+        double m_rate;
+        double m_timePeriod;
+        double stressValues[4];
+    };
 }
 
 #endif

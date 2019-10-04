@@ -1,5 +1,4 @@
-# 2D4
-A 2D discrete dislocation dynamics simulation program toolset.
+ 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
 This toolkit contains tools to simulate 2D single slip edge dislocation systems under periodic boundary conditions. The integrator is based on an implicit numerical scheme which makes it possible to keep the 
@@ -11,9 +10,12 @@ The detailed publication of the numerical scheme and the implementation with the
 
 ### Tools
 The toolkit contains the following tools
-1. The main component of this toolset is the [**simulation program** *2D_DDD_simulation*](https://github.com/danieltuzes/2D4/tree/master/src) that evols the dislocation configuration under the prescribed external stress.
-2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/2D4/init_config_gen) to create the initial configuration.
-3. [**Evaluation program** *xpattern*](https://github.com/danieltuzes/2D4/tree/master/xpattern) to do perform analysis on the simulations obatined.
+1. The [**simulation program** *2D_DDD_simulation*](https://github.com/danieltuzes/2D4/tree/master/src) is the main component of this toolset. It evols the dislocation configuration under the prescribed external stress.
+2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/2D4/init_config_gen) to create the initial configuration of uncorrelated dislocations.
+3. **Evaluation programs**
+
+   1. [*xpattern*](https://github.com/danieltuzes/2D4/tree/master/xpattern) performs analysis on the simulations obatined looking for patterns
+   2. [*conf_compare*](https://github.com/danieltuzes/2D4/tree/master/conf_compare) compares simulations and tell if they are the same or not, where the largest deviation is and what the average deviation is.
 
 The rest of this file belongs to the simulation program 2D_DDD_simulation.
 

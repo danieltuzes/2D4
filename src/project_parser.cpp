@@ -49,7 +49,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("avalanche-speed-threshold", boost::program_options::value<double>()->default_value(1e-3), "speed threshold for counting avalanches")
         ("initial-stepsize", boost::program_options::value<double>()->default_value(1e-6), "first tried step size for the simulation")
         ("cutoff-multiplier,c", boost::program_options::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
-        ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not overlap this value")
+        ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not exceed this value")
         ("calculate-strain,S", "turns on strain calculation for the simulation")
         ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
         ("position-precision,P", boost::program_options::value<double>()->default_value(1e-5), "minimum precision for the positions for the adaptive step size protocol")
@@ -64,8 +64,9 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ;
 
     externalStressProtocolOptions.add_options()
-        ("const-external-stress,s", boost::program_options::value<double>()->default_value(0), "the constant in the external stress during the simulation (default is 0)")
-        ("fixed-rate-external-stress,r", boost::program_options::value<double>(), "the slope of external stress - time function (default is 0)")
+        ("const-external-stress,s", boost::program_options::value<double>()->default_value(0), "the constant in the external stress during the simulation")
+        ("fixed-rate-external-stress,r", boost::program_options::value<double>(), "the slope of external stress - time function (disabled by default)")
+        ("cyclic-external-stress,r", boost::program_options::value<double>(), "the time period of the cyclic load")
         ("spring-constant", boost::program_options::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with the previous option together)")
         ;
 
@@ -218,7 +219,17 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
     }
 
     double ext_stress = vm["const-external-stress"].as<double>();
-    if (vm.count("fixed-rate-external-stress"))
+    if (vm.count("cyclic-external-stress"))
+    {
+        if (vm.count("fixed-rate-external-stress"))
+            sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new CyclicLoadProtocol(ext_stress, vm["fixed-rate-external-stress"].as<double>(), vm["cyclic-external-stress"].as<double>()));
+        else
+        {
+            std::cerr << "Error: if cyclic-external-stress is set then fixed-rate-external-stress must be also set. Program terminates.\n";
+            exit(-1);
+        }
+    }
+    else if (vm.count("fixed-rate-external-stress"))
         sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new FixedRateProtocol(ext_stress, vm["fixed-rate-external-stress"].as<double>()));
     else
         sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new StressProtocol(ext_stress));

@@ -18,6 +18,7 @@ Már a kód legelső változata során eszembe jutott néhány fejlesztési lehe
    3. **✓ ffast-math** kapcsoló: float-okkal sok művelet nem asszociatív és disztributív úgy, mint ahogy a matekban megszoktuk. Pl. `1./a * b != b/a`, de ha be van kapcsolva a kapcsoló, akkor átrendezi a fordító, továbbá az `std::pow(double, int)`-et is szorzásokra bontja le. Ez a kapcsoló megváltoztatja a koordináták helyeit `10^{-8}` pontosság környékén.
    4. **✓ unordered - ordered**: a diszlokációkat rendezve tárolja, csökkenő Burger's vektor és csökkenő y érték szerint. Ez javítja a tippet a Burger's vektoron, és a memóriát is kicsit lokálisabbá teszi, mert nagyobb eséllyel hatnak kölcsön egymással y-ban is közeli részecskék.
    5. az f_dx-ben okosan zárójelezett hatványok: nem kell külön elvégezni a `pow(x,6)`-ot, ha már a `pow(x,3)` el van végezve. Az `ffast-math` kapcsoló használata esetén úgy tűnik, a fordító okosabb nálam.
+   6. Felesleges ellenőrizni, hogy a diszlokációk 1e-6-nál közelebb vannak-e, és az alapján számolni a kölcsönhatást, mert úgyis csak a derivált térben számít igazán. Így igaz, de a sebességteszt alapján egy `if` elágazás nem sokat lassít a CPU kódon, mert nem párhuzamos. Így viszont legalább korrekt a kód.
 
 Az eredményeket táblázatba foglaltam.
 

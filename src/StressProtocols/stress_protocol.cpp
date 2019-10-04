@@ -29,8 +29,3 @@ double sdddstCore::StressProtocol::getExtStress(StressProtocolStepType) const
 {
     return initExtStress;
 }
-
-std::string sdddstCore::StressProtocol::getType() const
-{
-    return "const-stress";
-}

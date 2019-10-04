@@ -61,12 +61,6 @@ namespace sdddstCore {
          */
         virtual double getExtStress(StressProtocolStepType type) const;
 
-        /**
-         * @brief getType
-         * @return returns with the type of the applied stress field
-         */
-        virtual std::string getType() const;
-
     protected:
         double initExtStress;
     };

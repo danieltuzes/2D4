@@ -19,9 +19,11 @@
 
 #include "StressProtocols/fixed_rate_protocol.h"
 
-sdddstCore::FixedRateProtocol::FixedRateProtocol(double initExtStress, double newRate) :
+#pragma region FixedRateProtocol
+
+sdddstCore::FixedRateProtocol::FixedRateProtocol(double initExtStress, double stressRate) :
     StressProtocol(initExtStress),
-    m_rate(newRate),
+    m_rate(stressRate),
     stressValues{ initExtStress, initExtStress, initExtStress, initExtStress } {}
 
 sdddstCore::FixedRateProtocol::FixedRateProtocol() :
@@ -63,17 +65,58 @@ double sdddstCore::FixedRateProtocol::getExtStress(StressProtocolStepType type) 
     return 0;
 }
 
-std::string sdddstCore::FixedRateProtocol::getType() const
+#pragma endregion
+
+#pragma region PeriodicLoadProtocol
+
+sdddstCore::CyclicLoadProtocol::CyclicLoadProtocol(double initExtStress, double stressRate, double timePeriod) :
+    StressProtocol(initExtStress),
+    m_rate(stressRate),
+    m_timePeriod(timePeriod),
+    stressValues{ initExtStress, initExtStress, initExtStress, initExtStress } {}
+
+sdddstCore::CyclicLoadProtocol::CyclicLoadProtocol() :
+    CyclicLoadProtocol(0, 0, 0) {}
+
+void sdddstCore::CyclicLoadProtocol::calcExtStress(double simulationTime, StressProtocolStepType type)
 {
-    return "fixed-rate-stress";
+    double periodicTime = simulationTime - floor((simulationTime / m_timePeriod + 1. / 4)) * m_timePeriod;
+
+    double value = m_rate * periodicTime;
+    if (periodicTime > m_timePeriod / 4)
+        value = m_rate * m_timePeriod / 2 - value;
+
+    switch (type)
+    {
+    case StressProtocolStepType::Original:
+        stressValues[0] = value;
+        break;
+    case StressProtocolStepType::EndOfBigStep:
+        stressValues[1] = value;
+        break;
+    case StressProtocolStepType::EndOfFirstSmallStep:
+        stressValues[2] = value;
+        break;
+    case StressProtocolStepType::EndOfSecondSmallStep:
+        stressValues[3] = value;
+        break;
+    }
 }
 
-double sdddstCore::FixedRateProtocol::rate() const
+double sdddstCore::CyclicLoadProtocol::getExtStress(StressProtocolStepType type) const
 {
-    return m_rate;
+    switch (type)
+    {
+    case StressProtocolStepType::Original:
+        return stressValues[0];
+    case StressProtocolStepType::EndOfBigStep:
+        return stressValues[1];
+    case StressProtocolStepType::EndOfFirstSmallStep:
+        return stressValues[2];
+    case StressProtocolStepType::EndOfSecondSmallStep:
+        return stressValues[3];
+    }
+    return 0;
 }
 
-void sdddstCore::FixedRateProtocol::rate(double new_rate)
-{
-    m_rate = new_rate;
-}
+#pragma endregion

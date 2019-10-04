@@ -72,7 +72,7 @@ void Simulation::integrate(double stepsize, std::vector<Dislocation>& newDisloca
         if (i > 0)
             calculateG(stepsize, newDislocation, old, useSpeed2, false, false, origin, end);
         else
-            calculateG(stepsize, newDislocation, old, useSpeed2, calculateInitSpeed, sD->externalStressProtocol->getType() == "zero-stress" ? true : false, origin, end);
+            calculateG(stepsize, newDislocation, old, useSpeed2, calculateInitSpeed, false, origin, end);
 
         solveEQSys();
         for (size_t j = 0; j < sD->dc; j++)
