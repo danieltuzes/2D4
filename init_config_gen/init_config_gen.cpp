@@ -220,7 +220,7 @@ int main(int argc, char** argv)
         std::vector<disl> dislocs; // container of the N number of dislocations
 
         //std::ofstream deb_conf_ofile("debug_conf.txt");
-        for (int n = 0; n < N; ++n) // generate the N number of dislocations
+        for (size_t n = 0; n < N; ++n) // generate the N number of dislocations
         {
             double x = distr(engine);
             if (A != 0)

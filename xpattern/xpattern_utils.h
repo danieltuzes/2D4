@@ -1,5 +1,5 @@
 //
-// xpattern_utils.h : contains the function declaration for xpattern.cpp
+// xpattern_utils.h : contains the function declarations for xpattern.cpp
 
 #pragma once
 

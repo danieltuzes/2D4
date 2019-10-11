@@ -3,7 +3,14 @@
 
 #pragma region header
 
-#define VERSION_conf_compare 0.1
+#define VERSION_conf_compare 0.2
+/*changelog
+0.2 
+difference in y values are allowed up to individual tolerance
+
+0.1
+First release
+*/
 
 #include <iostream>
 #include <fstream>
@@ -121,6 +128,8 @@ int main(int argc, char** argv)
         std::cerr << "Exactly 2 filenames are expected. Program termiantes.\n";
         exit(-1);
     }
+
+    double indTol = vm["individual-tolerance"].as<double>(); // individual tolerance
 #pragma endregion
 
     std::vector<disl> dislocsA, dislocsB; // container of the N number of dislocations
@@ -147,7 +156,7 @@ int main(int argc, char** argv)
 
     for (size_t i = 0; i < size; ++i)
     {
-        if (std::get<1>(dislocsA[i]) != std::get<1>(dislocsB[i]))
+        if (std::abs(std::get<1>(dislocsA[i]) - std::get<1>(dislocsB[i])) > indTol)
         {
             std::cerr << "y values are different (" << std::get<1>(dislocsA[i]) << " != " << std::get<1>(dislocsB[i]) << ") for dislocation with x coordinate\n"
                 << std::get<0>(dislocsA[i]) << " in " << ifnames[0] << " and\n"
@@ -172,7 +181,7 @@ int main(int argc, char** argv)
             << "\t\tID = " << outlierID << " and y coordinate\n"
             << "\t\t y = " << std::get<1>(dislocsA[outlierID]) << "\n";
     }
-    if (max_diff < vm["individual-tolerance"].as<double>())
+    if (max_diff < indTol)
         std::cout << "All dislocations are at the same place.\n";
 
     double avg_fabs = sum_fabs / size;
