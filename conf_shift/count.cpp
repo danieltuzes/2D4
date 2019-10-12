@@ -79,40 +79,52 @@ IntersectionCounter::iterator IntersectionCounter::end() {
 }
 
 IntersectionCounter::size_type
-IntersectionCounter::normalizedIndex(size_type index) {
-  size_type normIndex = index;
-  while (normIndex < 0) {
-    normIndex += priv_size;
+IntersectionCounter::nextIndexInDir(size_type index, Dir dir) {
+  size_type nextIndex = index;
+  if (dir == POS) {
+    if (nextIndex == priv_size)
+      nextIndex = 0;
+    else
+      ++nextIndex;
   }
-  while (normIndex >= priv_size) {
-    normIndex -= priv_size;
+  else { // dir == NEG
+    if (nextIndex == 0)
+      nextIndex = priv_size - 1;
+    else
+      --nextIndex;
   }
-  return normIndex;
+  return nextIndex;
 }
 
 IntersectionCounter::size_type
-IntersectionCounter::closestInDir(double pos, int dir) {
-  double posInDistUnits = (pos - startpos) / distance;
-  if (dir == +1)
-    return std::ceil(posInDistUnits);
+IntersectionCounter::closestInDir(double pos, Dir dir) {
+  double posInDistUnits = (pos - startpos) / distance; // between 0 and approximate priv_size
+  double roundedPos;
+  if (dir == POS)
+    roundedPos = std::ceil(posInDistUnits);
   else
-    return std::floor(posInDistUnits);
+    roundedPos = std::floor(posInDistUnits);
+
+  if (roundedPos >= priv_size)
+    return 0;
+  else
+    return roundedPos;
 }
 
 void IntersectionCounter::addInterval(const Interval& interval) {
   double s = interval.startpos;
   double e = interval.endpos;
   // direction: +/-1
-  int dir = (s<=e) ? +1 : -1;
+  Dir dir = (s<=e) ? POS : NEG;
   double halfrange = (endpos - startpos)/2.0;
   if (std::abs(e-s) > halfrange) {
     // closer in the other direction
-    dir = -dir;
+    dir = (dir == POS) ? NEG : POS;
   }
   IntersectionCounter::size_type start_index, end_index;
-  start_index = normalizedIndex(closestInDir(s, dir));
-  end_index = normalizedIndex(closestInDir(e, dir));
-  for (auto i = start_index; normalizedIndex(i) != end_index; i+=dir) {
+  start_index = closestInDir(s, dir);
+  end_index = closestInDir(e, dir);
+  for (auto i = start_index; i != end_index; i = nextIndexInDir(i, dir)) {
     ++points[i].intersectCount;
   }
 }

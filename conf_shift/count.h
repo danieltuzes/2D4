@@ -50,8 +50,11 @@ public:
   reference operator[](size_type index);
   iterator begin();
   iterator end();
-  size_type normalizedIndex(size_type index);
-  size_type closestInDir(double pos, int dir); // returned index not normalized
+  enum Dir {
+    POS, NEG
+  };
+  size_type nextIndexInDir(size_type index, Dir dir);
+  size_type closestInDir(double pos, Dir dir); // returned index not normalized
   void addInterval(const Interval& interval);
 private:
   container_type points;

@@ -111,20 +111,22 @@ static void fill_counter(const std::string& filename, IntersectionCounter& count
     DConf dconf(tr.filename);
     lineNum = 0;
     for (auto&& dr: dconf) {
-      if (fileNum != 0) {
+      if (fileNum == 0) {
+        lastX.push_back(dr.x);
+      }
+      else {
+        if (lineNum >= dislCount) {
+          ++lineNum; // this triggers error later
+         break;
+        }
         double last = lastX[lineNum];
         double curr = dr.x;
         counter.addInterval(Interval(last, curr));
+        lastX[lineNum] = dr.x;
       }
-      lastX[lineNum] = dr.x;
       ++lineNum;
     }
-    if (!dconf) {
-      // lineNumber is 0 based, but we detect the error after the increment,
-      // which fortunately gives us the normal 1 based line number
-      std::cerr << "Error while reading dislocation configuration:" << tr.filename << " line " << lineNum << std::endl;
-      throw std::runtime_error("read error in dconf");
-    }
+    
     if (fileNum == 0) {
       dislCount = lineNum;
     }
@@ -135,11 +137,6 @@ static void fill_counter(const std::string& filename, IntersectionCounter& count
       }
     }
     ++fileNum;
-  }
-
-  if (!table) {
-    std::cerr << "Error while reading timetable " << filename << std::endl;
-    throw std::runtime_error("read error in timetable");
   }
 }
 
