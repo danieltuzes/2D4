@@ -19,7 +19,7 @@
 
 #include "simulation_data.h"
 #include "constants.h"
-#include "StressProtocols/stress_protocol.h"
+#include "stress_protocol.h"
 
 
 #ifdef BUILD_PYTHON_BINDINGS

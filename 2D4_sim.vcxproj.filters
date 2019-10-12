@@ -7,9 +7,6 @@
     <ClCompile Include="src\fields\Field.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\stressprotocols\fixed_rate_protocol.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -25,11 +22,11 @@
     <ClCompile Include="src\simulation_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\stressprotocols\stress_protocol.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\fields\PeriodicShearStressELTE.cpp">
       <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stress_protocol.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -43,9 +40,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\fields\Field.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\stressprotocols\fixed_rate_protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\fields\PeriodicShearStressELTE.h">
@@ -66,10 +60,7 @@
     <ClInclude Include="include\simulation_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\stressprotocols\stress_protocol.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\utility.h">
+    <ClInclude Include="include\stress_protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

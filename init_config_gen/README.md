@@ -2,10 +2,10 @@
 The initial configuration generator tool for 2D4, a 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
-With this tool one can create dislocation configurations to use as an input of the simulation program 2D_DDD_simulation. It uses a platform independent implementation provided by [`boost.random`](https://www.boost.org/doc/libs/1_70_0/doc/html/boost_random.html).
+With this tool one can create dislocation configurations to use as an input of the simulation program 2D4_sim. It uses a platform independent implementation provided by [`boost.random`](https://www.boost.org/doc/libs/1_70_0/doc/html/boost_random.html).
 
 ## Dependencies
-There is 1 new dependency: [`boost.random`](https://www.boost.org/doc/libs/1_70_0/doc/html/boost_random.html). To compile this project you need boost's program options and random libraries. The first is already a requirement for the project *2D_DDD_simulation*.
+There is 1 new dependency: [`boost.random`](https://www.boost.org/doc/libs/1_70_0/doc/html/boost_random.html). To compile this project you need boost's program options and random libraries. The first is already a requirement for the project *2D4_sim*.
 
 ## Usage
 Type `init_config_gen --help` to get the help. The program accepts the following arguments:

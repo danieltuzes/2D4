@@ -1,5 +1,5 @@
 # Speedtests
-Itt különféle módszerek sebességtesztjeit írom le a 2D_DDD_simulation, a 2D4 főprogramjához kapcsolódóan.
+Itt különféle módszerek sebességtesztjeit írom le a 2D4_sim, a 2D4 főprogramjához kapcsolódóan.
 
 ### Mikor jó egy újítás
 Sebességtesztek azért kellenek, hogy lehessen látni, hogy egyes változtatások valóban gyorsítanak-e a programon, vagy csak bonyolultabb és nehezebben átlátható kódot eredményeznek-e. Ha nincs jelentős sebességnövekedés és a kód sem egyszerűsödik, akkor a változtatásokat általában nem hajtom végre.

@@ -10,14 +10,14 @@ The detailed publication of the numerical scheme and the implementation with the
 
 ### Tools
 The toolkit contains the following tools
-1. The [**simulation program** *2D_DDD_simulation*](https://github.com/danieltuzes/2D4/tree/master/src) is the main component of this toolset. It evols the dislocation configuration under the prescribed external stress.
+1. The [**simulation program** *2D4_sim*](https://github.com/danieltuzes/2D4/tree/master/src) is the main component of this toolset. It evols the dislocation configuration under the prescribed external stress.
 2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/2D4/init_config_gen) to create the initial configuration of uncorrelated dislocations.
 3. **Evaluation programs**
 
    1. [*xpattern*](https://github.com/danieltuzes/2D4/tree/master/xpattern) performs analysis on the simulations obatined looking for patterns
    2. [*conf_compare*](https://github.com/danieltuzes/2D4/tree/master/conf_compare) compares simulations and tell if they are the same or not, where the largest deviation is and what the average deviation is.
 
-The rest of this file belongs to the simulation program 2D_DDD_simulation.
+The rest of this file belongs to the simulation program 2D4_sim.
 
 ## Build & run
 This solution uses several external libraries, such as **umfpack**, **boost**, **FFTW** and furthermore, to keep the code simple, some additional include libraries must be set up for your compiler. A convenient Linux-gcc-cmake built procedure (scenario A) is provided along with a Windows-VS-vcpkg built procedure (scenario B).
@@ -52,10 +52,10 @@ The resulting binary which can be used to run the simulations:
 build/src/sdddst
 ```
 You can safely **delete** the files corresponding to scenario B:
-* 2D_DDD_simulation.vcxproj
-* 2D_DDD_simulation.vcxproj.filters
-* 2D_DDD_simulation.vcxproj.user
-* SDDST.sln
+* 2D4_sim.vcxproj
+* 2D4_sim.vcxproj.filters
+* 2D4_sim.vcxproj.user
+* 2D4.sln
 
 ### Scenario B
 This is the Windows-VS-vcpkg case. The project can be compiled for x64 compatible machines only [due to umfpacks's openblas dependency](https://github.com/microsoft/vcpkg/issues/2095), which is available only for x64. This case comes with no python interface yet. Follow these instructions to be able build this project.
@@ -75,7 +75,7 @@ This is the Windows-VS-vcpkg case. The project can be compiled for x64 compatibl
 	These steps may take at least around 15 minutes.
 3. Use the solution file or set up a new one for the project. Due to an [issue](https://github.com/microsoft/vcpkg/issues/3417), your compiler probably need be informed about umpack's directory.
 	1. With the provided solution the project files, it has been already added by pointing to `%VCPKG_ROOT%`. All you need to do is to add a system variable called VCPKG_ROOT with value pointing to the root directory of vcpkg. In our previous example, it was `C:\local\vcpkg-master`.
-	2. If you do not want to or cannot create the system variable, or want to start your solution and project files from zero, you can manually add it to your project settings. Open project 2D_DDD_simulation in the solution SDDST, then open your project properties under Project, \<Projectname\> properties. Go to VC++ Directories and in the Include Directories add `C:\local\vcpkg-master\packages\suitesparse_x64-windows\include\suitesparse`.
+	2. If you do not want to or cannot create the system variable, or want to start your solution and project files from zero, you can manually add it to your project settings. Open project 2D4_sim in the solution 2D4, then open your project properties under Project, \<Projectname\> properties. Go to VC++ Directories and in the Include Directories add `C:\local\vcpkg-master\packages\suitesparse_x64-windows\include\suitesparse`.
 	
 You can safely **delete** building files and folders for scenario A:
 * cmake/
@@ -228,4 +228,4 @@ simulation.run()
 ```
 
 ## Impressum, credits, authors and copyright
-This is a private fork of the work pgabor/sdddst. The source files imported from that repo may have different copyright, and most of those files start with a copyright section. All other modifications are under my copyright.
+This is a private fork of the work pgabor/sdddst. The source files imported from that repo may have different copyright, and most of those files start with a copyright section. All other modifications are under my copyright if applicable.

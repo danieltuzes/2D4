@@ -18,17 +18,77 @@
  */
 
 #include "simulation.h"
-#include "utility.h"
 
 #ifdef BUILD_PYTHON_BINDINGS
 #include "simulation_data_wrapper.h"
 #endif
 
 #include <umfpack.h>
+#define _USE_MATH_DEFINES
 
 #include <iomanip>
 #include <numeric>
 #include <sstream>
+#include <math.h>
+#include <ctime>
+#include <chrono>
+
+#pragma region utilities
+inline void normalize(double& n)
+{
+    while (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if", but it isn't faster
+        n += 1;
+
+    while (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if", but it isn't faster
+        n -= 1;
+}
+
+inline double X(double x)
+{
+    return sin(2 * M_PI * x) * 0.5 / M_PI;
+}
+
+inline double X2(double x)
+{
+    return (1 - cos(2 * M_PI * x)) * 0.5 / M_PI / M_PI;
+}
+
+inline double E(double x, double y, double K)
+{
+    return exp(-K * (X2(x) + X2(y)));
+}
+
+inline double X_dx(double x)
+{
+    return cos(2 * M_PI * x);
+}
+
+inline double X2_dx(double x)
+{
+    return sin(2 * M_PI * x) / M_PI;
+}
+
+inline double E_dx(double x, double y, double K)
+{
+    return -E(x, y, K) * K * X2_dx(x);
+}
+
+
+// From:
+// https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
+double get_wall_time()
+{
+    auto t_start = std::chrono::high_resolution_clock::now();
+    auto t_start_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(t_start);
+    auto t_start_se = t_start_ms.time_since_epoch();
+
+    double time_in_ms = static_cast<double>(t_start_se.count());
+
+    return time_in_ms / 1000.;
+}
+
+#pragma endregion
+
 
 using namespace sdddstCore;
 
@@ -127,7 +187,7 @@ void Simulation::calculateSpeeds(const std::vector<Dislocation>& dis, std::vecto
     }
 }
 
-void Simulation::calculateG(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
+void Simulation::calculateG(double stepsize, const std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old,
     bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const
 {
     std::vector<double>* isp = &(sD->initSpeed);
@@ -318,9 +378,8 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<Dislocatio
     for (unsigned int j = 0; j < sD->dc; j++)
     {
         for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
-        {
             sD->Ax[i] *= (1 + sD->dVec[sD->Ai[i]]) * 0.5;
-        }
+
         sD->Ax[sD->indexes[j]] += 1;
     }
 }

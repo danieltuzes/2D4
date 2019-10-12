@@ -1,4 +1,4 @@
-# 2D4::2D_DDD_simulation
+# 2D4::2D4_sim
 This is the main component of 2D4, that evolvs discrete dislocation system according to the interaction between the single particles.
 
 At this moment, all the information on how to use this component can be found in the [main README file](https://github.com/danieltuzes/2D4) for the complete repo.
@@ -17,6 +17,8 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
    3. az f_dx-ben okosan zárójelezett hatványok
 
    Az [eredmények](speedtests.md#első-ötletek) azt mutatják, hogy 1-3. gyorsít, 4. és 5. nem gyorsít a programon 64-es rendszerméret mellett. Az első 3-at teljesítményi okokból, a 4-et kompatibilitási okokból tartom meg.
+
+   A sebesség- és programkódoptimalizálások, különösképp az fast-math és a műveletek átzárójelezése (1/a * b helyett b/a pl.), megváltoztatja a program műküdését. Az ebből adódó eltérések **numerikus hibák**, amelyeket lehetne minimalizálni, ha szükséges volna. Az ebből adódó eltéréseket érdemes megmérni, hogy lehessen tudni, mennyire megbízhatóak az eredmények. Ennek a pontosabb méréséhez szükség volna arra, hogy garantálni lehessen, hogy két szimulációt ugyanabban az időpillanatban írjon ki a szimuláció. Enélkül csak a legközelebbieket tudjuk csak kiírni, és az időkülönbség nem lesz 0 a kicsit eltérő számolás miatt. Az időhibával együtt mért hiba nagysága mindenesetre **2e-13** nagyságrendbe esik.
 
 4. Forráskódot egyszerűsíteni és szépíteni
    1. **✓** a `Simulation`, `SimulationData` és `StressProtocol` classok public függvényeinek `const` minősítéseit helyesen kiírni

@@ -21,8 +21,7 @@
 #include "project_parser.h"
 #include "Fields/AnalyticField.h"
 #include "Fields/PeriodicShearStressELTE.h"
-#include "StressProtocols/stress_protocol.h"
-#include "StressProtocols/fixed_rate_protocol.h"
+#include "stress_protocol.h"
 
 #include <iostream>
 
@@ -73,7 +72,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     boost::program_options::options_description options;
 
     options.add(requiredOptions).add(optionalOptions).add(fieldOptions).add(externalStressProtocolOptions).add_options()
-        ("help", "show this help")
+        ("help", "shows this help")
         ("hide-copyright,c", "hides the copyright notice from the standard output");
 
     boost::program_options::variables_map vm;
@@ -92,7 +91,23 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
 
     if (vm.count("help")) // if the user only interested in the help, there is no need to check the variables
     {
-        std::cout << options << std::endl;
+        std::cout << "Detailed version and compiler info:\n"
+            << "VERSION_analytic_field:\t" << VERSION_analytic_field << "\n"
+            << "VERSION_constants:\t" << VERSION_constants << "\n"
+            << "VERSION_dislocations:\t" << VERSION_dislocations << "\n"
+            << "VERSION_field:\t" << VERSION_field << "\n"
+            << "VERSION_periodic_shear_stress_elte:\t" << VERSION_periodic_shear_stress_elte << "\n"
+            << "VERSION_point_defect:\t" << VERSION_point_defect << "\n"
+            << "VERSION_precision_handler:\t" << VERSION_precision_handler << "\n"
+            << "VERSION_project_parser:\t" << VERSION_project_parser << "\n"
+            << "VERSION_simulation:\t" << VERSION_simulation << "\n"
+            << "VERSION_simulation_data :\t" << VERSION_simulation_data << "\n"
+            << "VERSION_stress_protocol:\t" << VERSION_stress_protocol << "\n"
+            << "COMPILER_VERSION:\t" << XSTR(COMPILER_VERSION) << "\n"
+            << "MACHINE_INFO:\t" << XSTR(MACHINE_INFO) << "\n"
+            << "COMPILER_VERSION\t" << XSTR(COMPILER_VERSION) << "\n"
+            << "USR_COMP_OPTIONS\t" << XSTR(USR_COMP_OPTIONS) << "\n"
+            << options << std::endl;
         exit(0);
     }
     else // check the variables if they are set up properly
@@ -107,9 +122,18 @@ std::shared_ptr<sdddstCore::SimulationData> sdddstCore::ProjectParser::getSimula
 
 void sdddstCore::ProjectParser::printLicense() // if used multiple times, should move outside this cpp
 {
-    std::cout << "SDDDST - Simple Discrete Dislocation Dynamics Toolkit\n"
-        "Copyright (C) 2015-2019 Gábor Péterffy <peterffy95@gmail.com>\n"
-        "This program comes with ABSOLUTELY NO WARRANTY; This is free software, and you are welcome to redistribute it under certain conditions; see the license for details\n";
+    double totalVersion = VERSION_analytic_field +
+        VERSION_constants +
+        VERSION_dislocations +
+        VERSION_field +
+        VERSION_periodic_shear_stress_elte +
+        VERSION_point_defect +
+        VERSION_precision_handler +
+        VERSION_project_parser +
+        VERSION_simulation +
+        VERSION_simulation_data +
+        VERSION_stress_protocol;
+    std::cout << "This is 2D4_sim (version " << totalVersion << "), a 2D discrete dislocation dynamics simulation program toolset based on sdddst. See README.md for copyright.\n";
 }
 
 void sdddstCore::ProjectParser::processInput(boost::program_options::variables_map & vm)
@@ -176,7 +200,15 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         sD->orderParameterCalculationIsOn = true;
 
     if (vm.count("logfile-path"))
-        sD->standardOutputLog = std::ofstream(vm["logfile-path"].as<std::string>());
+    {
+        std::string oLogFname = vm["logfile-path"].as<std::string>();
+        sD->standardOutputLog.open(oLogFname);
+        if (!sD->standardOutputLog)
+        {
+            std::cerr << "Error: cannot create logfile for writing with name " << oLogFname << ". Program terminates.\n";
+            exit(-1);
+        }
+    }
 
     if (vm.count("step-count-limit"))
     {
