@@ -64,27 +64,27 @@ public:
       throw std::runtime_error("failed to open datafile");
     }
   }
-  
+
   iterator begin() {
     return iterator(stream);
   }
-  
+
   iterator end() {
     return iterator();
   }
-  
+
   bool eof() {
     return stream.eof();
   }
-  
+
   bool good() {
     return stream.good();
   }
-  
+
   bool bad() {
     return stream.bad();
   }
-  
+
   bool fail() {
     return stream.fail();
   }
@@ -92,7 +92,7 @@ public:
   bool operator!() {
     return !stream;
   }
-  
+
   explicit operator bool() {
     return bool(stream);
   }

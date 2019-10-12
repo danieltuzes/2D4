@@ -20,6 +20,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <limits>
 #include <iterator>
 #include <cmath>
@@ -32,38 +33,17 @@
 
 namespace bpo = boost::program_options;
 
-static void fill_bins(const std::string& filename, CountOnBins& counter);
-static bool turns(double lastTurn, double lastX, double x);
-
-// minimum difference in x position taken as change
-const double X_MINDIFF = 1e-10;
-
-static bool appr_less(double x, double y) {
-  return (y-x) > X_MINDIFF;
-}
-
-enum Dir {
-  POS,
-  NEG,
-  STILL
-};
-
-Dir get_dir(double x, double y) {
-  if (appr_less(x, y))
-    return POS;
-  else if (appr_less(y, x))
-    return NEG;
-  else
-    return STILL;
-}
+static void fill_counter(const std::string& filename, IntersectionCounter& counter);
 
 int main(int argc, char *argv[]){
   bpo::options_description options("Options");
   options.add_options()
     ("timetable", bpo::value<std::string>(),
         "File with 'time dconf-file-name' lines")
-    ("bincount", bpo::value<CountOnBins::index_type>()->default_value(100),
-        "Number of bins")
+    ("numpoints", bpo::value<IntersectionCounter::size_type>()->default_value(100),
+        "Number of considered shift values")
+    ("counterfile", bpo::value<std::string>(),
+        "Optional file to write counter values")
     ("help", "show this help")
   ;
   bpo::positional_options_description positional_options;
@@ -93,55 +73,70 @@ int main(int argc, char *argv[]){
   }
 
   auto filename = vm["timetable"].as<std::string>();
-  auto binCount = vm["bincount"].as<CountOnBins::index_type>();
+  auto numPoints = vm["numpoints"].as<IntersectionCounter::size_type>();
 
-  auto counter = CountOnBins(binCount);
+  auto counter = IntersectionCounter(numPoints);
 
-  fill_bins(filename, counter);
+  fill_counter(filename, counter);
+
+  if (vm.count("counterfile"))
+  {
+    auto filename = vm["counterfile"].as<std::string>();
+    std::ofstream file(filename);
+    if (!file) {
+      std::cerr << "Error: failed to create counter file: " << filename << std::endl;
+      throw std::runtime_error("failed to open counter file");
+    }
+    for (auto&& p : counter) {
+      file << p;
+    }
+    if (!file) {
+      std::cerr << "Error when writing counter file" << std::endl;
+    }
+  }
 
   return 0;
 }
 
-static bool turns(double lastTurn, double lastX, double x) {
-  Dir dir1 = get_dir(lastTurn, lastX);
-  Dir dir2 = get_dir(lastX, x);
-  if ((dir1 == POS && dir2 == NEG) ||
-      (dir1 == NEG && dir2 == POS))
-    return true;
-  else
-    return false;
-}
-
-static void fill_bins(const std::string& filename, CountOnBins& counter)
+static void fill_counter(const std::string& filename, IntersectionCounter& counter)
 {
-  std::vector<double> lastTurn;
   std::vector<double> lastX;
   int fileNum = 0;
-  std::vector<double>::size_type lineNumber;
-  
+  std::vector<double>::size_type lineNum;
+  std::vector<double>::size_type dislCount;
+
   TimeTable table(filename);
-  
+
   for (auto&& tr : table) {
     DConf dconf(tr.filename);
-    lineNumber = 0;
+    lineNum = 0;
     for (auto&& dr: dconf) {
-      if (fileNum == 0) {
-        // reading first points as turnpoints
-        lastTurn[lineNumber] = dr.x;
+      if (fileNum != 0) {
+        double last = lastX[lineNum];
+        double curr = dr.x;
+        counter.addInterval(Interval(last, curr));
       }
-      else if (fileNum == 1){
-        lastX[lineNumber] = dr.x;
-      }
-      ++lineNumber; 
+      lastX[lineNum] = dr.x;
+      ++lineNum;
     }
     if (!dconf) {
       // lineNumber is 0 based, but we detect the error after the increment,
       // which fortunately gives us the normal 1 based line number
-      std::cerr << "Error while reading dislocation configuration:" << tr.filename << " line " << lineNumber << std::endl;
+      std::cerr << "Error while reading dislocation configuration:" << tr.filename << " line " << lineNum << std::endl;
+      throw std::runtime_error("read error in dconf");
+    }
+    if (fileNum == 0) {
+      dislCount = lineNum;
+    }
+    else { // check if dislCount is the same in every file
+      if (lineNum != dislCount) {
+        std::cerr << "Error: dislocation count in " << tr.filename << " is different then in previous files" << std::endl;
+        throw std::runtime_error("unexpected dislocation count");
+      }
     }
     ++fileNum;
   }
-  
+
   if (!table) {
     std::cerr << "Error while reading timetable " << filename << std::endl;
     throw std::runtime_error("read error in timetable");

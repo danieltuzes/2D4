@@ -21,22 +21,19 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
+#include <cmath>
 
 #include "count.h"
-
-static int bound(int v, int min, int max) {
-  if (v < min)
-    return min;
-  else if (v > max)
-    return max;
-  else
-    return v;
-}
 
 Interval::Interval(double s, double e) :
   startpos(s),
   endpos(e)
 {}
+
+std::ostream& operator<<(std::ostream& st, IntersectSample& is) {
+  st << is.pos << "\t" << is.intersectCount << std::endl;
+  return st;
+}
 
 IntersectionCounter::IntersectionCounter(size_type n, double s, double e) :
   points(n),
@@ -81,6 +78,41 @@ IntersectionCounter::iterator IntersectionCounter::end() {
   return points.end();
 }
 
-void IntersectionCounter::addInterval(const Interval& interval) {
+IntersectionCounter::size_type
+IntersectionCounter::normalizedIndex(size_type index) {
+  size_type normIndex = index;
+  while (normIndex < 0) {
+    normIndex += priv_size;
+  }
+  while (normIndex >= priv_size) {
+    normIndex -= priv_size;
+  }
+  return normIndex;
+}
 
+IntersectionCounter::size_type
+IntersectionCounter::closestInDir(double pos, int dir) {
+  double posInDistUnits = (pos - startpos) / distance;
+  if (dir == +1)
+    return std::ceil(posInDistUnits);
+  else
+    return std::floor(posInDistUnits);
+}
+
+void IntersectionCounter::addInterval(const Interval& interval) {
+  double s = interval.startpos;
+  double e = interval.endpos;
+  // direction: +/-1
+  int dir = (s<=e) ? +1 : -1;
+  double halfrange = (endpos - startpos)/2.0;
+  if (std::abs(e-s) > halfrange) {
+    // closer in the other direction
+    dir = -dir;
+  }
+  IntersectionCounter::size_type start_index, end_index;
+  start_index = normalizedIndex(closestInDir(s, dir));
+  end_index = normalizedIndex(closestInDir(e, dir));
+  for (auto i = start_index; normalizedIndex(i) != end_index; i+=dir) {
+    ++points[i].intersectCount;
+  }
 }

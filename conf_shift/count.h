@@ -21,6 +21,7 @@
 #pragma once
 
 #include <vector>
+#include <iostream>
 
 class Interval {
 public:
@@ -33,6 +34,8 @@ struct IntersectSample {
   double pos;
   int intersectCount;
 };
+
+std::ostream& operator<<(std::ostream& st, IntersectSample& is);
 
 class IntersectionCounter {
 private:
@@ -47,6 +50,8 @@ public:
   reference operator[](size_type index);
   iterator begin();
   iterator end();
+  size_type normalizedIndex(size_type index);
+  size_type closestInDir(double pos, int dir); // returned index not normalized
   void addInterval(const Interval& interval);
 private:
   container_type points;
