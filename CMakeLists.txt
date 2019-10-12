@@ -1,12 +1,17 @@
-#
-# Main CMakeLists.txt for sdddst project
-# Author:
-#    Gabor Peterffy (peterffy95 [\] gmail [!] com)
-#
+# 
+# CMakeList.txt the cmake file to fasten up repeated compilations
+
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
+set(USR_COMP_OPTIONS "-Wall -pedantic -Wextra -O3 -march=native -ffast-math")
+if (UNIX)
+	execute_process(COMMAND bash -c "uname -a | cut -d \" \" -f 2 | sed -z '$ s/\\n$//'" OUTPUT_VARIABLE hostname)
+else (UNIX)
+	set(hostname "nounix")
+endif (UNIX)
+
 # C support is turned on by default, specifying only CXX turns C off
-set(PROJECT_NAME "sdddst")
+set(PROJECT_NAME "2D4${hostname}")
 
 # Set project name and supported language
 project(${PROJECT_NAME} LANGUAGES CXX)
@@ -46,15 +51,6 @@ else()
     set(${PROJECT_NAME}_VERBOSE 0)
 endif()
 
-
-# configure header file to pass CMake settings
-# to source code
-configure_file (
-        "${PROJECT_SOURCE_DIR}/${PROJECT_NAME}CMakeConfig.h.in"
-        "${PROJECT_BINARY_DIR}/${PROJECT_NAME}CMakeConfig.h"
-        )
-
-
 # Set the CMAKE_PREFIX_PATH for the find_library fonction when using non
 # standard install location
 IF(CMAKE_INSTALL_PREFIX)
@@ -77,7 +73,7 @@ elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   # Update if necessary
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wextra")
   # -O3 makes it faster, -march=native makes it platform dependent and faster, -ffast-math makes it a bit faster but modifies the results a but, especially because of the pow function
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -O3 -march=native -ffast-math -Wno-unknown-pragmas")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USR_COMP_OPTIONS} -DGCC_MACHINE_INFO=\"${hostname}\" -DUSR_COMP_OPTIONS=\"${USR_COMP_OPTIONS}\"")
 endif()
 # use -DCMAKE_BUILD_TYPE="Debug|Release" to choose
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -128,9 +124,6 @@ endif()
 find_package("Umfpack" MODULE REQUIRED)
 include_directories(SYSTEM ${UMFPACK_INCLUDES})
 
-find_package(GSL MODULE REQUIRED)
-include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
-
 # Set include directory for headers
 include_directories(${PROJECT_SOURCE_DECLARATION_DIRECTORY})
 
@@ -165,7 +158,6 @@ endif()
 
 target_link_libraries(${PROJECT_NAME}Core LINK_PUBLIC ${BOOST_BASIC_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}Core LINK_PUBLIC ${UMFPACK_LIBRARIES})
-target_link_libraries(${PROJECT_NAME}Core LINK_PUBLIC ${GSL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}Core LINK_PUBLIC ${FFTW_LIBRARIES})
 
 # Create python library
@@ -178,5 +170,6 @@ add_executable(${PROJECT_NAME} ${MAIN_FILE})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${CORE_LIBRARY})
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${BOOST_BAISC_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${UMFPACK_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${GSL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${FFTW_LIBRARIES})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${hostname}_2D4_sim.bin")
