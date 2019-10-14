@@ -78,9 +78,6 @@ This is the Windows-VS-vcpkg case. The project can be compiled for x64 compatibl
       4. `.\vcpkg install suitesparse:x64-windows`, this installs the umfpack.
       
 	These steps may take at least around 15 minutes.
-3. Use the solution file or set up a new one for the project. Due to an [issue](https://github.com/microsoft/vcpkg/issues/3417), your compiler probably need be informed about umpack's directory.
-	1. With the provided solution the project files, it has been already added by pointing to `%VCPKG_ROOT%`. All you need to do is to add a system variable called VCPKG_ROOT with value pointing to the root directory of vcpkg. In our previous example, it was `C:\local\vcpkg-master`.
-	2. If you do not want to or cannot create the system variable, or want to start your solution and project files from zero, you can manually add it to your project settings. Open project 2D4_sim in the solution 2D4, then open your project properties under Project, \<Projectname\> properties. Go to VC++ Directories and in the Include Directories add `C:\local\vcpkg-master\packages\suitesparse_x64-windows\include\suitesparse`.
 	
 You can safely **delete** building files and folders for scenario A:
 * cmake/

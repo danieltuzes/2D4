@@ -11,15 +11,15 @@
 
 namespace sdddstCore {
 
-class Field
-{
-public:
-    Field();
-    virtual ~Field();
+    class Field
+    {
+    public:
+        Field();
+        virtual ~Field();
 
-    virtual double xy(double dx, double dy);
-    virtual double xy_diff_x(double dx, double dy);
-};
+        virtual double xy(double dx, double dy);
+        virtual double xy_diff_x(double dx, double dy);
+    };
 
 }
 

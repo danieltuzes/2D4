@@ -105,7 +105,6 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
             << "VERSION_stress_protocol:\t" << VERSION_stress_protocol << "\n"
             << "COMPILER_VERSION:\t" << XSTR(COMPILER_VERSION) << "\n"
             << "MACHINE_INFO:\t" << XSTR(MACHINE_INFO) << "\n"
-            << "COMPILER_VERSION\t" << XSTR(COMPILER_VERSION) << "\n"
             << "USR_COMP_OPTIONS\t" << XSTR(USR_COMP_OPTIONS) << "\n"
             << options << std::endl;
         exit(0);

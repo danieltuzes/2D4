@@ -23,7 +23,7 @@
 #include "simulation_data_wrapper.h"
 #endif
 
-#include <umfpack.h>
+#include <suitesparse/umfpack.h>
 #define _USE_MATH_DEFINES
 
 #include <iomanip>
@@ -89,12 +89,12 @@ double get_wall_time()
 
 #pragma endregion
 
-
 using namespace sdddstCore;
 
 Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
     succesfulStep(true),
     lastWriteTimeFinished(0),
+    startTime(0),
     initSpeedCalculationIsNeeded(true),
     firstStepRequest(true),
     energy(0),
