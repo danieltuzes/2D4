@@ -240,7 +240,7 @@ double f_dx_0(double dx, double cos2piy, double dy, double cosh2pix, double sinh
 }
 
 // calculates the derivative of the stress of a dislocation wall, no condition for closeness
-double f_dx_l(double dx, double cos2piy, double dy, double cosh2pix, double sinh2pix)
+double f_dx_l(double dx, double cos2piy, double cosh2pix, double sinh2pix)
 {
     double dx2pi = dx * 2 * M_PI;
 
@@ -258,9 +258,9 @@ double g3_dx(double dx, double cos2piy, double dy, double cosh2pix, double sinh2
 {
     return
         f_dx_0(dx + 0, cos2piy, dy, cosh2pix, sinh2pix) +
-        f_dx_l(dx + 1, cos2piy, dy, cosh__2pi_xp1, sinh__2pi_xp1) + f_dx_l(dx - 1, cos2piy, dy, cosh__2pi_xm1, sinh__2pi_xm1) +
-        f_dx_l(dx + 2, cos2piy, dy, cosh__2pi_xp2, sinh__2pi_xp2) + f_dx_l(dx - 2, cos2piy, dy, cosh__2pi_xm2, sinh__2pi_xm2) +
-        f_dx_l(dx + 3, cos2piy, dy, cosh__2pi_xp3, sinh__2pi_xp3) + f_dx_l(dx - 3, cos2piy, dy, cosh__2pi_xm3, sinh__2pi_xm3);
+        f_dx_l(dx + 1, cos2piy, cosh__2pi_xp1, sinh__2pi_xp1) + f_dx_l(dx - 1, cos2piy, cosh__2pi_xm1, sinh__2pi_xm1) +
+        f_dx_l(dx + 2, cos2piy, cosh__2pi_xp2, sinh__2pi_xp2) + f_dx_l(dx - 2, cos2piy, cosh__2pi_xm2, sinh__2pi_xm2) +
+        f_dx_l(dx + 3, cos2piy, cosh__2pi_xp3, sinh__2pi_xp3) + f_dx_l(dx - 3, cos2piy, cosh__2pi_xm3, sinh__2pi_xm3);
 }
 
 double AnalyticField::xy(double dx, double dy)
@@ -292,16 +292,16 @@ double AnalyticField::xy_diff_x(double dx, double dy)
     if (dx < 0)
     {
         return
-            f_dx_l(dx + 5, cos2piy, dy, cosh__2pi_xp5, sinh__2pi_xp5) * (0 - dx) + f_l(dx + 5, cos2piy, cosh__2pi_xp5) * (-1) +
-            f_dx_l(dx - 4, cos2piy, dy, cosh__2pi_xm4, sinh__2pi_xm4) * (1 + dx) + f_l(dx - 4, cos2piy, cosh__2pi_xm4) * (+1) +
-            f_dx_l(dx + 4, cos2piy, dy, cosh__2pi_xp4, sinh__2pi_xp4) +
+            f_dx_l(dx + 5, cos2piy, cosh__2pi_xp5, sinh__2pi_xp5) * (0 - dx) + f_l(dx + 5, cos2piy, cosh__2pi_xp5) * (-1) +
+            f_dx_l(dx - 4, cos2piy, cosh__2pi_xm4, sinh__2pi_xm4) * (1 + dx) + f_l(dx - 4, cos2piy, cosh__2pi_xm4) * (+1) +
+            f_dx_l(dx + 4, cos2piy, cosh__2pi_xp4, sinh__2pi_xp4) +
             g3_dx(dx, cos2piy, dy, cosh2pix, sinh2pix);
     }
 
     return
-        f_dx_l(dx - 5, cos2piy, dy, cosh__2pi_xm5, sinh__2pi_xm5) * (0 + dx) + f_l(dx - 5, cos2piy, sinh__2pi_xm5) * (+1) +
-        f_dx_l(dx + 4, cos2piy, dy, cosh__2pi_xp4, sinh__2pi_xp4) * (1 - dx) + f_l(dx + 4, cos2piy, sinh__2pi_xp4) * (-1) +
-        f_dx_l(dx - 4, cos2piy, dy, cosh__2pi_xm4, sinh__2pi_xm4) +
+        f_dx_l(dx - 5, cos2piy, cosh__2pi_xm5, sinh__2pi_xm5) * (0 + dx) + f_l(dx - 5, cos2piy, sinh__2pi_xm5) * (+1) +
+        f_dx_l(dx + 4, cos2piy, cosh__2pi_xp4, sinh__2pi_xp4) * (1 - dx) + f_l(dx + 4, cos2piy, sinh__2pi_xp4) * (-1) +
+        f_dx_l(dx - 4, cos2piy, cosh__2pi_xm4, sinh__2pi_xm4) +
         g3_dx(dx, cos2piy, dy, cosh2pix, sinh2pix);
 }
 #endif
