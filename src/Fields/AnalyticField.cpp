@@ -158,7 +158,7 @@ double AnalyticField::xy_diff_x(double dx, double dy)
 
 #else // calculating cosh and sinh faster but less precise way
 
-// calculates the stress of a dislocation wall in the first cell
+// calculates the stress of a dislocation wall in the first cell (0 for 0th image)
 double f_0(double dx, double cos2piy, double dy, double cosh2pix)
 {
     double dx2pi = M_PI * 2 * dx;
@@ -177,8 +177,8 @@ double f_0(double dx, double cos2piy, double dy, double cosh2pix)
     return ((cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) * dx2pi) / std::pow(coshminuscos, 2) * M_PI;
 }
 
-// calculates the stress of a dislocation wall, distance is at least 1
-double f_l(double dx, double cos2piy, double dy, double cosh2pix)
+// calculates the stress of a dislocation wall, distance is at least 1 (l for larger)
+double f_l(double dx, double cos2piy, double cosh2pix)
 {
     double dx2pi = M_PI * 2 * dx;
     double coshpixyd = cosh2pix - cos2piy;  // cosh2pix - cos2piy
@@ -190,9 +190,9 @@ double g3(double dx, double cos2piy, double dy, double cosh2pix, double sinh2pix
 {
     return
         f_0(dx + 0, cos2piy, dy, cosh2pix) +
-        f_l(dx + 1, cos2piy, dy, cosh__2pi_xp1) + f_l(dx - 1, cos2piy, dy, cosh__2pi_xm1) +
-        f_l(dx + 2, cos2piy, dy, cosh__2pi_xp2) + f_l(dx - 2, cos2piy, dy, cosh__2pi_xm2) +
-        f_l(dx + 3, cos2piy, dy, cosh__2pi_xp3) + f_l(dx - 3, cos2piy, dy, cosh__2pi_xm3);
+        f_l(dx + 1, cos2piy, cosh__2pi_xp1) + f_l(dx - 1, cos2piy, cosh__2pi_xm1) +
+        f_l(dx + 2, cos2piy, cosh__2pi_xp2) + f_l(dx - 2, cos2piy, cosh__2pi_xm2) +
+        f_l(dx + 3, cos2piy, cosh__2pi_xp3) + f_l(dx - 3, cos2piy, cosh__2pi_xm3);
 }
 
 // calculates the derivative of the stress of a dislocation wall
@@ -271,16 +271,16 @@ double AnalyticField::xy(double dx, double dy)
     if (dx < 0)
     {
         return
-            f_l(dx + 5, cos2piy, dy, cosh__2pi_xp5) * (0 - dx) +
-            f_l(dx - 4, cos2piy, dy, cosh__2pi_xm4) * (1 + dx) +
-            f_l(dx + 4, cos2piy, dy, cosh__2pi_xp4) +
+            f_l(dx + 5, cos2piy, cosh__2pi_xp5) * (0 - dx) +
+            f_l(dx - 4, cos2piy, cosh__2pi_xm4) * (1 + dx) +
+            f_l(dx + 4, cos2piy, cosh__2pi_xp4) +
             g3(dx, cos2piy, dy, cosh2pix, sinh2pix);
     }
 
     return
-        f_l(dx - 5, cos2piy, dy, cosh__2pi_xm5) * (0 + dx) +
-        f_l(dx + 4, cos2piy, dy, cosh__2pi_xp4) * (1 - dx) +
-        f_l(dx - 4, cos2piy, dy, cosh__2pi_xm4) +
+        f_l(dx - 5, cos2piy, cosh__2pi_xm5) * (0 + dx) +
+        f_l(dx + 4, cos2piy, cosh__2pi_xp4) * (1 - dx) +
+        f_l(dx - 4, cos2piy, cosh__2pi_xm4) +
         g3(dx, cos2piy, dy, cosh2pix, sinh2pix);
 }
 
@@ -292,15 +292,15 @@ double AnalyticField::xy_diff_x(double dx, double dy)
     if (dx < 0)
     {
         return
-            f_dx_l(dx + 5, cos2piy, dy, cosh__2pi_xp5, sinh__2pi_xp5) * (0 - dx) + f_l(dx + 5, cos2piy, dy, cosh__2pi_xp5) * (-1) +
-            f_dx_l(dx - 4, cos2piy, dy, cosh__2pi_xm4, sinh__2pi_xm4) * (1 + dx) + f_l(dx - 4, cos2piy, dy, cosh__2pi_xm4) * (+1) +
+            f_dx_l(dx + 5, cos2piy, dy, cosh__2pi_xp5, sinh__2pi_xp5) * (0 - dx) + f_l(dx + 5, cos2piy, cosh__2pi_xp5) * (-1) +
+            f_dx_l(dx - 4, cos2piy, dy, cosh__2pi_xm4, sinh__2pi_xm4) * (1 + dx) + f_l(dx - 4, cos2piy, cosh__2pi_xm4) * (+1) +
             f_dx_l(dx + 4, cos2piy, dy, cosh__2pi_xp4, sinh__2pi_xp4) +
             g3_dx(dx, cos2piy, dy, cosh2pix, sinh2pix);
     }
 
     return
-        f_dx_l(dx - 5, cos2piy, dy, cosh__2pi_xm5, sinh__2pi_xm5) * (0 + dx) + f_l(dx - 5, cos2piy, dy, sinh__2pi_xm5) * (+1) +
-        f_dx_l(dx + 4, cos2piy, dy, cosh__2pi_xp4, sinh__2pi_xp4) * (1 - dx) + f_l(dx + 4, cos2piy, dy, sinh__2pi_xp4) * (-1) +
+        f_dx_l(dx - 5, cos2piy, dy, cosh__2pi_xm5, sinh__2pi_xm5) * (0 + dx) + f_l(dx - 5, cos2piy, sinh__2pi_xm5) * (+1) +
+        f_dx_l(dx + 4, cos2piy, dy, cosh__2pi_xp4, sinh__2pi_xp4) * (1 - dx) + f_l(dx + 4, cos2piy, sinh__2pi_xp4) * (-1) +
         f_dx_l(dx - 4, cos2piy, dy, cosh__2pi_xm4, sinh__2pi_xm4) +
         g3_dx(dx, cos2piy, dy, cosh2pix, sinh2pix);
 }
