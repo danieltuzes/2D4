@@ -34,6 +34,7 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
    7. sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    9. **✓** a `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni
+   10. a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok?
 
 ### Új funkciók implementálása
 
@@ -56,6 +57,9 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 
    6. a diszlokációk Burger's vectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    7. sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+
+      Az eltérés a feszültségtérben és annak deriváltjában is kicsi. A feszültségtérben a jellemző értéke (mediánja) 1e-16, átlaga 1e-14, maximuma 1e-11. A derivált térben a jellemző értéke (mediánja) 1e-11, átlaga 9e-11, maximuma 8e-8.
+
    8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    9. **✓** A `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni. A [sebességteszt](speedtests.md#normalize) szerint kb. 0.1% az előny. Így marad a `while`.
 

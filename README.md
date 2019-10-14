@@ -16,6 +16,11 @@ The toolkit contains the following tools
 
    1. [*xpattern*](https://github.com/danieltuzes/2D4/tree/master/xpattern) performs analysis on the simulations obatined looking for patterns
    2. [*conf_compare*](https://github.com/danieltuzes/2D4/tree/master/conf_compare) compares simulations and tell if they are the same or not, where the largest deviation is and what the average deviation is.
+4. Sandbox programs
+
+    These programs help to identify or measure the effect of one specific change in the code. The following projects are available:
+
+   * *[ieee_hyperbolic](sandbox//ieee_hyperbolic/README.md)*: to decide whether the calculation of hyperbolic function using identities are faster
 
 The rest of this file belongs to the simulation program 2D4_sim.
 
