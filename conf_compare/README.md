@@ -8,7 +8,7 @@ It compares configuration files and tell if they are the same, similar or differ
 * boost-program-options
 
 ## Usage
-The first two imput argument of the program is the two files to compare. Example:
+The first two input argument of the program is the two files to compare. Example:
 `conf_compare inputf_file1.dconf input_file2.dconf`
 
 Further options:

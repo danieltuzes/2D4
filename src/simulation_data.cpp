@@ -153,10 +153,18 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
     Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));
     x = (double*)calloc(dc, sizeof(double));
-    assert(Ap && "Memory allocation for Ap failed!");
-    assert(Ai && "Memory allocation for Ai failed!");
-    assert(Ax && "Memory allocation for Ax failed!");
-    assert(x && "Memory allocation for x failed!");
+    if (Ap == NULL)
+        throw std::runtime_error("Memory allocation for Ap failed. Program terminates.");
+
+    if (Ai == NULL)
+        throw std::runtime_error("Memory allocation for Ai failed. Program terminates.");
+
+    if (Ax == NULL)
+        throw std::runtime_error("Memory allocation for Ax failed. Program terminates.");
+
+    if (x == NULL)
+        throw std::runtime_error("Memory allocation for x failed. Program terminates.");
+
     indexes.resize(dc);
 }
 

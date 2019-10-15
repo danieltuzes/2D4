@@ -47,7 +47,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("avalanche-detection-limit", boost::program_options::value<unsigned int>(), "the simulation will stop after the threshold was reached with the given number of events from above")
         ("avalanche-speed-threshold", boost::program_options::value<double>()->default_value(1e-3), "speed threshold for counting avalanches")
         ("initial-stepsize", boost::program_options::value<double>()->default_value(1e-6), "first tried step size for the simulation")
-        ("cutoff-multiplier,c", boost::program_options::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
+        ("cutoff-multiplier,u", boost::program_options::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
         ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not exceed this value")
         ("calculate-strain,S", "turns on strain calculation for the simulation")
         ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
@@ -103,6 +103,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
             << "VERSION_simulation:\t" << VERSION_simulation << "\n"
             << "VERSION_simulation_data :\t" << VERSION_simulation_data << "\n"
             << "VERSION_stress_protocol:\t" << VERSION_stress_protocol << "\n"
+            << "USE_IEEE_HYPERBOLIC" << USE_IEEE_HYPERBOLIC << "\n"
             << "COMPILER_VERSION:\t" << XSTR(COMPILER_VERSION) << "\n"
             << "MACHINE_INFO:\t" << XSTR(MACHINE_INFO) << "\n"
             << "USR_COMP_OPTIONS\t" << XSTR(USR_COMP_OPTIONS) << "\n"

@@ -11,7 +11,7 @@ There is 1 new dependency: [`boost.random`](https://www.boost.org/doc/libs/1_70_
 Type `init_config_gen --help` to get the help. The program accepts the following arguments:
 * `--N arg` or `-N arg`: **mandatory** argument. The number of dislocations to simulate. Must be an even number, because the same amount of positive and negative dislocations must be found in the system.
 * `--seed-start arg` or `-S arg`: optional argument with default value `1000`. It is an integer used to populate the seed value of the random number generator engine.
-* `--seed-end arg` or `-E arg`: optional argument. If set, must be larger than `seed_start` and the program will create configuration files starting from seed value `seed-start`, increasing it one by one till it reaches `seed-end` (open interval).
+* `--seed-end arg` or `-E arg`: optional argument. If set, must be larger than `seed-start` and the program will create configuration files starting from seed value `seed-start`, increasing it one by one till it reaches `seed-end` (open interval).
 * `--pattern-strength` or `-A`: a floating point number in the range of [-1:1] representing the amplitude of the sinusoidal pattern.
 * `--linear-wavenumber` or `-n`: an integer describing how many times shall the sinusoidal wave fit into the simulation area. See fig. below.
 * `--pattern-type` or `-T`: a string selecting the distribution density to alter. `s` refers to *signed*, changing the signed dislocation density, and `t` refers to total dislocation density ρ<sub>t</sub>.

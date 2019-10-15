@@ -15,7 +15,6 @@ first version with VERSION_constants
 #define VERSION_constants 0.2
 
 #define ANALYTIC_FIELD_N 4
-#define SCALE_FACTOR_AALTO 200.0 // 200 b sized system
 #define EPS 1e-12
 #define DEFAULT_CUTOFF_MULTIPLIER 1.0
 #define DEFAULT_CUTOFF 1.0
@@ -26,9 +25,10 @@ first version with VERSION_constants
 #define DEFAULT_SIM_TIME 0.0
 #define DEFAULT_KASQR (1.65 * 1.65 * 1e6 / 256)
 #define DEFAULT_A (1e-4 * 16)
-#define DEFAULT_EXTERNAL_FIELD 0.0
 
+#define USE_IEEE_HYPERBOLIC 1
 #if (ANALYTIC_FIELD_N == 4)
+#undef USE_IEEE_HYPERBOLIC // I'd like to give a value again
 #define USE_IEEE_HYPERBOLIC 0 // if false, program calculates hyperbolic functions with identities: faster but less precise
 #if !USE_IEEE_HYPERBOLIC
 #define cosh2pi 267.746761483748222245931879901    // cosh(2 * pi)

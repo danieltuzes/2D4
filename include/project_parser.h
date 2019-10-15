@@ -1,10 +1,18 @@
-
+//
 // project_parser.h : contains the function declarations for project_parser.cpp
+
+/*
+# 0.2
+cutoff multiplier is abbreviated as u, not c
+
+# 0.1
+Ther first version tracked file
+*/
 
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.1
+#define VERSION_project_parser 0.2
 
 // define macros for version tracking
 #define STR(x) #x

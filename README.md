@@ -1,4 +1,5 @@
- 2D discrete dislocation dynamics simulation program toolset.
+# 2D4
+A 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
 This toolkit contains tools to simulate 2D single slip edge dislocation systems under periodic boundary conditions. The integrator is based on an implicit numerical scheme which makes it possible to keep the 
@@ -20,7 +21,7 @@ The toolkit contains the following tools
 
     These programs help to identify or measure the effect of one specific change in the code. The following projects are available:
 
-   * *[ieee_hyperbolic](sandbox//ieee_hyperbolic/README.md)*: to decide whether the calculation of hyperbolic function using identities are faster
+   * *[ieee_hyperbolic](sandbox/ieee_hyperbolic/README.md)*: to decide whether the calculation of hyperbolic function using identities are faster
 
 The rest of this file belongs to the simulation program 2D4_sim.
 
