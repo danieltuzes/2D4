@@ -2,6 +2,9 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 0.3
+program call is printed out and an endl is included, therefore the stdout will show the message during the simulation
+
 # 0.2
 cutoff multiplier is abbreviated as u, not c
 
@@ -53,7 +56,7 @@ namespace sdddstCore
 
         std::shared_ptr<SimulationData> getSimulationData();
 
-        void printLicense();
+        void printLicense(int argc, char** argv);
 
     private:
         void processInput(boost::program_options::variables_map& vm);

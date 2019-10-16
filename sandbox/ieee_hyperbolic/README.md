@@ -7,6 +7,6 @@ Measurements on the precision say that
 * In the stress field, the media of the difference is 1e-16, the average is 1e-14, and the maximum is 1e-11.
 * In the derivated field, the media is 1e-11, the average is 9e-11, and the maximum is 8e-8.
 
-It seems that the non-IEEE compatible hyperbolic function calculation is **precise enough**.
+It seems that the non-IEEE compatible hyperbolic function calculation is **precise enough**. To further analyse the results and to measure the effect of this improvement, I will investigate the relaxed systems for the two case with size N=1024.
 
 The [speedtest is available](../../src/speedtests.md#ieee_hyperbolic) in Hungarian and says that one can gain a speed improvement by **180% to 200%**. The smalle5r systems can gain a bit more with this improvement.

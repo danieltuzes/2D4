@@ -87,7 +87,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     }
 
     if (!vm.count("hide-copyright")) // if the user doesn't hide the bloaty copyright text
-        printLicense();
+        printLicense(argc, argv);
 
     if (vm.count("help")) // if the user only interested in the help, there is no need to check the variables
     {
@@ -120,7 +120,7 @@ std::shared_ptr<sdddstCore::SimulationData> sdddstCore::ProjectParser::getSimula
     return sD;
 }
 
-void sdddstCore::ProjectParser::printLicense() // if used multiple times, should move outside this cpp
+void sdddstCore::ProjectParser::printLicense(int argc, char** argv) // if used multiple times, should move outside this cpp
 {
     double totalVersion = VERSION_analytic_field +
         VERSION_constants +
@@ -133,7 +133,13 @@ void sdddstCore::ProjectParser::printLicense() // if used multiple times, should
         VERSION_simulation +
         VERSION_simulation_data +
         VERSION_stress_protocol;
-    std::cout << "This is 2D4_sim (version " << totalVersion << "), a 2D discrete dislocation dynamics simulation program toolset based on sdddst. See README.md for copyright.\n";
+    std::cout << "This is 2D4_sim (version " << totalVersion << "),\n"
+        << "a 2D discrete dislocation dynamics simulation program toolset based on sdddst.\n"
+        << "See README.md for copyright.\n"
+        << "Program is called as: \n";
+    for (int i = 0; i < argc; ++i)
+        std::cout << argv[i] << " ";
+    std::cout << std::endl;
 }
 
 void sdddstCore::ProjectParser::processInput(boost::program_options::variables_map & vm)

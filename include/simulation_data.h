@@ -1,10 +1,18 @@
-
+// 
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
+
+/*
+# 0.2
+Memory allocation is checked in Release mode too
+
+# 0.1
+The first version tracked file
+*/
 
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.1
+#define VERSION_simulation_data 0.2
 
 #include "dislocation.h"
 #include "point_defect.h"

@@ -438,6 +438,7 @@ void Simulation::run()
     }
 
     sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
+    std::cout << "Simulation is done.\n";
 }
 
 void Simulation::stepStageI()

@@ -3,12 +3,15 @@ This is the main component of 2D4, that evolvs discrete dislocation system accor
 
 At this moment, all the information on how to use this component can be found in the [main README file](https://github.com/danieltuzes/2D4) for the complete repo.
 
-## Roadmap
+## Futtatási útiterv
+A futtatási útiterv a [github-os wiki](https://github.com/danieltuzes/2D4/wiki/DDD-futtat%C3%A1si-ki%C3%A9rt%C3%A9kel%C3%A9si-roadmap-%C3%A9s-todo) oldalon van.
+
+## Fejlesztési útiterv
 Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével, úgy mint cache hit és matematikai azonosságok használatával. Ezen túl kell fordító szintjén is a fejlesztés, valamint új funkció implementálása, amihez meg kell érteni a kód egy részét, és egyéni szájíz szerint át kell írni. A tervezett lépések:
 
-1. Gábor sdddst kódját github másolni és futtatni 64-es és 1024-es méretekre, 1-1-et. A saját szíjíz szerint átírtat (de std::pow-val), új funkciót nem tartalmazót is lefuttatni ugyanazokra, és megnézni, hogy ugyanazok-e. Két hiba volt, a precision handler 98. sorában és az analytic fieldben rossz zárójelezés volt a 32. (?) sor környékén. A `0203ff356cc3358aaebe232baaae672aaa42e307` már csak az előbbi bugot, az utána következő már azt sem tartalmazza. Az eredmények eltérnek az eredetitől az `ffast-math` kapcsoló miatt és az átzárójelezett műveletek miatt.
+1. **✓** Gábor sdddst kódját github másolni és futtatni 64-es és 1024-es méretekre, 1-1-et. A saját szíjíz szerint átírtat (de std::pow-val), új funkciót nem tartalmazót is lefuttatni ugyanazokra, és megnézni, hogy ugyanazok-e. Két hiba volt, a precision handler 98. sorában és az analytic fieldben rossz zárójelezés volt a 32. (?) sor környékén. A `0203ff356cc3358aaebe232baaae672aaa42e307` már csak az előbbi bugot, az utána következő már azt sem tartalmazza. Az eredmények eltérnek az eredetitől az `ffast-math` kapcsoló miatt és az átzárójelezett műveletek miatt.
 
-3. Sebességtesztet csinálni, és megmérni, mennyit számít
+3. **✓** Sebességtesztet csinálni, és megmérni, mennyit számít
 
    1. a **Release** kapcsoló?
    1. az **O3 march=native** kapcsoló?
@@ -27,14 +30,14 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 4. Új funkciókat implementálni
    1. **✓** dconf kiírásnál a Burgers vector értéke legyen csak 1 v -1, nem kell fixed scientific
    2. **✓** logfile-hoz headert írni és kerüljön bele az eltelt számítógépes időt 
-   3. feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
+   3. **✓** feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
    4. Lehessen állapotokat kiíratni adott szimulációs időgyakorisággal
    5. **✓** a diszlokációkat beolvasásnál rendezze, majd kiírásnál rendezze vissza az eredeti rendbe
    6. a diszlokációk burgersvectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    7. **✓** sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    9. **✓** a `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni
-   10. a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok?
+   10. **✓** a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok? Megoldás: Sehol sincs 0-val osztás, amúgy meg a safe módban, az eddigi esetben sem kaptunk sehol sem NaN-t van inf-et.
 
 ### Új funkciók implementálása
 
@@ -46,7 +49,7 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 
 		Belekerült a header #-vel kezdve (gnuplot kihagyja a sort), és a cellahatárolók tabulátorok, sokkal könnyebb áttekinteni.
 
-   3. feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
+   3. **✓** feszültségérték kezdeti értéke lehessen konstans, és lehessen ciklikusan terhelni
 
 		A kezdeti érték lehet konstans, és lineárisan növekvő is. A konstans 0 és a monoton növők ugyanazokat a diszlokációelrendeződéseket adják 64-es rendszerre, 1000 időre és 1e-4 rátájú feszültségemelésre. Lehet ciklikusan terhelni.
 
@@ -64,5 +67,7 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 
    8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    9. **✓** A `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni. A [sebességteszt](speedtests.md#normalize) szerint kb. 0.1% az előny. Így marad a `while`.
+
+   10. **✓** a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok? Megoldás: Sehol sincs 0-val osztás, amúgy meg a safe módban, az eddigi esetben sem kaptunk sehol sem NaN-t van inf-et.
 
 		
