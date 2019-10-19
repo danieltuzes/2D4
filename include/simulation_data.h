@@ -69,10 +69,13 @@ namespace sdddstCore {
         ///
 
         //Valid dislocation position data -> state of the simulation at simTime
-        std::vector<Dislocation> dislocations;
+        //std::vector<Dislocation> dislocations;
 
         // the sorted dislocations, Burger's vector is not needed
         std::vector<DislwoB> disl_sorted;
+
+        // returns the Burgers' vector type based on the index value ID; first half: +1; second half: -1
+        int b(unsigned int ID) const;
         
         // the order of the dislocations, useful for writing out in the original order
         std::vector<unsigned int> disl_order;
@@ -139,15 +142,15 @@ namespace sdddstCore {
 
         // The dislocation data after the big step
         std::vector<Dislocation> bigStep;
-        std::vector<DislwoB> oBigStep;
+        std::vector<DislwoB> bigStep_sorted;
 
         // The dislocation data after the first small step
         std::vector<Dislocation> firstSmall;
-        std::vector<DislwoB> oFirstSmall;
+        std::vector<DislwoB> firstSmall_sorted;
 
         // The dislocation data after the second small step
         std::vector<Dislocation> secondSmall;
-        std::vector<DislwoB> oSecondSmall;
+        std::vector<DislwoB> secondSmall_sorted;
 
         // The used interaction field
         std::unique_ptr<Field> tau;

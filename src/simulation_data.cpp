@@ -135,7 +135,8 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     disl_order.resize(dislocs_w_id.size());
     for (size_t i = 0; i < dislocs_w_id.size(); ++i)
     {
-        dislocations.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y, dislocs_w_id[i].b);
+        // dislocations.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y, dislocs_w_id[i].b);
+        disl_sorted.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y);
         disl_order[dislocs_w_id[i].id] = i;
     }
 
@@ -179,9 +180,9 @@ void SimulationData::writeDislocationDataToFile(std::string dislocationDataFileP
 
     ofile << std::setprecision(14);
     for (auto id : disl_order)
-        ofile << dislocations[id].x << "\t"
-        << dislocations[id].y << "\t"
-        << dislocations[id].b << "\n";
+        ofile << disl_sorted[id].x << "\t"
+        << disl_sorted[id].y << "\t"
+        << b(id) << "\n";
 }
 
 void SimulationData::readPointDefectDataFromFile(std::string pointDefectDataFilePath)
@@ -236,6 +237,13 @@ void SimulationData::updateCutOff()
     cutOff = multiplier / sqrt(dc);
     cutOffSqr = cutOff * cutOff;
     onePerCutOffSqr = 1 / cutOffSqr;
+}
+
+int SimulationData::b(unsigned int ID) const
+{
+    if (ID < dc / 2)
+        return 1;
+    else return -1;
 }
 
 #ifdef BUILD_PYTHON_BINDINGS

@@ -25,21 +25,12 @@ namespace sdddstCore {
     {
     public:
         Simulation(std::shared_ptr<SimulationData> sD);
-        ~Simulation();
 
-        void integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end);
-
-        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect)
-        void calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res) const;
-        void calculateG(double stepsize, const std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const;
-        void calculateJacobian(double stepsize, const std::vector<Dislocation>& data);
         void calculateXError();
-
         void calculateSparseFormForJacobian();
         void solveEQSys();
 
         double calculateOrderParameter(const std::vector<double>& speeds) const;
-        double calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD) const;
 
         double getElement(int j, int si, int ei) const;
 
@@ -50,6 +41,27 @@ namespace sdddstCore {
         void stepStageI();
         void stepStageII();
         void stepStageIII();
+
+        // with Dislocation: dislocation with Burgers' vector
+        void integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end);
+        
+        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect)
+        void calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res) const;
+        void calculateG(double stepsize, const std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const;
+        void calculateJacobian(double stepsize, const std::vector<Dislocation>& data);
+
+        double calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD) const;
+
+        // with DislwoB: dislocation without Burger's vector
+        void integrate(double stepsize, std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old, bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end);
+        
+        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect)
+        void calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& res) const;
+        void calculateG(double stepsize, const std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const;
+        
+        double calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const;
+
+        void calculateJacobian(double stepsize, const std::vector<DislwoB>& data);
 
 #ifdef BUILD_PYTHON_BINDINGS
         // const std::vector<Dislocation>& getStoredDislocationData();
