@@ -37,7 +37,8 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
    7. **✓** sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    8. blokkosított módon iterálni végig a diszlokációkon, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
    9. **✓** a `normalize` nem kell loopot tartalmazzon, elég csak 1x ellenőrizni
-   10. **✓** a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok? Megoldás: Sehol sincs 0-val osztás, amúgy meg a safe módban, az eddigi esetben sem kaptunk sehol sem NaN-t van inf-et.
+   10. **✓** a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok?
+   11. `-Ofast` és `-flto` kapcsolók használata.
 
 ### Új funkciók implementálása
 
@@ -59,6 +60,9 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 		Rendezi és elmenti a visszarendezés sorrendjét `disl_order` néven, kiírásnál pedig ennek segítségével íratja ki. Ugyanez érvényes a subconfigokra is.
 
    6. a diszlokációk Burger's vectorát az ID-ből származtassa, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
+
+        Abból származtatja, program helyességét ellenőriztem 64-es, 1024-es és 16384-as rendszerméretre. A sebességteszt szerint . A módszer előnye, hogy kevesebb memóriát használ, így a blokkosított számolásban gyorsabb lehet.
+
    7. **✓** sinh és cosh egyszerűsített számolása, sebességteszt 64-es, 1024-es és 16384-as rendszerméretre
 
       Az eltérés a feszültségtérben és annak deriváltjában is kicsi. A feszültségtérben a jellemző értéke (mediánja) 1e-16, átlaga 1e-14, maximuma 1e-11. A derivált térben a jellemző értéke (mediánja) 1e-11, átlaga 9e-11, maximuma 8e-8.
@@ -70,4 +74,4 @@ Fejleszteni lehet a kód hatékonyságát tudományos eszközök segítségével
 
    10. **✓** a `-ffast-math` helyett kipróbálni a `-fassociative-math` kapcsolót, mert mi van, ha tényleg 0-val osztok? Megoldás: Sehol sincs 0-val osztás, amúgy meg a safe módban, az eddigi esetben sem kaptunk sehol sem NaN-t van inf-et.
 
-		
+   11. `-Ofast` és `-flto` kapcsolók használata.

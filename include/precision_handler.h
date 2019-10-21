@@ -14,39 +14,34 @@
 
 namespace sdddstCore {
 
-class PrecisionHandler
-{
-public:
-    PrecisionHandler();
-    ~PrecisionHandler();
+    class PrecisionHandler
+    {
+    public:
+        PrecisionHandler();
+        ~PrecisionHandler();
 
-    void setSize(unsigned int size);
-    unsigned long getSize() const;
+        void setSize(unsigned int size);
+        unsigned long getSize() const;
 
-    void reset();
-    void updateTolerance(double distanceSqr, unsigned int ID);
+        void reset();
+        void updateTolerance(double distanceSqr, unsigned int ID);
 
-    void updateError(double error, unsigned int ID);
+        void updateError(double error, unsigned int ID);
 
-    double getNewStepSize(double oldStepSize) const;
+        double getNewStepSize(double oldStepSize) const;
 
-    double getMinPrecisity() const;
-    void setMinPrecisity(double value);
+        double getMinPrecisity() const;
+        void setMinPrecisity(double value);
 
-    double getMaxErrorRatioSqr() const;
+        double getMaxErrorRatioSqr() const;
 
-#ifdef BUILD_PYTHON_BINDINGS
-    std::string __str__() const;
-    std::string __repr__() const;
-#endif
-
-private:
-    std::vector<std::pair<double, double> > toleranceAndError;
-    double minPrecisity; // set from position-precision
-    double minPrecisitySqr; // square of minPrecisity (stored to save calculation time?)
-    double maxErrorRatioSqr;
-    unsigned int selectedID;
-};
+    private:
+        std::vector<std::pair<double, double> > toleranceAndError;
+        double minPrecisity; // set from position-precision
+        double minPrecisitySqr; // square of minPrecisity (stored to save calculation time?)
+        double maxErrorRatioSqr;
+        unsigned int selectedID;
+    };
 
 }
 

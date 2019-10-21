@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
-set(USR_COMP_OPTIONS "-Wall -pedantic -Wextra -O3 -march=native -ffast-math -Wno-unknown-pragmas")
+set(USR_COMP_OPTIONS "-Wall -pedantic -Wextra -Ofast -flto -march=native -ffast-math -Wno-unknown-pragmas")
 if (UNIX)
 	execute_process(COMMAND bash -c "uname -a | cut -d \" \" -f 2 | sed -z '$ s/\\n$//'" OUTPUT_VARIABLE hostname)
 else (UNIX)
@@ -24,9 +24,6 @@ include(GNUInstallDirs)
 
 # after this point ${PROJECT_SOURCE_DIR} is set and ready to use
 
-# Options
-option(BUILD_PYTHON_BINDINGS "Build python interface package" OFF)
-
 # Version number
 set (${PROJECT_NAME}_VERSION_MAJOR 0)
 set (${PROJECT_NAME}_VERSION_MINOR 1)
@@ -34,12 +31,8 @@ set (${PROJECT_NAME}_VERSION_MINOR 1)
 # Set some variables to use later on in this file
 set(PROJECT_SOURCE_DECLARATION_DIRECTORY ${PROJECT_SOURCE_DIR}/include)
 set(PROJECT_SOURCE_DEFINITION_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
-set(PROJECT_PYTHON_SOURCE_DECLARATION_DIRECTORY ${PROJECT_SOURCE_DIR}/python/include)
-set(PROJECT_PYTHON_SOURCE_DEFINITION_DIRECTORY ${PROJECT_SOURCE_DIR}/python/src)
 set(MAIN_FILE ${PROJECT_SOURCE_DEFINITION_DIRECTORY}/main.cpp)
 set(BINDINGS_FILE ${PROJECT_SOURCE_DEFINITION_DIRECTORY}/bindings.cpp)
-set(PYTHON_LIB_NAME PySdddstCore)
-set(PY_VERSION "3")
 
 set(BOOST_MIN_VERSION "1.40")
 set(CORE_LIBRARY ${PROJECT_NAME}Core)
@@ -84,11 +77,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON) # is required
 
 
 # Find required packages
-
-find_package(PythonLibs ${PY_VERSION})
-if(PYTHON_FOUND)
-    include_directories(${PYTHON_INCLUDE_DIR})
-endif()
 
 find_package(FFTW REQUIRED DOUBLE_LIB)
 include_directories(FFTW_INCLUDE_DIRS)

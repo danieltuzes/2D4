@@ -36,9 +36,6 @@
     <ClInclude Include="include\dislocation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\fields\Field.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\point_defect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -61,6 +58,9 @@
       <Filter>Header Files\Fields</Filter>
     </ClInclude>
     <ClInclude Include="include\fields\PeriodicShearStressELTE.h">
+      <Filter>Header Files\Fields</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fields\Field.h">
       <Filter>Header Files\Fields</Filter>
     </ClInclude>
   </ItemGroup>

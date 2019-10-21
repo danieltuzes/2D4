@@ -2,6 +2,10 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.3
+* Dislocations are stored without their Burgers' vector, old dislocation code is removed from the source
+* Unused phython binding is removed
+
 # 0.2
 Memory allocation is checked in Release mode too
 
@@ -12,7 +16,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.2
+#define VERSION_simulation_data 0.3
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -32,10 +36,6 @@ The first version tracked file
 #include <cmath>
 #include <algorithm>
 #include <numeric>
-
-#ifdef BUILD_PYTHON_BINDINGS
-#include <boost/python.hpp>
-#endif
 
 namespace sdddstCore {
 
@@ -64,19 +64,16 @@ namespace sdddstCore {
         void initSimulationVariables();
         void updateCutOff();
 
+        // returns the Burgers' vector type based on the index value ID; first half: +1; second half: -1
+        int b(unsigned int ID) const;
+
         //////////////////
         /// DATA FIELDS
         ///
 
-        //Valid dislocation position data -> state of the simulation at simTime
-        //std::vector<Dislocation> dislocations;
-
-        // the sorted dislocations, Burger's vector is not needed
+        // Valid dislocation position data -> state of the simulation at simTime; the sorted dislocations, Burger's vector is not needed
         std::vector<DislwoB> disl_sorted;
 
-        // returns the Burgers' vector type based on the index value ID; first half: +1; second half: -1
-        int b(unsigned int ID) const;
-        
         // the order of the dislocations, useful for writing out in the original order
         std::vector<unsigned int> disl_order;
 
@@ -141,15 +138,12 @@ namespace sdddstCore {
         double A;
 
         // The dislocation data after the big step
-        std::vector<Dislocation> bigStep;
         std::vector<DislwoB> bigStep_sorted;
 
         // The dislocation data after the first small step
-        std::vector<Dislocation> firstSmall;
         std::vector<DislwoB> firstSmall_sorted;
 
         // The dislocation data after the second small step
-        std::vector<Dislocation> secondSmall;
         std::vector<DislwoB> secondSmall_sorted;
 
         // The used interaction field
@@ -254,19 +248,6 @@ namespace sdddstCore {
         double speedThresholdForCutoffChange;
 
         bool isSpeedThresholdForCutoffChange;
-
-#ifdef BUILD_PYTHON_BINDINGS
-
-        Field const& getField();
-        void setField(boost::python::object field);
-
-        StressProtocol const& getStressProtocol();
-        void setStressProtocol(boost::python::object protocol);
-
-        // deleteDislocationCountRelatedData free memory what was allocated for dislocation related data
-        // void deleteDislocationCountRelatedData(); */
-
-#endif
 
     private:
     };
