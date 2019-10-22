@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
-set(USR_COMP_OPTIONS "-Wall -pedantic -Wextra -Ofast -flto -march=native -ffast-math -Wno-unknown-pragmas")
+set(USR_COMP_OPTIONS "-Wall -pedantic -Wextra -Ofast -flto -march=native -ffast-math -Wno-unknown-pragmas -ffat-lto-objects")
 if (UNIX)
 	execute_process(COMMAND bash -c "uname -a | cut -d \" \" -f 2 | sed -z '$ s/\\n$//'" OUTPUT_VARIABLE hostname)
 else (UNIX)

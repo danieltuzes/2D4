@@ -91,22 +91,23 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
 
     if (vm.count("help")) // if the user only interested in the help, there is no need to check the variables
     {
-        std::cout << "Detailed version and compiler info:\n"
-            << "VERSION_analytic_field:\t" << VERSION_analytic_field << "\n"
-            << "VERSION_constants:\t" << VERSION_constants << "\n"
-            << "VERSION_dislocations:\t" << VERSION_dislocations << "\n"
-            << "VERSION_field:\t" << VERSION_field << "\n"
-            << "VERSION_periodic_shear_stress_elte:\t" << VERSION_periodic_shear_stress_elte << "\n"
-            << "VERSION_point_defect:\t" << VERSION_point_defect << "\n"
-            << "VERSION_precision_handler:\t" << VERSION_precision_handler << "\n"
-            << "VERSION_project_parser:\t" << VERSION_project_parser << "\n"
-            << "VERSION_simulation:\t" << VERSION_simulation << "\n"
-            << "VERSION_simulation_data :\t" << VERSION_simulation_data << "\n"
-            << "VERSION_stress_protocol:\t" << VERSION_stress_protocol << "\n"
-            << "USE_IEEE_HYPERBOLIC" << USE_IEEE_HYPERBOLIC << "\n"
-            << "COMPILER_VERSION:\t" << XSTR(COMPILER_VERSION) << "\n"
-            << "MACHINE_INFO:\t" << XSTR(MACHINE_INFO) << "\n"
-            << "USR_COMP_OPTIONS\t" << XSTR(USR_COMP_OPTIONS) << "\n"
+        std::cout 
+            << "Detailed version and compiler info:\n"
+            << "VERSION_analytic_field:             " << VERSION_analytic_field << "\n"
+            << "VERSION_constants:                  " << VERSION_constants << "\n"
+            << "VERSION_dislocations:               " << VERSION_dislocations << "\n"
+            << "VERSION_field:                      " << VERSION_field << "\n"
+            << "VERSION_periodic_shear_stress_elte: " << VERSION_periodic_shear_stress_elte << "\n"
+            << "VERSION_point_defect:               " << VERSION_point_defect << "\n"
+            << "VERSION_precision_handler:          " << VERSION_precision_handler << "\n"
+            << "VERSION_project_parser:             " << VERSION_project_parser << "\n"
+            << "VERSION_simulation:                 " << VERSION_simulation << "\n"
+            << "VERSION_simulation_data:            " << VERSION_simulation_data << "\n"
+            << "VERSION_stress_protocol:            " << VERSION_stress_protocol << "\n"
+            << "USE_IEEE_HYPERBOLIC                 " << USE_IEEE_HYPERBOLIC << "\n"
+            << "COMPILER_VERSION:                   " << XSTR(COMPILER_VERSION) << "\n"
+            << "MACHINE_INFO:                       " << XSTR(MACHINE_INFO) << "\n"
+            << "USR_COMP_OPTIONS:                   " << XSTR(USR_COMP_OPTIONS) << "\n"
             << options << std::endl;
         exit(0);
     }

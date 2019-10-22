@@ -4,7 +4,7 @@
 /*changelog
 # 0.3
 xy and xy_diff_x are consts
-
+cosh and sinh are deduced from exp, and identities are also used
 
 # 0.2
 implementation in case USE_IEEE_HYPERBOLIC is false defined

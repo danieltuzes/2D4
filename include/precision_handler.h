@@ -18,7 +18,6 @@ namespace sdddstCore {
     {
     public:
         PrecisionHandler();
-        ~PrecisionHandler();
 
         void setSize(unsigned int size);
         unsigned long getSize() const;

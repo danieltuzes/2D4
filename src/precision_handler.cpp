@@ -31,11 +31,6 @@ PrecisionHandler::PrecisionHandler() :
     //Nothing to do
 }
 
-PrecisionHandler::~PrecisionHandler()
-{
-    // Nothing to do
-}
-
 void PrecisionHandler::setSize(unsigned int size)
 {
     if (toleranceAndError.size() < size)
