@@ -1,7 +1,11 @@
-
+// 
 // AnalyticField.h : contains function declarations for AnalyticField.cpp, also included in project_parser.cpp
 
 /*changelog
+# 0.3
+xy and xy_diff_x are consts
+
+
 # 0.2
 implementation in case USE_IEEE_HYPERBOLIC is false defined
 
@@ -12,7 +16,7 @@ first version with #define VERSION_analytic_field
 #ifndef SDDDST_CORE_ANALYTIC_FIELD_H
 #define SDDDST_CORE_ANALYTIC_FIELD_H
 
-#define VERSION_analytic_field 0.2
+#define VERSION_analytic_field 0.3
 
 #include "Fields/Field.h"
 #include "constants.h"
@@ -28,8 +32,8 @@ namespace sdddstCore {
     public:
         AnalyticField();
 
-        virtual double xy(double dx, double dy);
-        virtual double xy_diff_x(double dx, double dy);
+        virtual double xy(double dx, double dy) const;
+        virtual double xy_diff_x(double dx, double dy) const;
     };
 
 }
