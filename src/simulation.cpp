@@ -460,8 +460,8 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
 
         double dx;
         double dy;
-#ifdef USE_POINT_DEFECTS
         double tmp = 0;
+#ifdef USE_POINT_DEFECTS
 
         for (size_t l = 0; l < sD->pc; l++)
         {
@@ -516,9 +516,9 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
             }
         }
 
-        sD->Ax[totalElementCounter++] = -tmp * stepsize;
 #endif
 
+        sD->Ax[totalElementCounter++] = -tmp * stepsize;
         // Totally new part
         for (unsigned int i = j + 1; i < sD->dc; i++)
         {
