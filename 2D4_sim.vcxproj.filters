@@ -16,14 +16,8 @@
     <ClCompile Include="src\simulation_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\fields\PeriodicShearStressELTE.cpp">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\stress_protocol.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\fields\AnalyticField.cpp">
-      <Filter>Source Files\Fields</Filter>
     </ClCompile>
     <ClCompile Include="src\fields\Field.cpp">
       <Filter>Source Files\Fields</Filter>
@@ -53,12 +47,6 @@
     </ClInclude>
     <ClInclude Include="include\stress_protocol.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\fields\AnalyticField.h">
-      <Filter>Header Files\Fields</Filter>
-    </ClInclude>
-    <ClInclude Include="include\fields\PeriodicShearStressELTE.h">
-      <Filter>Header Files\Fields</Filter>
     </ClInclude>
     <ClInclude Include="include\fields\Field.h">
       <Filter>Header Files\Fields</Filter>

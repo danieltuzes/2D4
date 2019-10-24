@@ -2,6 +2,12 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 0.4
+* Burgers' vector value is checked and used on a bas of bool, no multiplication
+* stepStages are moved to run()
+* first run code part in stepStageI is moved out to run()
+* prints out start time
+
 # 0.3
 USE_POINT_DEFECTS is checked to eliminate codes on point defects
 
@@ -16,7 +22,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 0.3
+#define VERSION_simulation 0.4
 
 #include "dislocation.h"
 #include "precision_handler.h"

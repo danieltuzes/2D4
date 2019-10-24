@@ -46,9 +46,7 @@
     <IncludePath>include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="src\fields\AnalyticField.cpp" />
     <ClCompile Include="src\fields\Field.cpp" />
-    <ClCompile Include="src\fields\PeriodicShearStressELTE.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\precision_handler.cpp" />
     <ClCompile Include="src\project_parser.cpp" />
@@ -59,9 +57,7 @@
   <ItemGroup>
     <ClInclude Include="include\constants.h" />
     <ClInclude Include="include\dislocation.h" />
-    <ClInclude Include="include\fields\AnalyticField.h" />
     <ClInclude Include="include\fields\Field.h" />
-    <ClInclude Include="include\fields\PeriodicShearStressELTE.h" />
     <ClInclude Include="include\point_defect.h" />
     <ClInclude Include="include\precision_handler.h" />
     <ClInclude Include="include\project_parser.h" />

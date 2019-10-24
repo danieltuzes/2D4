@@ -36,10 +36,10 @@ namespace sdddstCore {
         double getMaxErrorRatioSqr() const;
 
     private:
-        std::vector<std::pair<double, double> > toleranceAndError;
+        std::vector<std::pair<double, double> > toleranceAndError; // tolerance: min(distance square / 400, minPrecisitySq); error: the difference in the x coordinate between 1 large and 2 small steps
         double minPrecisity; // set from position-precision
         double minPrecisitySqr; // square of minPrecisity (stored to save calculation time?)
-        double maxErrorRatioSqr;
+        double maxErrorRatioSqr; // the largest "error square divided by tolerance" for all particles
         unsigned int selectedID;
     };
 

@@ -102,10 +102,10 @@ namespace sdddstCore {
         // Stores the d values for the integration scheme
         std::vector<double> dVec;
 
-        // The value of the cut off multiplier
+        // The value of the cut off multiplier read from input "cutoff-multiplier"
         double cutOffMultiplier;
 
-        // The value of the cutoff
+        // The value of the cutoff = cutOffMultiplier / sqrt(dc)
         double cutOff;
 
         // The value of the cutoff^2
@@ -151,7 +151,7 @@ namespace sdddstCore {
         std::vector<DislwoB> secondSmall_sorted;
 
         // The used interaction field
-        std::unique_ptr<Field> tau;
+        Field tau;
 
         // UMFPack specified sparse format stored Jacobian
         int* Ap;
@@ -185,7 +185,7 @@ namespace sdddstCore {
         // True, if there is an upper limit set for the step size
         bool isMaxStepSizeLimit;
 
-        // The upper limit of a step size if is set
+        // The upper limit of a step size if it is set
         double maxStepSizeLimit;
 
         // True if a simulation time limit is set for the simulation

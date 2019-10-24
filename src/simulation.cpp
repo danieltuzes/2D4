@@ -162,13 +162,142 @@ void Simulation::run()
         ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
         )
     {
-        stepStageI();
-        stepStageII();
-        stepStageIII();
+        /////////////////////////////////
+        /// step stage I
+        /////////////////////////////////
+        {
+            sD->currentStressStateType = StressProtocolStepType::Original;
+
+            // Reset the variables for the integration
+            sD->bigStep_sorted = sD->disl_sorted;
+
+            integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, initSpeedCalculationIsNeeded, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
+        }
+
+        /////////////////////////////////
+        /// step stageII
+        /////////////////////////////////
+        {
+            sD->firstSmall_sorted = sD->disl_sorted;
+            integrate(0.5 * sD->stepSize, sD->firstSmall_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
+        }
+
+        /////////////////////////////////
+        /// step stage III
+        /////////////////////////////////
+        {
+            sD->secondSmall_sorted = sD->firstSmall_sorted;
+
+            integrate(0.5 * sD->stepSize, sD->secondSmall_sorted, sD->firstSmall_sorted, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
+
+            double vsquare2 = absvalsq(sD->initSpeed2);
+
+            double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * 0.5 * sD->stepSize * 0.5;
+
+            calculateXError();
+
+            /// Precision related error handling
+            if (pH->getMaxErrorRatioSqr() < 1)
+            {
+                initSpeedCalculationIsNeeded = true;
+
+                if (sD->calculateStrainDuringSimulation)
+                {
+                    sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
+                    sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
+                }
+
+                sD->disl_sorted.swap(sD->secondSmall_sorted);
+                for (size_t i = 0; i < sD->dc; i++)
+                    normalize(sD->disl_sorted[i].x);
+
+                sD->simTime += sD->stepSize;
+                sD->succesfulSteps++;
+
+                double orderParameter = 0;
+                if (sD->orderParameterCalculationIsOn)
+                    orderParameter = calculateOrderParameter(sD->speed);
+
+                sD->currentStressStateType = StressProtocolStepType::Original;
+                sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
+                calculateSpeeds(sD->disl_sorted, sD->initSpeed);
+                initSpeedCalculationIsNeeded = false;
+                double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+
+                if (sD->countAvalanches)
+                {
+                    if (sD->inAvalanche && sumAvgSp < sD->avalancheSpeedThreshold)
+                    {
+                        sD->avalancheCount++;
+                        sD->inAvalanche = false;
+                    }
+                    else if (sumAvgSp > sD->avalancheSpeedThreshold)
+                        sD->inAvalanche = true;
+                }
+                double vsquare = absvalsq(sD->initSpeed);
+                energyThisStep += (vsquare + vsquare2) * 0.5 * sD->stepSize * 0.5;
+                sD->standardOutputLog << sD->simTime << "\t"
+                    << sD->succesfulSteps << "\t"
+                    << sD->failedSteps << "\t"
+                    << pH->getMaxErrorRatioSqr() << "\t"
+                    << sumAvgSp << "\t"
+                    << sD->cutOff << "\t";
+
+                if (sD->orderParameterCalculationIsOn)
+                    sD->standardOutputLog << orderParameter << "\t";
+                else
+                    sD->standardOutputLog << "-" << "\t";
+
+                sD->standardOutputLog << sD->externalStressProtocol->getExtStress(StressProtocolStepType::Original) << "\t"
+                    << get_wall_time() - lastWriteTimeFinished << "\t";
+
+                if (sD->calculateStrainDuringSimulation)
+                    sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
+                else
+                    sD->standardOutputLog << "-" << "\t";
+
+
+                if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
+                {
+                    sD->cutOffMultiplier = 1e20;
+                    sD->updateCutOff();
+                }
+
+                energy += energyThisStep;
+
+                sD->standardOutputLog << vsquare << "\t"
+                    << energy << "\t"
+                    << get_wall_time() - startTime << std::endl;
+
+                if (sD->isSaveSubConfigs)
+                {
+                    if ((!sD->inAvalanche && sD->subConfigDelay >= sD->subconfigDistanceCounter) || (sD->inAvalanche && sD->subConfigDelayDuringAvalanche >= sD->subconfigDistanceCounter))
+                    {
+                        sD->subconfigDistanceCounter = 0;
+                        std::stringstream ss;
+                        ss << std::setprecision(16);
+                        ss << sD->simTime;
+                        sD->writeDislocationDataToFile(sD->subConfigPath + ss.str() + ".dconf");
+                    }
+                    else
+                        sD->subconfigDistanceCounter++;
+                }
+
+                lastWriteTimeFinished = get_wall_time();
+            }
+            else
+                sD->failedSteps++;
+
+            sD->stepSize = pH->getNewStepSize(sD->stepSize);
+            pH->reset();
+
+            if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
+                sD->stepSize = sD->maxStepSizeLimit;
+        }
     }
 
     sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
-    std::cout << "Simulation is done.\n";
+    std::cout << "Simulation is done (" << get_wall_time() - startTime <<" s).\n";
 }
 
 void Simulation::calculateXError()
@@ -178,141 +307,6 @@ void Simulation::calculateXError()
         double tmp = fabs(sD->bigStep_sorted[i].x - sD->secondSmall_sorted[i].x);
         pH->updateError(tmp, i);
     }
-}
-
-void Simulation::stepStageI()
-{
-    sD->currentStressStateType = StressProtocolStepType::Original;
-
-    // Reset the variables for the integration
-    sD->bigStep_sorted = sD->disl_sorted;
-
-
-    /////////////////////////////////
-    /// Integrating procedure begins
-
-    integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, initSpeedCalculationIsNeeded, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
-}
-
-void Simulation::stepStageII()
-{
-    sD->firstSmall_sorted = sD->disl_sorted;
-    integrate(0.5 * sD->stepSize, sD->firstSmall_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
-}
-
-void Simulation::stepStageIII()
-{
-    sD->secondSmall_sorted = sD->firstSmall_sorted;
-
-    integrate(0.5 * sD->stepSize, sD->secondSmall_sorted, sD->firstSmall_sorted, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
-
-    double vsquare2 = absvalsq(sD->initSpeed2);
-
-    double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * 0.5 * sD->stepSize * 0.5;
-
-    calculateXError();
-
-    /// Precision related error handling
-    if (pH->getMaxErrorRatioSqr() < 1)
-    {
-        initSpeedCalculationIsNeeded = true;
-
-        if (sD->calculateStrainDuringSimulation)
-        {
-            sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
-            sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
-        }
-
-        sD->disl_sorted.swap(sD->secondSmall_sorted);
-        for (size_t i = 0; i < sD->dc; i++)
-            normalize(sD->disl_sorted[i].x);
-
-        sD->simTime += sD->stepSize;
-        sD->succesfulSteps++;
-
-        double orderParameter = 0;
-        if (sD->orderParameterCalculationIsOn)
-            orderParameter = calculateOrderParameter(sD->speed);
-
-        sD->currentStressStateType = StressProtocolStepType::Original;
-        sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
-        calculateSpeeds(sD->disl_sorted, sD->initSpeed);
-        initSpeedCalculationIsNeeded = false;
-        double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
-
-        if (sD->countAvalanches)
-        {
-            if (sD->inAvalanche && sumAvgSp < sD->avalancheSpeedThreshold)
-            {
-                sD->avalancheCount++;
-                sD->inAvalanche = false;
-            }
-            else if (sumAvgSp > sD->avalancheSpeedThreshold)
-                sD->inAvalanche = true;
-        }
-        double vsquare = absvalsq(sD->initSpeed);
-        energyThisStep += (vsquare + vsquare2) * 0.5 * sD->stepSize * 0.5;
-        sD->standardOutputLog << sD->simTime << "\t"
-            << sD->succesfulSteps << "\t"
-            << sD->failedSteps << "\t"
-            << pH->getMaxErrorRatioSqr() << "\t"
-            << sumAvgSp << "\t"
-            << sD->cutOff << "\t";
-
-        if (sD->orderParameterCalculationIsOn)
-            sD->standardOutputLog << orderParameter << "\t";
-        else
-            sD->standardOutputLog << "-" << "\t";
-
-        sD->standardOutputLog << sD->externalStressProtocol->getExtStress(StressProtocolStepType::Original) << "\t"
-            << get_wall_time() - lastWriteTimeFinished << "\t";
-
-        if (sD->calculateStrainDuringSimulation)
-            sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
-        else
-            sD->standardOutputLog << "-" << "\t";
-
-
-        if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
-        {
-            sD->cutOffMultiplier = 1e20;
-            sD->updateCutOff();
-        }
-
-        energy += energyThisStep;
-
-        sD->standardOutputLog << vsquare << "\t"
-            << energy << "\t"
-            << get_wall_time() - startTime << std::endl;
-
-        if (sD->isSaveSubConfigs)
-        {
-            if ((!sD->inAvalanche && sD->subConfigDelay >= sD->subconfigDistanceCounter) || (sD->inAvalanche && sD->subConfigDelayDuringAvalanche >= sD->subconfigDistanceCounter))
-            {
-                sD->subconfigDistanceCounter = 0;
-                std::stringstream ss;
-                ss << std::setprecision(16);
-                ss << sD->simTime;
-                sD->writeDislocationDataToFile(sD->subConfigPath + ss.str() + ".dconf");
-            }
-            else
-                sD->subconfigDistanceCounter++;
-
-        }
-
-        lastWriteTimeFinished = get_wall_time();
-
-    }
-    else
-        sD->failedSteps++;
-
-
-    sD->stepSize = pH->getNewStepSize(sD->stepSize);
-    pH->reset();
-
-    if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
-        sD->stepSize = sD->maxStepSizeLimit;
-
 }
 
 /**
@@ -362,7 +356,7 @@ void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<do
             pH->updateTolerance(r2, i);
             pH->updateTolerance(r2, j);
 
-            double force = sD->tau->xy(dx, dy); // The sign of Burgers vectors can be deduced from i and j
+            double force = sD->tau.xy(dx, dy); // The sign of Burgers vectors can be deduced from i and j
 
             if ((sD->is_pos_b(i) && sD->is_pos_b(j)) || (!sD->is_pos_b(i) && !sD->is_pos_b(j)))
             {
@@ -463,10 +457,12 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
         }
         // Add the diagonal element (it will be calculated later and the point defects now)
         sD->Ai[totalElementCounter] = j;
-        double tmp = 0;
+
         double dx;
         double dy;
 #ifdef USE_POINT_DEFECTS
+        double tmp = 0;
+
         for (size_t l = 0; l < sD->pc; l++)
         {
             dx = data[j].x - sD->points[l].x;
@@ -519,8 +515,9 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
                 // see simulation_tmp_simplified What is this joke? log(M_E)? 0.2e1?
             }
         }
-#endif
+
         sD->Ax[totalElementCounter++] = -tmp * stepsize;
+#endif
 
         // Totally new part
         for (unsigned int i = j + 1; i < sD->dc; i++)
@@ -528,17 +525,19 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
             dx = data[i].x - data[j].x;
             normalize(dx);
 
-            dy = data[i].y - data[j].y; // az y értékek sosem változnak meg, ezért ha a diszlokációk rendezve vannak tárolva, akkor csak az ellentétes típusúak között kell maximum 1 kivonást elvégezni a normalize függvényben
+            dy = data[i].y - data[j].y; // az y értékek konstansok, így ha a diszlokációk rendezve vannak tárolva, akkor csak az ellentétes típusúak között kell max 1 kivonást elvégezni a normalize függvényben
             normalize(dy);
 
-            if (pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) < 36.8 * sD->cutOffSqr) // 36.8?? why
+            double distSq = dx * dx + dy * dy;
+
+            if (std::fabs(sqrt(distSq) - sD->cutOff) < 6 * sD->cutOff) // itt a 6-os szorzót simán ki kéne hagyni, meg a következő 3 sort is úgy, ahogy van, TODO
             {
                 double multiplier = 1;
-                if (dx * dx + dy * dy > sD->cutOffSqr)
-                    multiplier = exp(-pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) * sD->onePerCutOffSqr);
+                if (distSq > sD->cutOffSqr)
+                    multiplier = exp(-pow(sqrt(distSq) - sD->cutOff, 2) * sD->onePerCutOffSqr);
 
                 sD->Ai[totalElementCounter] = i;
-                sD->Ax[totalElementCounter++] = stepsize * sD->b(i) * sD->b(j) * sD->tau->xy_diff_x(dx, dy) * multiplier;
+                sD->Ax[totalElementCounter++] = stepsize * sD->b(i) * sD->b(j) * sD->tau.xy_diff_x(dx, dy) * multiplier;
             }
         }
         sD->Ap[j + 1] = totalElementCounter;
