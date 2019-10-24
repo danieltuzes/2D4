@@ -237,3 +237,8 @@ int SimulationData::b(unsigned int ID) const
         return 1;
     else return -1;
 }
+
+bool SimulationData::is_pos_b(unsigned int ID) const
+{
+    return ID < dc / 2;
+}

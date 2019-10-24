@@ -137,6 +137,9 @@ int main(int argc, char** argv)
     readInDislocs(ifnames[0], dislocsA);
     readInDislocs(ifnames[1], dislocsB);
 
+    std::cerr.precision(16);
+    std::cout.precision(16);
+
     if (dislocsA.size() != dislocsB.size())
     {
         std::cerr << "The number of dislocations in the two files are not equal. Program terminates.\n";
@@ -158,7 +161,7 @@ int main(int argc, char** argv)
     {
         if (std::abs(std::get<1>(dislocsA[i]) - std::get<1>(dislocsB[i])) > indTol)
         {
-            std::cerr << "y values are different (" << std::get<1>(dislocsA[i]) << " != " << std::get<1>(dislocsB[i]) << ") for dislocation with x coordinate\n"
+            std::cerr << "y values are different (" << std::get<1>(dislocsA[i]) << " != " << std::get<1>(dislocsB[i]) << ") for dislocation with id = " << i << " and x coordinate\n"
                 << std::get<0>(dislocsA[i]) << " in " << ifnames[0] << " and\n"
                 << std::get<0>(dislocsB[i]) << " in " << ifnames[1] << ". Program terminates.\n";
             exit(-1);
@@ -193,7 +196,7 @@ int main(int argc, char** argv)
         if (sum_fabs / size < vm["similarity-tolerance"].as<double>())
             std::cout << "The configurations are similar.\n";
         else
-            std::cout << "The configuration are not similar.\n";
+            std::cout << "The configurations are not similar.\n";
     }
     else
         std::cout << "The configurations are identical.\n";

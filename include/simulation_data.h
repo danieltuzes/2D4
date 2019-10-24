@@ -57,6 +57,7 @@ namespace sdddstCore {
         /// Data file handling utilities
         void readDislocationDataFromFile(std::string dislocationDataFilePath);
         void writeDislocationDataToFile(std::string dislocationDataFilePath) const;
+
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
         void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
@@ -66,6 +67,9 @@ namespace sdddstCore {
 
         // returns the Burgers' vector type based on the index value ID; first half: +1; second half: -1
         int b(unsigned int ID) const;
+
+        // returns true if the Burgers' vector is positive
+        bool is_pos_b(unsigned int ID) const;
 
         //////////////////
         /// DATA FIELDS

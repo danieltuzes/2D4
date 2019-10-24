@@ -20,9 +20,10 @@ namespace sdddstCore {
         PrecisionHandler();
 
         void setSize(unsigned int size);
-        unsigned long getSize() const;
 
         void reset();
+
+        // if distanceSQ_fraction is smaller than the prescribed minPrecisitySqr, the function overwrites it with distanceSQ_fraction
         void updateTolerance(double distanceSqr, unsigned int ID);
 
         void updateError(double error, unsigned int ID);

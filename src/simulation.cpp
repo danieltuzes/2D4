@@ -32,25 +32,6 @@ inline double X2(double x)
     return (1 - cos(2 * M_PI * x)) * 0.5 / M_PI / M_PI;
 }
 
-inline double E(double x, double y, double K)
-{
-    return exp(-K * (X2(x) + X2(y)));
-}
-
-inline double X_dx(double x)
-{
-    return cos(2 * M_PI * x);
-}
-
-inline double X2_dx(double x)
-{
-    return sin(2 * M_PI * x) / M_PI;
-}
-
-inline double E_dx(double x, double y, double K)
-{
-    return -E(x, y, K) * K * X2_dx(x);
-}
 
 // calculates the absolute value square of a vector as in mathematics
 double absvalsq(const std::vector<double>& input)
@@ -58,10 +39,11 @@ double absvalsq(const std::vector<double>& input)
     return std::accumulate(input.begin(), input.end(), 0., [](double a, double b) {return a + b * b; });
 }
 
-// From:
-// https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
+// returns wall time in ms
 double get_wall_time()
 {
+    // From https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
+
     auto t_start = std::chrono::high_resolution_clock::now();
     auto t_start_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(t_start);
     auto t_start_se = t_start_ms.time_since_epoch();
@@ -76,11 +58,9 @@ double get_wall_time()
 using namespace sdddstCore;
 
 Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
-    succesfulStep(true),
     lastWriteTimeFinished(0),
     startTime(0),
     initSpeedCalculationIsNeeded(true),
-    firstStepRequest(true),
     energy(0),
     sD(sD),
     pH(new PrecisionHandler)
@@ -147,6 +127,34 @@ double Simulation::calculateOrderParameter(const std::vector<double>& speeds) co
 
 void Simulation::run()
 {
+    {
+        std::time_t start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::cout << "Simulation started on " << std::ctime(&start_time) << std::endl;
+    }
+    startTime = get_wall_time();
+    lastWriteTimeFinished = get_wall_time();
+    sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
+    calculateSpeeds(sD->disl_sorted, sD->initSpeed);
+    initSpeedCalculationIsNeeded = false;
+    double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+    double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+
+    // First two line in the log file
+    sD->standardOutputLog << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl;
+    sD->standardOutputLog << sD->simTime << "\t"
+        << sD->succesfulSteps << "\t"
+        << sD->failedSteps << "\t"
+        << 0 << "\t"
+        << sumAvgSp << "\t"
+        << sD->cutOff << "\t"
+        << "-" << "\t"
+        << sD->externalStressProtocol->getExtStress(sD->currentStressStateType) << "\t"
+        << "-" << "\t"
+        << sD->totalAccumulatedStrainIncrease << "\t"
+        << vsquare << "\t"
+        << energy << "\t"
+        << 0 << std::endl;
+
     while (
         ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
         ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
@@ -175,34 +183,6 @@ void Simulation::calculateXError()
 void Simulation::stepStageI()
 {
     sD->currentStressStateType = StressProtocolStepType::Original;
-    if (firstStepRequest)
-    {
-        startTime = get_wall_time();
-        lastWriteTimeFinished = get_wall_time();
-        sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
-        calculateSpeeds(sD->disl_sorted, sD->initSpeed);
-        initSpeedCalculationIsNeeded = false;
-        double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
-        double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
-
-        // First two line in the log file
-        sD->standardOutputLog << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl;
-        sD->standardOutputLog << sD->simTime << "\t"
-            << sD->succesfulSteps << "\t"
-            << sD->failedSteps << "\t"
-            << 0 << "\t"
-            << sumAvgSp << "\t"
-            << sD->cutOff << "\t"
-            << "-" << "\t"
-            << sD->externalStressProtocol->getExtStress(sD->currentStressStateType) << "\t"
-            << "-" << "\t"
-            << sD->totalAccumulatedStrainIncrease << "\t"
-            << vsquare << "\t"
-            << energy << "\t"
-            << 0 << std::endl;
-
-        firstStepRequest = false;
-    }
 
     // Reset the variables for the integration
     sD->bigStep_sorted = sD->disl_sorted;
@@ -212,9 +192,6 @@ void Simulation::stepStageI()
     /// Integrating procedure begins
 
     integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, initSpeedCalculationIsNeeded, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
-
-    // This can not get before the first integration step
-    succesfulStep = false;
 }
 
 void Simulation::stepStageII()
@@ -238,7 +215,6 @@ void Simulation::stepStageIII()
     /// Precision related error handling
     if (pH->getMaxErrorRatioSqr() < 1)
     {
-        succesfulStep = true;
         initSpeedCalculationIsNeeded = true;
 
         if (sD->calculateStrainDuringSimulation)
@@ -368,9 +344,9 @@ void Simulation::integrate(double stepsize, std::vector<DislwoB>& newDislocation
     umfpack_di_free_numeric(&sD->Numeric);
 }
 
-void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& res) const
+void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& forces) const
 {
-    std::fill(res.begin(), res.end(), 0);
+    std::fill(forces.begin(), forces.end(), 0);
 
     for (unsigned int i = 0; i < sD->dc; i++) // typically unefficient
     {
@@ -382,16 +358,26 @@ void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<do
             double dy = dis[i].y - dis[j].y;
             normalize(dy);
 
-            double tmp = sD->b(i) * sD->b(j) * sD->tau->xy(dx, dy); // The sign of Burgers vectors can be deduced from i and j
-
-            double r2 = dx * dx + dy * dy;
+            double r2 = (dx * dx + dy * dy) * 0.0025; // proportional to distance square
             pH->updateTolerance(r2, i);
             pH->updateTolerance(r2, j);
 
-            res[i] += tmp;
-            res[j] -= tmp;
+            double force = sD->tau->xy(dx, dy); // The sign of Burgers vectors can be deduced from i and j
+
+            if ((sD->is_pos_b(i) && sD->is_pos_b(j)) || (!sD->is_pos_b(i) && !sD->is_pos_b(j)))
+            {
+                forces[i] += force;
+                forces[j] -= force;
+            }
+            else
+            {
+                forces[i] -= force;
+                forces[j] += force;
+            }
+
         }
 
+#ifdef USE_POINT_DEFECTS
         // iterate over point defects and calulate their stress contribution
         for (size_t j = 0; j < sD->pc; j++)
         {
@@ -405,12 +391,17 @@ void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<do
             double ySqr = X2(dy);
             double rSqr = xSqr + ySqr;
             double expXY = exp(-sD->KASQR * rSqr);
-            res[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
+            forces[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
 
             pH->updateTolerance(rSqr, i);
         }
+#endif
 
-        res[i] += sD->b(i) * sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
+        double externalforce = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
+        if (sD->is_pos_b(i))
+            forces[i] += externalforce;
+        else
+            forces[i] -= externalforce;
     }
 }
 
@@ -475,6 +466,7 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
         double tmp = 0;
         double dx;
         double dy;
+#ifdef USE_POINT_DEFECTS
         for (size_t l = 0; l < sD->pc; l++)
         {
             dx = data[j].x - sD->points[l].x;
@@ -527,6 +519,7 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
                 // see simulation_tmp_simplified What is this joke? log(M_E)? 0.2e1?
             }
         }
+#endif
         sD->Ax[totalElementCounter++] = -tmp * stepsize;
 
         // Totally new part

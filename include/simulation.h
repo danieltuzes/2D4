@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 0.3
+USE_POINT_DEFECTS is checked to eliminate codes on point defects
+
 # 0.2
 * Dislocations are stored without Burgers' vector, it is deduced from dislocation ID
 * unused python bindings are removed
@@ -13,7 +16,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 0.2
+#define VERSION_simulation 0.3
 
 #include "dislocation.h"
 #include "precision_handler.h"
@@ -69,11 +72,9 @@ namespace sdddstCore {
         void calculateJacobian(double stepsize, const std::vector<DislwoB>& data);
 
     private:
-        bool succesfulStep;
         double lastWriteTimeFinished;
         double startTime;
         bool initSpeedCalculationIsNeeded;
-        bool firstStepRequest;
         double energy;
 
         std::shared_ptr<SimulationData> sD;

@@ -33,42 +33,24 @@ PrecisionHandler::PrecisionHandler() :
 
 void PrecisionHandler::setSize(unsigned int size)
 {
-    if (toleranceAndError.size() < size)
-        while (toleranceAndError.size() != size)
-            toleranceAndError.emplace_back(minPrecisitySqr, 0);
-    else
-        toleranceAndError.resize(size);
-}
-
-unsigned long PrecisionHandler::getSize() const
-{
-    return toleranceAndError.size();
+    toleranceAndError.resize(size, std::pair<double, double>(minPrecisitySqr, 0));
 }
 
 void PrecisionHandler::reset()
 {
     maxErrorRatioSqr = 0;
-    for (auto& i : toleranceAndError)
-    {
-        i.first = minPrecisitySqr;
-        i.second = 0;
-    }
+    toleranceAndError.assign(
+        toleranceAndError.size(),
+        std::pair<double, double>(minPrecisitySqr, 0)
+    );
 }
 
-void PrecisionHandler::updateTolerance(double distanceSqr, unsigned int ID) // const int& is more expensive than unsigned int
+// if distanceSQ_fraction is smaller than the prescribed minPrecisitySqr, the function overwrites it for that particle with distanceSQ_fraction
+void PrecisionHandler::updateTolerance(double distanceSQ_fraction, unsigned int ID)
 {
-    double tmp = distanceSqr * 0.25 * 1e-2;
-    if (tmp < minPrecisitySqr && tmp < toleranceAndError[ID].first)
-    {
-        if (tmp == 0)
-        {
-            toleranceAndError[ID].first = EPS;
-            std::cout << "Two dislocations are in the same place!\n";
-        }
-        else
-            toleranceAndError[ID].first = tmp;
-
-    }
+    if (distanceSQ_fraction < minPrecisitySqr &&
+        distanceSQ_fraction < toleranceAndError[ID].first)
+        toleranceAndError[ID].first = distanceSQ_fraction;
 }
 
 void PrecisionHandler::updateError(double error, unsigned int ID)
