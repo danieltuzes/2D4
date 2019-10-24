@@ -87,26 +87,27 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     }
 
     if (!vm.count("hide-copyright")) // if the user doesn't hide the bloaty copyright text
-        printLicense();
+        printLicense(argc, argv);
 
     if (vm.count("help")) // if the user only interested in the help, there is no need to check the variables
     {
-        std::cout << "Detailed version and compiler info:\n"
-            << "VERSION_analytic_field:\t" << VERSION_analytic_field << "\n"
-            << "VERSION_constants:\t" << VERSION_constants << "\n"
-            << "VERSION_dislocations:\t" << VERSION_dislocations << "\n"
-            << "VERSION_field:\t" << VERSION_field << "\n"
-            << "VERSION_periodic_shear_stress_elte:\t" << VERSION_periodic_shear_stress_elte << "\n"
-            << "VERSION_point_defect:\t" << VERSION_point_defect << "\n"
-            << "VERSION_precision_handler:\t" << VERSION_precision_handler << "\n"
-            << "VERSION_project_parser:\t" << VERSION_project_parser << "\n"
-            << "VERSION_simulation:\t" << VERSION_simulation << "\n"
-            << "VERSION_simulation_data :\t" << VERSION_simulation_data << "\n"
-            << "VERSION_stress_protocol:\t" << VERSION_stress_protocol << "\n"
-            << "USE_IEEE_HYPERBOLIC" << USE_IEEE_HYPERBOLIC << "\n"
-            << "COMPILER_VERSION:\t" << XSTR(COMPILER_VERSION) << "\n"
-            << "MACHINE_INFO:\t" << XSTR(MACHINE_INFO) << "\n"
-            << "USR_COMP_OPTIONS\t" << XSTR(USR_COMP_OPTIONS) << "\n"
+        std::cout 
+            << "Detailed version and compiler info:\n"
+            << "VERSION_analytic_field:             " << VERSION_analytic_field << "\n"
+            << "VERSION_constants:                  " << VERSION_constants << "\n"
+            << "VERSION_dislocations:               " << VERSION_dislocations << "\n"
+            << "VERSION_field:                      " << VERSION_field << "\n"
+            << "VERSION_periodic_shear_stress_elte: " << VERSION_periodic_shear_stress_elte << "\n"
+            << "VERSION_point_defect:               " << VERSION_point_defect << "\n"
+            << "VERSION_precision_handler:          " << VERSION_precision_handler << "\n"
+            << "VERSION_project_parser:             " << VERSION_project_parser << "\n"
+            << "VERSION_simulation:                 " << VERSION_simulation << "\n"
+            << "VERSION_simulation_data:            " << VERSION_simulation_data << "\n"
+            << "VERSION_stress_protocol:            " << VERSION_stress_protocol << "\n"
+            << "USE_IEEE_HYPERBOLIC                 " << USE_IEEE_HYPERBOLIC << "\n"
+            << "COMPILER_VERSION:                   " << XSTR(COMPILER_VERSION) << "\n"
+            << "MACHINE_INFO:                       " << XSTR(MACHINE_INFO) << "\n"
+            << "USR_COMP_OPTIONS:                   " << XSTR(USR_COMP_OPTIONS) << "\n"
             << options << std::endl;
         exit(0);
     }
@@ -120,7 +121,7 @@ std::shared_ptr<sdddstCore::SimulationData> sdddstCore::ProjectParser::getSimula
     return sD;
 }
 
-void sdddstCore::ProjectParser::printLicense() // if used multiple times, should move outside this cpp
+void sdddstCore::ProjectParser::printLicense(int argc, char** argv) // if used multiple times, should move outside this cpp
 {
     double totalVersion = VERSION_analytic_field +
         VERSION_constants +
@@ -133,7 +134,13 @@ void sdddstCore::ProjectParser::printLicense() // if used multiple times, should
         VERSION_simulation +
         VERSION_simulation_data +
         VERSION_stress_protocol;
-    std::cout << "This is 2D4_sim (version " << totalVersion << "), a 2D discrete dislocation dynamics simulation program toolset based on sdddst. See README.md for copyright.\n";
+    std::cout << "This is 2D4_sim (version " << totalVersion << "),\n"
+        << "a 2D discrete dislocation dynamics simulation program toolset based on sdddst.\n"
+        << "See README.md for copyright.\n"
+        << "Program is called as: \n";
+    for (int i = 0; i < argc; ++i)
+        std::cout << argv[i] << " ";
+    std::cout << std::endl;
 }
 
 void sdddstCore::ProjectParser::processInput(boost::program_options::variables_map & vm)

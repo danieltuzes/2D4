@@ -7,6 +7,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #define ANALYTIC_FIELD_N 4
+#define HYPERBOLIC_IDENTITIES false // shall the progrem use the hyperbolic identities? if not, it will deduce hyperbolic functions to exponential
 
 #pragma region IEEE hyperbolic
 double f(double dx, double cos2piy, double dy)
@@ -138,7 +139,9 @@ double IEEE_xy_diff_x(double dx, double dy)
 }
 #pragma endregion
 
-#pragma region hyperbolic with identities
+#if HYPERBOLIC_IDENTITIES
+
+#pragma region hyperbolic with cosh and sinh
 
 #pragma region defines
 #define cosh2pi 267.746761483748222245931879901    // cosh(2 * pi)
@@ -322,6 +325,185 @@ double nonIEEE_xy_diff_x(double dx, double dy)
         g3_dx(dx, cos2piy, dy, cosh2pix, sinh2pix);
 }
 #pragma endregion
+#endif
+
+#pragma region hyperbolic deduced from exp
+#define cosh2pi 267.746761483748222245931879901    // cosh(2 * pi)
+#define cosh4pi 143375.656570070321051450310133    // cosh(4 * pi)
+#define cosh6pi 7.67764676977233502175191858009e7  // cosh(6 * pi)
+#define cosh8pi 4.11131577927974976374895337541e10 // cosh(8 * pi)
+#define coshTpi 2.20157529303160145057002722946e13 // cosh(10* pi)
+
+#define sinh2pi 267.744894041016514257117449688    // sinh(2 * pi)
+#define sinh4pi 143375.656566582978695241314640    // sinh(4 * pi)
+
+#define cosh__2pi_x__ ((exp2pix + 1/exp2pix) / 2)
+#define cosh__2pi_xp1 (((exp2pix + 1/exp2pix) * cosh2pi + (exp2pix - 1/exp2pix) * sinh2pi) / 2)
+#define cosh__2pi_xm1 (((exp2pix + 1/exp2pix) * cosh2pi - (exp2pix - 1/exp2pix) * sinh2pi) / 2)
+#define cosh__2pi_xp2 (((exp2pix + 1/exp2pix) * cosh4pi + (exp2pix - 1/exp2pix) * sinh4pi) / 2)
+#define cosh__2pi_xm2 (((exp2pix + 1/exp2pix) * cosh4pi - (exp2pix - 1/exp2pix) * sinh4pi) / 2)
+#define cosh__2pi_xp3 (cosh6pi * exp2pix)
+#define cosh__2pi_xm3 (cosh6pi / exp2pix)
+#define cosh__2pi_xp4 (cosh8pi * exp2pix)
+#define cosh__2pi_xm4 (cosh8pi / exp2pix)
+#define cosh__2pi_xp5 (coshTpi * exp2pix)
+#define cosh__2pi_xm5 (coshTpi / exp2pix)
+
+#define sinh__2pi_x__ ((exp2pix - 1/exp2pix) / 2)
+#define sinh__2pi_xp1 (((exp2pix - 1/exp2pix) * cosh2pi + (exp2pix + 1/exp2pix) * sinh2pi) / 2)
+#define sinh__2pi_xm1 (((exp2pix - 1/exp2pix) * cosh2pi - (exp2pix + 1/exp2pix) * sinh2pi) / 2)
+#define sinh__2pi_xp2 (((exp2pix - 1/exp2pix) * cosh4pi + (exp2pix + 1/exp2pix) * sinh4pi) / 2)
+#define sinh__2pi_xm2 (((exp2pix - 1/exp2pix) * cosh4pi - (exp2pix + 1/exp2pix) * sinh4pi) / 2)
+#define sinh__2pi_xp3 (cosh__2pi_xp3)
+#define sinh__2pi_xm3 (-cosh__2pi_xm3)
+#define sinh__2pi_xp4 (cosh__2pi_xp4)
+#define sinh__2pi_xm4 (-cosh__2pi_xm4)
+#define sinh__2pi_xp5 (cosh__2pi_xp5)
+#define sinh__2pi_xm5 (-cosh__2pi_xm4)
+double f_0(double dx, double cos2piy, double dy, double cosh2pix)
+{
+    double dx2pi = M_PI * 2 * dx;
+
+    if (dx * dx + dy * dy > 1e-6) // dislocations with larger distance
+    {
+        double coshpixyd = cosh2pix - cos2piy;  // cosh2pix - cos2piy
+        return  dx2pi * (cosh2pix * cos2piy - 1) / std::pow(coshpixyd, 2) * M_PI;
+    }
+
+    // closer dislocations, to avoid (1-1)/0 type singularity, but with a Taylor expansion, one gets 0/0 type singularity
+    double dy2pi = M_PI * 2 * dy;
+    double cosh2pixminus1 = std::pow(dx2pi, 6) / 720 + std::pow(dx2pi, 4) / 24 + std::pow(dx2pi, 2) * 0.5;
+    double cos2piyminus1 = -std::pow(dy2pi, 6) / 720 + std::pow(dy2pi, 4) / 24 - std::pow(dy2pi, 2) * 0.5;
+    double coshminuscos = (std::pow(dy2pi, 6) + std::pow(dx2pi, 6)) / 720 + (std::pow(dx2pi, 4) - std::pow(dy2pi, 4)) / 24 + (std::pow(dx2pi, 2) + std::pow(dy2pi, 2)) * 0.5;
+    return ((cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) * dx2pi) / std::pow(coshminuscos, 2) * M_PI;
+}
+
+// calculates the stress of a dislocation wall, distance is at least 1 (l for larger)
+double f_l(double dx, double cos2piy, double cosh2pix)
+{
+    double dx2pi = M_PI * 2 * dx;
+    double coshpixyd = cosh2pix - cos2piy;  // cosh2pix - cos2piy
+    return dx2pi * (cosh2pix * cos2piy - 1) / std::pow(coshpixyd, 2) * M_PI;
+}
+
+// calculates the stress of 3 dislocation wall pairs
+double g3(double dx, double cos2piy, double dy, double exp2pix)
+{
+    return
+        f_0(dx + 0, cos2piy, dy, cosh__2pi_x__) +
+        f_l(dx + 1, cos2piy, cosh__2pi_xp1) + f_l(dx - 1, cos2piy, cosh__2pi_xm1) +
+        f_l(dx + 2, cos2piy, cosh__2pi_xp2) + f_l(dx - 2, cos2piy, cosh__2pi_xm2) +
+        f_l(dx + 3, cos2piy, cosh__2pi_xp3) + f_l(dx - 3, cos2piy, cosh__2pi_xm3);
+}
+
+// calculates the derivative of the stress of a dislocation wall
+double f_dx_0(double dx, double cos2piy, double dy, double cosh2pix, double sinh2pix)
+{
+    double dx2pi = dx * 2 * M_PI;
+
+    if (dx * dx + dy * dy > 1e-6)
+    {
+        double coshpixyd = cosh2pix - cos2piy;  // cosh2pix - cos2piy
+        return
+            (
+            (cosh2pix * cos2piy - 1) / std::pow(coshpixyd, 2) +
+                dx2pi * (sinh2pix * cos2piy / std::pow(coshpixyd, 2) - (cosh2pix * cos2piy - 1) / std::pow(coshpixyd, 3) * 2 * sinh2pix)
+                )
+            * M_PI * 2 * M_PI;
+    }
+
+    // closer dislocations
+    double dy2pi = dy * M_PI * 2;
+    double cosh2pixminus1 = std::pow(dx2pi, 6) / 720 + std::pow(dx2pi, 4) / 24 + std::pow(dx2pi, 2) * 0.5;
+    double cos2piyminus1 = -std::pow(dy2pi, 6) / 720 + std::pow(dy2pi, 4) / 24 - std::pow(dy2pi, 2) * 0.5;
+    double coshminuscos = (std::pow(dy2pi, 6) + std::pow(dx2pi, 6)) / 720 + (std::pow(dx2pi, 4) - std::pow(dy2pi, 4)) / 24 + (std::pow(dx2pi, 2) + std::pow(dy2pi, 2)) * 0.5;
+    double cosysinhx = -(std::pow(dx2pi, 7) * std::pow(dy2pi, 6)) / 3628800
+        - (std::pow(dx2pi, 5) * std::pow(dy2pi, 6)) / 86400
+        - (std::pow(dx2pi, 3) * std::pow(dy2pi, 6)) / 4320
+        - (std::pow(dy2pi, 6) * dx2pi) / 720
+        + (std::pow(dx2pi, 7) * std::pow(dy2pi, 4)) / 120960
+        + (std::pow(dx2pi, 5) * std::pow(dy2pi, 4)) / 2880
+        + (std::pow(dx2pi, 3) * std::pow(dy2pi, 4)) / 144
+        + (std::pow(dy2pi, 4) * dx2pi) / 24
+        - (std::pow(dx2pi, 7) * std::pow(dy2pi, 2)) / 1080
+        - (std::pow(dx2pi, 5) * std::pow(dy2pi, 2)) / 240
+        - (std::pow(dx2pi, 3) * std::pow(dy2pi, 2)) / 12
+        - (std::pow(dy2pi, 2) * dx2pi) * 0.5
+        + std::pow(dx2pi, 7) / 5040
+        + std::pow(dx2pi, 5) / 120
+        + std::pow(dx2pi, 3) / 6
+        + dx2pi;
+    return (
+        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / std::pow(coshminuscos, 2) +
+        ((cosysinhx * dx) / std::pow(coshminuscos, 2) -
+        (cosh2pixminus1 * cos2piyminus1 + cos2piyminus1 + cosh2pixminus1) / std::pow(coshminuscos, 3) * dx * sinh(dx2pi) * 2) * 2 * M_PI
+        ) * M_PI * 2 * M_PI;
+}
+
+// calculates the derivative of the stress of a dislocation wall, no condition for closeness
+double f_dx_l(double dx, double cos2piy, double cosh2pix, double sinh2pix)
+{
+    double dx2pi = dx * 2 * M_PI;
+
+    double coshpixyd = cosh2pix - cos2piy;  // cosh2pix - cos2piy
+    return
+        (
+        (cosh2pix * cos2piy - 1) / std::pow(coshpixyd, 2) +
+            dx2pi * (sinh2pix * cos2piy / std::pow(coshpixyd, 2) - (cosh2pix * cos2piy - 1) / std::pow(coshpixyd, 3) * 2 * sinh2pix)
+            )
+        * M_PI * 2 * M_PI;
+}
+
+// calculates the derivative of the stress of 3 dislocation walls
+double g3_dx(double dx, double cos2piy, double dy, double exp2pix)
+{
+    return
+        f_dx_0(dx + 0, cos2piy, dy, cosh__2pi_x__, sinh__2pi_x__) +
+        f_dx_l(dx + 1, cos2piy, cosh__2pi_xp1, sinh__2pi_xp1) + f_dx_l(dx - 1, cos2piy, cosh__2pi_xm1, sinh__2pi_xm1) +
+        f_dx_l(dx + 2, cos2piy, cosh__2pi_xp2, sinh__2pi_xp2) + f_dx_l(dx - 2, cos2piy, cosh__2pi_xm2, sinh__2pi_xm2) +
+        f_dx_l(dx + 3, cos2piy, cosh__2pi_xp3, sinh__2pi_xp3) + f_dx_l(dx - 3, cos2piy, cosh__2pi_xm3, sinh__2pi_xm3);
+}
+
+double nonIEEE_xy(double dx, double dy)
+{
+    double exp2pix = exp(M_PI * 2 * dx);
+    double cos2piy = cos(M_PI * 2 * dy);
+    if (dx < 0)
+    {
+        return
+            f_l(dx + 5, cos2piy, cosh__2pi_xp5) * (0 - dx) +
+            f_l(dx - 4, cos2piy, cosh__2pi_xm4) * (1 + dx) +
+            f_l(dx + 4, cos2piy, cosh__2pi_xp4) +
+            g3(dx, cos2piy, dy, exp2pix);
+    }
+
+    return
+        f_l(dx - 5, cos2piy, cosh__2pi_xm5) * (0 + dx) +
+        f_l(dx + 4, cos2piy, cosh__2pi_xp4) * (1 - dx) +
+        f_l(dx - 4, cos2piy, cosh__2pi_xm4) +
+        g3(dx, cos2piy, dy, exp2pix);
+}
+
+double nonIEEE_xy_diff_x(double dx, double dy)
+{
+    double exp2pix = exp(M_PI * 2 * dx);
+    double cos2piy = cos(M_PI * 2 * dy);
+    if (dx < 0)
+    {
+        return
+            f_dx_l(dx + 5, cos2piy, cosh__2pi_xp5, sinh__2pi_xp5) * (0 - dx) + f_l(dx + 5, cos2piy, cosh__2pi_xp5) * (-1) +
+            f_dx_l(dx - 4, cos2piy, cosh__2pi_xm4, sinh__2pi_xm4) * (1 + dx) + f_l(dx - 4, cos2piy, cosh__2pi_xm4) * (+1) +
+            f_dx_l(dx + 4, cos2piy, cosh__2pi_xp4, sinh__2pi_xp4) +
+            g3_dx(dx, cos2piy, dy, exp2pix);
+    }
+
+    return
+        f_dx_l(dx - 5, cos2piy, cosh__2pi_xm5, sinh__2pi_xm5) * (0 + dx) + f_l(dx - 5, cos2piy, sinh__2pi_xm5) * (+1) +
+        f_dx_l(dx + 4, cos2piy, cosh__2pi_xp4, sinh__2pi_xp4) * (1 - dx) + f_l(dx + 4, cos2piy, sinh__2pi_xp4) * (-1) +
+        f_dx_l(dx - 4, cos2piy, cosh__2pi_xm4, sinh__2pi_xm4) +
+        g3_dx(dx, cos2piy, dy, exp2pix);
+}
+#pragma endregion
 
 int main()
 {
@@ -332,42 +514,43 @@ int main()
     std::ofstream f_f("f.txt");
     std::ofstream fl_f("fl.txt");
     std::ofstream cosh_f("cosh.txt");
-    std::ofstream cosh_M_f("cosh_M.txt");
 
     std::ofstream gt_f("gt.txt");
     std::ofstream g3_f("g3.txt");
 
-    if (!xy_difff || !g3_f || !gt_f || !f_f || !fl_f || !cosh_f || !cosh_M_f || !IEEE_xyf || !nonIEEE_xyf)
+    if (!xy_difff || !g3_f || !gt_f || !f_f || !fl_f || !cosh_f || !IEEE_xyf || !nonIEEE_xyf)
     {
         std::cerr << "Error: cannot open a txt file to write (field calculation).";
         exit(-1);
     }
 
-    for (double y = 1. / 107183; y < 1; y += 1. / 100) // 107183 is prime, 1./107183 is almost 0. Numerically it is not good to use exactly 0.
+    for (double y = 1. / 107183; y < 1; y += 1. / 300) // 107183 is prime, 1./107183 is almost 0. Numerically it is not good to use exactly 0.
     {
         {
-            for (double x = 1. / 107183; x < 0.5; x += 1. / 100)
+            for (double x = 1. / 107183; x < 0.5; x += 1. / 300)
             {
                 double dx = x;
                 double dy = y;
                 double cosh2pix = cosh(2 * M_PI * x);
                 double sinh2pix = sinh(2 * M_PI * x);
                 double cos2piy = cos(2 * M_PI * y);
+                double exp2pix = exp(2 * M_PI * x);
 
-                xy_difff << (IEEE_xy(x, y) - nonIEEE_xy(x, y)) / (IEEE_xy(x, y) + nonIEEE_xy(x, y)) << "\t";
+                xy_difff << (IEEE_xy(x, y) - nonIEEE_xy(x, y)) / (IEEE_xy(x, y) + nonIEEE_xy(x, y)) << "\n";
 
                 IEEE_xyf << IEEE_xy(x, y) << "\t";
                 nonIEEE_xyf << nonIEEE_xy(x, y) << "\t";
 
                 gt_f << g<3>(x, cos2piy, y) << "\t";
-                g3_f << g3(x, cos2piy, y, cosh2pix, sinh2pix) << "\t";
+                g3_f << g3(x, cos2piy, y, exp2pix) << "\t";
+                //g3_f << g3(x, cos2piy, y, cosh2pix, sinh2pix) << "\t";
 
                 f_f << f(dx + ANALYTIC_FIELD_N, cos2piy, dy) << "\t";
 
-                fl_f << f_l(dx + 4, cos2piy, dy, cosh__2pi_xp4) << "\t";
+                fl_f << f_l(dx + 4, cos2piy, cosh__2pi_xp4) << "\t";
+                //fl_f << f_l(dx + 4, cos2piy, dy, cosh__2pi_xp4) << "\t";
 
                 cosh_f << cosh(2 * M_PI * (dx + 4)) << "\t";
-                cosh_M_f << cosh2pix * cosh8pi + sinh2pix * sinh8pi << "\t";
             }
 
             xy_difff << "\n";
@@ -380,7 +563,6 @@ int main()
             f_f << "\n";
             fl_f << "\n";
             cosh_f << "\n";
-            cosh_M_f << "\n";
         }
     }
 #pragma endregion
@@ -391,33 +573,29 @@ int main()
     std::ofstream nonIEEE_xy_diff_xf("nonIEEE_xy_diff_x.txt");
     std::ofstream f_dx_f("f_dx.txt");
     std::ofstream g_dx_f("g_dx.txt");
-    std::ofstream f_dx_Mf("f_dx_M.txt");
-    std::ofstream g_dx_Mf("g_dx_M.txt");
-    if (!xy_diff_xf || !IEEE_xy_diff_xf || !nonIEEE_xy_diff_xf || !f_dx_f || !g_dx_f || !f_dx_Mf || !g_dx_Mf)
+    if (!xy_diff_xf || !IEEE_xy_diff_xf || !nonIEEE_xy_diff_xf || !f_dx_f || !g_dx_f)
     {
         std::cerr << "Error: cannot open a file to write (derivative calculation).";
         exit(-1);
     }
 
-    for (double y = 1. / 107183; y < 1; y += 1. / 100) // 107183 is prime, 1./107183 is almost 0. Numerically it is not good to use exactly 0.
+    for (double y = 1. / 107183; y < 1; y += 1. / 300) // 107183 is prime, 1./107183 is almost 0. Numerically it is not good to use exactly 0.
     {
         {
-            for (double x = 1. / 107183; x < 1; x += 1. / 100)
+            for (double x = 1. / 107183; x < 1; x += 1. / 300)
             {
                 double dx = x;
                 double dy = y;
                 double cos2piy = cos(2 * M_PI * y);
                 double cosh2pix = cosh(2 * M_PI * x);
                 double sinh2pix = sinh(2 * M_PI * x);
+                double exp2pix = exp(2 * M_PI * x);
 
-                xy_diff_xf << (IEEE_xy_diff_x(x, y) - nonIEEE_xy_diff_x(x, y)) / (IEEE_xy_diff_x(x, y) + nonIEEE_xy_diff_x(x, y)) << "\t";
+                xy_diff_xf << (IEEE_xy_diff_x(x, y) - nonIEEE_xy_diff_x(x, y)) / (IEEE_xy_diff_x(x, y) + nonIEEE_xy_diff_x(x, y)) << "\n";
                 IEEE_xy_diff_xf << IEEE_xy_diff_x(x, y) << "\t";
                 nonIEEE_xy_diff_xf << nonIEEE_xy_diff_x(x, y) << "\t";
                 f_dx_f << f_dx(x - 5, cos2piy, y) << "\t";
-                f_dx_Mf << f_dx_l(x - 5, cos2piy, y, cosh__2pi_xm5, sinh__2pi_xm5) << "\t";
-
                 g_dx_f << g_dx<3>(x, cos2piy, y) << "\t";
-                g_dx_Mf << g3_dx(x, cos2piy, y, cosh2pix, sinh2pix) << "\t";
             }
 
             xy_diff_xf << "\n";
@@ -425,8 +603,6 @@ int main()
             nonIEEE_xy_diff_xf << "\n";
             f_dx_f << "\n";
             g_dx_f << "\n";
-            f_dx_Mf << "\n";
-            g_dx_Mf << "\n";
         }
     }
 #pragma endregion

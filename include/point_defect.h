@@ -10,35 +10,23 @@
 
 namespace sdddstCore {
 
-struct PointDefect
-{
-    double x;
-    double y;
+    struct PointDefect
+    {
+        double x;
+        double y;
 
-    bool operator==(PointDefect a)
-    {
-        if (a.x == x && a.y == y)
+        bool operator==(PointDefect a)
         {
-            return true;
+            if (a.x == x && a.y == y)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            return false;
-        }
-    }
-
-#ifdef BUILD_PYTHON_BINDINGS
-    std::string __repr__() const
-    {
-        return "x: " + std::to_string(this->x) +
-                " y: " + std::to_string(this->y);
-    }
-    std::string __str__() const
-    {
-        return __repr__();
-    }
-#endif
-};
+    };
 
 }
 

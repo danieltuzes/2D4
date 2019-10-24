@@ -45,18 +45,6 @@ namespace sdddstCore
         double x;
         double y;
         double b;
-#ifdef BUILD_PYTHON_BINDINGS
-        std::string __str__() const
-        {
-            return "x: " + std::to_string(this->x) +
-                " y: " + std::to_string(this->y) +
-                " b: " + std::to_string(this->b);
-        }
-        std::string __repr__() const
-        {
-            return __str__();
-        }
-#endif
     };
 }
 

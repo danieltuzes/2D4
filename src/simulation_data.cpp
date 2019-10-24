@@ -21,14 +21,6 @@
 #include "constants.h"
 #include "stress_protocol.h"
 
-
-#ifdef BUILD_PYTHON_BINDINGS
-#include "field_wrapper.h"
-#include "periodic_shear_stress_ELTE_wrapper.h"
-#include "analytic_field_wrapper.h"
-#include "stress_protocol_wrapper.h"
-#endif
-
 using namespace sdddstCore;
 
 SimulationData::SimulationData(const std::string& startDislocationConfigurationPath, const std::string& fixpointsDataFilePath) :
@@ -120,7 +112,7 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
         sum_b += b;
         dc++;
     }
-    
+
     if (sum_b)
     {
         std::cerr << "Error in " << dislocationDataFilePath << ". The sum of the Burger's vector supposed to be 0, but it is " << sum_b << ". Program terminates." << std::endl;
@@ -135,7 +127,8 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     disl_order.resize(dislocs_w_id.size());
     for (size_t i = 0; i < dislocs_w_id.size(); ++i)
     {
-        dislocations.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y, dislocs_w_id[i].b);
+        // dislocations.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y, dislocs_w_id[i].b);
+        disl_sorted.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y);
         disl_order[dislocs_w_id[i].id] = i;
     }
 
@@ -146,9 +139,9 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     speed.resize(dc);
     speed2.resize(dc);
     dVec.resize(dc);
-    bigStep.resize(dc);
-    firstSmall.resize(dc);
-    secondSmall.resize(dc);
+    bigStep_sorted.resize(dc);
+    bigStep_sorted.resize(dc);
+    bigStep_sorted.resize(dc);
     Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
     Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
     Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));
@@ -179,9 +172,9 @@ void SimulationData::writeDislocationDataToFile(std::string dislocationDataFileP
 
     ofile << std::setprecision(14);
     for (auto id : disl_order)
-        ofile << dislocations[id].x << "\t"
-        << dislocations[id].y << "\t"
-        << dislocations[id].b << "\n";
+        ofile << disl_sorted[id].x << "\t"
+        << disl_sorted[id].y << "\t"
+        << b(id) << "\n";
 }
 
 void SimulationData::readPointDefectDataFromFile(std::string pointDefectDataFilePath)
@@ -238,59 +231,9 @@ void SimulationData::updateCutOff()
     onePerCutOffSqr = 1 / cutOffSqr;
 }
 
-#ifdef BUILD_PYTHON_BINDINGS
-
-Field const& SimulationData::getField()
+int SimulationData::b(unsigned int ID) const
 {
-    return *tau;
+    if (ID < dc / 2)
+        return 1;
+    else return -1;
 }
-
-void SimulationData::setField(boost::python::object field)
-{
-    boost::python::extract<PySdddstCore::PyField&> x(field);
-    if (x.check())
-    {
-        PySdddstCore::PyField& tmp = x();
-        tau.reset(tmp.release());
-    }
-}
-
-const StressProtocol& SimulationData::getStressProtocol()
-{
-    return *externalStressProtocol;
-}
-
-void SimulationData::setStressProtocol(boost::python::object protocol)
-{
-    boost::python::extract<PySdddstCore::PyStressProtocol&> x(protocol);
-    if (x.check())
-    {
-        PySdddstCore::PyStressProtocol& tmp = x();
-        externalStressProtocol.reset(tmp.release());
-    }
-}
-/*
-void SimulationData::deleteDislocationCountRelatedData()
-{
-    dc = 0;
-    dislocations.resize(0);
-    g.resize(0);
-    initSpeed.resize(0);
-    initSpeed2.resize(0);
-    speed.resize(0);
-    speed2.resize(0);
-    dVec.resize(0);
-    bigStep.resize(0);
-    firstSmall.resize(0);
-    secondSmall.resize(0);
-    free(Ap);
-    Ap = nullptr;
-    free(Ai);
-    Ai = nullptr;
-    free(Ax);
-    Ax = nullptr;
-    free(x);
-    x = nullptr;
-    indexes.resize(0);
-}*/
-#endif

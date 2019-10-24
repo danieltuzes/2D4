@@ -31,11 +31,6 @@ PrecisionHandler::PrecisionHandler() :
     //Nothing to do
 }
 
-PrecisionHandler::~PrecisionHandler()
-{
-    // Nothing to do
-}
-
 void PrecisionHandler::setSize(unsigned int size)
 {
     if (toleranceAndError.size() < size)
@@ -115,19 +110,3 @@ double PrecisionHandler::getMaxErrorRatioSqr() const
 {
     return maxErrorRatioSqr;
 }
-
-#ifdef BUILD_PYTHON_BINDINGS
-
-std::string PrecisionHandler::__str__() const
-{
-    return "N: " + std::to_string(toleranceAndError.size()) +
-        " Prec: " + std::to_string(minPrecisity) +
-        " New stepsize factor: " + std::to_string(getNewStepSize(1.0));
-}
-
-std::string PrecisionHandler::__repr__() const
-{
-    return __str__();
-}
-
-#endif

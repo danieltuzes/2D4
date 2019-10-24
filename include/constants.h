@@ -2,7 +2,10 @@
 // constants.h : contains some constant expressions from different places of the code. Included in simulation_data.cpp, project_parser.cpp, precision_handler.cpp and AnalyticField.h
 
 /*changelog
-# 0.2 
+# 0.3
+In case USE_IEEE_HYPERBOLIC is false, program calculates cosh(x) and sinh(x) from the exponential function, sinh = cosh is considered for arguments larger than 6*pi.
+
+# 0.2
 USE_IEEE_HYPERBOLIC added so AnalyticField.cpp can check against this to decide which method to use. If 1, uses original, IEEE compliant method, and uses a faster but less precise version otherwise
 
 # 0.1
@@ -12,7 +15,7 @@ first version with VERSION_constants
 #ifndef SDDDST_CORE_CONSTANTS_H
 #define SDDDST_CORE_CONSTANTS_H
 
-#define VERSION_constants 0.2
+#define VERSION_constants 0.3
 
 #define ANALYTIC_FIELD_N 4
 #define EPS 1e-12
@@ -39,31 +42,25 @@ first version with VERSION_constants
 
 #define sinh2pi 267.744894041016514257117449688    // sinh(2 * pi)
 #define sinh4pi 143375.656566582978695241314640    // sinh(4 * pi)
-#define sinh6pi 7.67764676977233437051070497210e7  // sinh(6 * pi), basically cosh6pi
-#define sinh8pi 4.11131577927974976374773721974e10 // sinh(8 * pi), basically cosh8pi
-#define sinhTpi 2.20157529303160145057002722719e13 // sinh(10* pi), basically coshTpi
 
-#define cosh__2pi_xp1 (cosh2pix * cosh2pi + sinh2pix * sinh2pi)  // == cosh( 2*pi * (x+1) )
-#define cosh__2pi_xm1 (cosh2pix * cosh2pi - sinh2pix * sinh2pi)  // == cosh( 2*pi * (x-1) )
-#define cosh__2pi_xp2 (cosh2pix * cosh4pi + sinh2pix * sinh4pi)  // == cosh( 2*pi * (x+2) )
-#define cosh__2pi_xm2 (cosh2pix * cosh4pi - sinh2pix * sinh4pi)  // == cosh( 2*pi * (x-2) )
-#define cosh__2pi_xp3 (cosh2pix * cosh6pi + sinh2pix * sinh6pi)  // == cosh( 2*pi * (x+3) )
-#define cosh__2pi_xm3 (cosh2pix * cosh6pi - sinh2pix * sinh6pi)  // == cosh( 2*pi * (x-3) )
-#define cosh__2pi_xp4 (cosh2pix * cosh8pi + sinh2pix * sinh8pi)  // == cosh( 2*pi * (x+4) )
-#define cosh__2pi_xm4 (cosh2pix * cosh8pi - sinh2pix * sinh8pi)  // == cosh( 2*pi * (x-4) )
-#define cosh__2pi_xp5 (cosh2pix * coshTpi + sinh2pix * sinhTpi)  // == cosh( 2*pi * (x+5) )
-#define cosh__2pi_xm5 (cosh2pix * coshTpi - sinh2pix * sinhTpi)  // == cosh( 2*pi * (x-5) )
+#define cosh__2pi_x__ ((exp2pix + 1/exp2pix) / 2)
+#define cosh__2pi_xp1 (((exp2pix + 1/exp2pix) * cosh2pi + (exp2pix - 1/exp2pix) * sinh2pi) / 2)
+#define cosh__2pi_xm1 (((exp2pix + 1/exp2pix) * cosh2pi - (exp2pix - 1/exp2pix) * sinh2pi) / 2)
+#define cosh__2pi_xp2 (((exp2pix + 1/exp2pix) * cosh4pi + (exp2pix - 1/exp2pix) * sinh4pi) / 2)
+#define cosh__2pi_xm2 (((exp2pix + 1/exp2pix) * cosh4pi - (exp2pix - 1/exp2pix) * sinh4pi) / 2)
+#define cosh__2pi_xp3 (cosh6pi * exp2pix)
+#define cosh__2pi_xm3 (cosh6pi / exp2pix)
+#define cosh__2pi_xp4 (cosh8pi * exp2pix)
+#define cosh__2pi_xm4 (cosh8pi / exp2pix)
+#define cosh__2pi_xp5 (coshTpi * exp2pix)
+#define cosh__2pi_xm5 (coshTpi / exp2pix)
 
-#define sinh__2pi_xp1 (sinh2pix * cosh2pi + cosh2pix * sinh2pi)  // == sinh( 2*pi * (x+1) )
-#define sinh__2pi_xm1 (sinh2pix * cosh2pi - cosh2pix * sinh2pi)  // == sinh( 2*pi * (x-1) )
-#define sinh__2pi_xp2 (sinh2pix * cosh4pi + cosh2pix * sinh4pi)  // == sinh( 2*pi * (x+2) )
-#define sinh__2pi_xm2 (sinh2pix * cosh4pi - cosh2pix * sinh4pi)  // == sinh( 2*pi * (x-2) )
-#define sinh__2pi_xp3 (sinh2pix * cosh6pi + cosh2pix * sinh6pi)  // == sinh( 2*pi * (x+3) )
-#define sinh__2pi_xm3 (sinh2pix * cosh6pi - cosh2pix * sinh6pi)  // == sinh( 2*pi * (x-3) )
-#define sinh__2pi_xp4 (sinh2pix * cosh8pi + cosh2pix * sinh8pi)  // == sinh( 2*pi * (x+4) )
-#define sinh__2pi_xm4 (sinh2pix * cosh8pi - cosh2pix * sinh8pi)  // == sinh( 2*pi * (x-4) )
-#define sinh__2pi_xp5 (sinh2pix * coshTpi + cosh2pix * sinhTpi)  // == sinh( 2*pi * (x+5) )
-#define sinh__2pi_xm5 (sinh2pix * coshTpi - cosh2pix * sinhTpi)  // == sinh( 2*pi * (x-5) )
+#define sinh__2pi_x__ ((exp2pix - 1/exp2pix) / 2)
+#define sinh__2pi_xp1 (((exp2pix - 1/exp2pix) * cosh2pi + (exp2pix + 1/exp2pix) * sinh2pi) / 2)
+#define sinh__2pi_xm1 (((exp2pix - 1/exp2pix) * cosh2pi - (exp2pix + 1/exp2pix) * sinh2pi) / 2)
+#define sinh__2pi_xp2 (((exp2pix - 1/exp2pix) * cosh4pi + (exp2pix + 1/exp2pix) * sinh4pi) / 2)
+#define sinh__2pi_xm2 (((exp2pix - 1/exp2pix) * cosh4pi - (exp2pix + 1/exp2pix) * sinh4pi) / 2)
+
 #endif
 #endif
 

@@ -29,12 +29,12 @@ sdddstCore::Field::~Field()
     // Nothing to do
 }
 
-double sdddstCore::Field::xy(double, double)
+double sdddstCore::Field::xy(double, double) const
 {
     return 0;
 }
 
-double sdddstCore::Field::xy_diff_x(double, double)
+double sdddstCore::Field::xy_diff_x(double, double) const
 {
     return 0;
 }
