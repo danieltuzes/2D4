@@ -46,4 +46,5 @@ Using only the relative difference, and not their absolute value tells that the 
 
 It seems that both non-IEEE compatible hyperbolic function calculation is **precise enough**. To further analyse the results and to measure the effect of this improvement, I will investigate the relaxed systems for the two case with size N=1024.
 
-The [speedtest is available](../../src/speedtests.md#ieee_hyperbolic) in Hungarian and says that one can gain a speed improvement by **180% to 200%** using only the identities. The smaller systems can gain a bit more with this improvement.
+
+The [speedtest is available](https://github.com/danieltuzes/2D4/wiki/Speedtests#ieee_hyperbolic) in Hungarian and says that one can gain a speed improvement by **180% to 200%**. The smalle5r systems can gain a bit more with this improvement.
