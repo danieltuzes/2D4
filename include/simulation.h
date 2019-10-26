@@ -2,6 +2,11 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 0.5
+* calculateSpeedsAtStresses calculates the speeds at two different external stress values, eliminates 1 speed calculation
+* unused function declarations with Dislocation classes are removed
+* iteration loop unrolled
+
 # 0.4
 * Burgers' vector value is checked and used on a bas of bool, no multiplication
 * stepStages are moved to run()
@@ -22,7 +27,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 0.4
+#define VERSION_simulation 0.5
 
 #include "dislocation.h"
 #include "precision_handler.h"

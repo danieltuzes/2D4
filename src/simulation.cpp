@@ -430,7 +430,6 @@ void Simulation::calculateG(double stepsize, const std::vector<DislwoB>& newDisl
         csp = &(sD->speed2);     // speeds at the end of the step?
     }
 
-    double extStresst_0;
     if (calcInitSpeed)
     {
         // for t_0
