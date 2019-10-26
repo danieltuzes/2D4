@@ -135,7 +135,7 @@ void Simulation::run()
     lastWriteTimeFinished = get_wall_time();
     sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
     calculateSpeeds(sD->disl_sorted, sD->initSpeed);
-    initSpeedCalculationIsNeeded = false;
+    initSpeedCalculationIsNeeded = false; // if initSpeed corresponds to the actual state of the dislocations; false after a successful step
     double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
     double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
 
@@ -167,10 +167,6 @@ void Simulation::run()
         /////////////////////////////////
         {
             sD->currentStressStateType = StressProtocolStepType::Original;
-
-            // Reset the variables for the integration
-            sD->bigStep_sorted = sD->disl_sorted;
-
             integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, initSpeedCalculationIsNeeded, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
         }
 
@@ -178,7 +174,6 @@ void Simulation::run()
         /// step stageII
         /////////////////////////////////
         {
-            sD->firstSmall_sorted = sD->disl_sorted;
             integrate(0.5 * sD->stepSize, sD->firstSmall_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
         }
 
@@ -186,8 +181,6 @@ void Simulation::run()
         /// step stage III
         /////////////////////////////////
         {
-            sD->secondSmall_sorted = sD->firstSmall_sorted;
-
             integrate(0.5 * sD->stepSize, sD->secondSmall_sorted, sD->firstSmall_sorted, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
 
             double vsquare2 = absvalsq(sD->initSpeed2);
@@ -297,7 +290,7 @@ void Simulation::run()
     }
 
     sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
-    std::cout << "Simulation is done (" << get_wall_time() - startTime <<" s).\n";
+    std::cout << "Simulation is done (" << get_wall_time() - startTime << " s).\n";
 }
 
 void Simulation::calculateXError()
@@ -310,37 +303,41 @@ void Simulation::calculateXError()
 }
 
 /**
-    @brief integrate:	evolve the dislocation system in time
-    @param stepsize:	how large time step should be made
-    @param newDislocation:	the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
-    @param old:	the input dislocation configuration, no need to be in the range of [-0.5:0.5)
-    @param useSpeed2:
-    @param calculateInitSpeed:
-    @param origin:
-    @param end:
+    @brief integrate:      evolve the dislocation system in time from the actual position t_0 until t_0 + stepsize
+    @param stepsize:       how large time step should be made
+    @param newDislocation: the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
+    @param old:            the input dislocation configuration, no need to be in the range of [-0.5:0.5)
+    @param useSpeed2:      true for the second small step
+    @param calcInitSpeed:  if initSpeed can be used as the speeds of the particles; false after a successful step and after the small step
+    @param origin:         stress at the beginning of the integration
+    @param end:            stress at the end of the integration
 */
-void Simulation::integrate(double stepsize, std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old,
-    bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
+void Simulation::integrate(double stepsize, std::vector<DislwoB>& newDisloc, const std::vector<DislwoB>& oldDisloc,
+    bool useSpeed2, bool calcInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
 {
-    calculateJacobian(stepsize, newDislocation);
+    newDisloc = oldDisloc; // initialize newDisloc from oldDisloc
+    calculateJacobian(stepsize, oldDisloc);
     calculateSparseFormForJacobian();
-    for (size_t i = 0; i < sD->ic; i++)
-    {
-        if (i > 0)
-            calculateG(stepsize, newDislocation, old, useSpeed2, false, false, origin, end);
-        else
-            calculateG(stepsize, newDislocation, old, useSpeed2, calculateInitSpeed, false, origin, end);
 
-        solveEQSys();
-        for (size_t j = 0; j < sD->dc; j++)
-            newDislocation[j].x -= sD->x[j];
-    }
+    calculateG(stepsize, newDisloc, oldDisloc, useSpeed2, calcInitSpeed, origin, end);
+    solveEQSys();
+    for (size_t j = 0; j < sD->dc; j++)
+        newDisloc[j].x -= sD->x[j];
+
+    calculateG(stepsize, newDisloc, oldDisloc, useSpeed2, false, origin, end);
+    solveEQSys();
+    for (size_t j = 0; j < sD->dc; j++)
+        newDisloc[j].x -= sD->x[j];
+
     umfpack_di_free_numeric(&sD->Numeric);
 }
 
-void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& forces) const
+void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double extStress_A, double extStress_B) const
 {
-    std::fill(forces.begin(), forces.end(), 0);
+    std::fill(forces_A.begin(), forces_A.end(), 0);
+
+    if (&forces_A != &forces_B)
+        std::fill(forces_B.begin(), forces_B.end(), 0);
 
     for (unsigned int i = 0; i < sD->dc; i++) // typically unefficient
     {
@@ -360,13 +357,13 @@ void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<do
 
             if ((sD->is_pos_b(i) && sD->is_pos_b(j)) || (!sD->is_pos_b(i) && !sD->is_pos_b(j)))
             {
-                forces[i] += force;
-                forces[j] -= force;
+                forces_A[i] += force;
+                forces_A[j] -= force;
             }
             else
             {
-                forces[i] -= force;
-                forces[j] += force;
+                forces_A[i] -= force;
+                forces_A[j] += force;
             }
 
         }
@@ -385,58 +382,91 @@ void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<do
             double ySqr = X2(dy);
             double rSqr = xSqr + ySqr;
             double expXY = exp(-sD->KASQR * rSqr);
-            forces[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
+            forces_A[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
 
             pH->updateTolerance(rSqr, i);
-        }
-#endif
-
-        double externalforce = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
-        if (sD->is_pos_b(i))
-            forces[i] += externalforce;
-        else
-            forces[i] -= externalforce;
     }
+#endif
+        if (&forces_A == &forces_B)
+            forces_A[i] += extStress_A * sD->b(i);
+        else
+        {
+            forces_B[i] = forces_A[i] + extStress_B * sD->b(i);
+            forces_A[i] += extStress_A * sD->b(i);
+        }
+
+}
 }
 
-void Simulation::calculateG(double stepsize, const std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old,
-    bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const
+void Simulation::calculateSpeedsAtStress(const std::vector<DislwoB>& dis, std::vector<double>& forces, double extStress) const
+{
+    calculateSpeedsAtStresses(dis, forces, forces, extStress, extStress);
+}
+
+void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& forces) const
+{
+    double extStress = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
+    calculateSpeedsAtStress(dis, forces, extStress);
+}
+
+/**
+    @brief calculateG:     calculates the g vector
+    @param stepsize:       how large time step should be made
+    @param newDisloc:      the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
+    @param oldDisloc:      the input dislocation configuration, no need to be in the range of [-0.5:0.5)
+    @param useSpeed2:      true for the second small step
+    @param calcInitSpeed:  if initSpeed can be used as the speeds of the particles; calcInitSpeed is false after an unsuccessful step, at first small step and at the 2nd NR iteration; true after successful step and at the second step, but both cases only the first NR step
+    @param origin:         stress at the beginning of the integration
+    @param end:            stress at the end of the integration
+*/
+void Simulation::calculateG(double stepsize, const std::vector<DislwoB>& newDisloc, const std::vector<DislwoB>& oldDisloc,
+    bool useSpeed2, bool calcInitSpeed, StressProtocolStepType origin, StressProtocolStepType end) const
 {
     std::vector<double>* isp = &(sD->initSpeed);
     std::vector<double>* csp = &(sD->speed);
     if (useSpeed2)
     {
-        isp = &(sD->initSpeed2);
-        csp = &(sD->speed2);
+        isp = &(sD->initSpeed2); // initial speeds
+        csp = &(sD->speed2);     // speeds at the end of the step?
     }
 
-    if (calculateInitSpeed)
+    double extStresst_0;
+    if (calcInitSpeed)
     {
-        double t = sD->simTime;
+        // for t_0
+        double t_0 = sD->simTime;
         if (origin == StressProtocolStepType::EndOfFirstSmallStep)
-            t += sD->stepSize * 0.5;
+            t_0 += sD->stepSize * 0.5;
 
-
-        sD->externalStressProtocol->calcExtStress(t, origin);
+        sD->externalStressProtocol->calcExtStress(t_0, origin);
         sD->currentStressStateType = origin;
-        calculateSpeeds(old, *isp);
-    }
+        double extStresst_0 = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
 
-    if (useInitSpeedForFirstStep)
-        csp = isp;
+        // for t_1
+        double t_1 = sD->simTime + sD->stepSize; // the time 
+        if (end == StressProtocolStepType::EndOfFirstSmallStep)
+            t_1 -= sD->stepSize * 0.5;
+
+        sD->externalStressProtocol->calcExtStress(t_1, end);
+        sD->currentStressStateType = end;
+        double extStresst_1 = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
+
+        calculateSpeedsAtStresses(oldDisloc, *isp, *csp, extStresst_0, extStresst_1);
+    }
     else
     {
-        double t = sD->simTime + sD->stepSize;
+        double t_1 = sD->simTime + sD->stepSize; // the time 
         if (end == StressProtocolStepType::EndOfFirstSmallStep)
-            t -= sD->stepSize * 0.5;
+            t_1 -= sD->stepSize * 0.5;
 
-        sD->externalStressProtocol->calcExtStress(t, end);
+        sD->externalStressProtocol->calcExtStress(t_1, end);
         sD->currentStressStateType = end;
-        calculateSpeeds(newDislocation, *csp);
+
+        calculateSpeeds(newDisloc, *csp);
     }
 
     for (size_t i = 0; i < sD->dc; i++)
-        sD->g[i] = newDislocation[i].x - (1 + sD->dVec[i]) * 0.5 * stepsize * (*csp)[i] - old[i].x - (1 - sD->dVec[i]) * 0.5 * stepsize * (*isp)[i];
+        sD->g[i] = newDisloc[i].x - oldDisloc[i].x - ((1 + sD->dVec[i]) * stepsize * (*csp)[i] + (1 - sD->dVec[i]) * stepsize * (*isp)[i]) / 2;
 }
 
 void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& data)

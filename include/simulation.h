@@ -52,26 +52,14 @@ namespace sdddstCore {
 
         void run();
 
-        void stepStageI();
-        void stepStageII();
-        void stepStageIII();
-
-        // with Dislocation: dislocation with Burgers' vector
-        void integrate(double stepsize, std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end);
-
-        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect)
-        void calculateSpeeds(const std::vector<Dislocation>& dis, std::vector<double>& res) const;
-        void calculateG(double stepsize, const std::vector<Dislocation>& newDislocation, const std::vector<Dislocation>& old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const;
-        void calculateJacobian(double stepsize, const std::vector<Dislocation>& data);
-
-        double calculateStrainIncrement(const std::vector<Dislocation>& old, const std::vector<Dislocation>& newD) const;
-
         // with DislwoB: dislocation without Burger's vector
         void integrate(double stepsize, std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old, bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end);
 
         // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect)
         void calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& res) const;
-        void calculateG(double stepsize, const std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old, bool useSpeed2, bool calculateInitSpeed, bool useInitSpeedForFirstStep, StressProtocolStepType origin, StressProtocolStepType end) const;
+        void calculateSpeedsAtStress(const std::vector<DislwoB>& dis, std::vector<double>& forces, double extStress) const;
+        void calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double extStress_A, double extStress_B) const;
+        void calculateG(double stepsize, const std::vector<DislwoB>& newDislocation, const std::vector<DislwoB>& old, bool useSpeed2, bool calculateInitSpeed, StressProtocolStepType origin, StressProtocolStepType end) const;
 
         double calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const;
 

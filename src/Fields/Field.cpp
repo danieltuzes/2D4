@@ -188,10 +188,10 @@ double f_l(double dx, double cos2piy, double cosh2pix)
 double g3(double dx, double cos2piy, double dy, double exp2pix)
 {
     return
-        f_0(dx + 0, cos2piy, dy, cosh__2pi_x__) +
-        f_l(dx + 1, cos2piy, cosh__2pi_xp1) + f_l(dx - 1, cos2piy, cosh__2pi_xm1) +
+        f_l(dx + 3, cos2piy, cosh__2pi_xp3) + f_l(dx - 3, cos2piy, cosh__2pi_xm3) +
         f_l(dx + 2, cos2piy, cosh__2pi_xp2) + f_l(dx - 2, cos2piy, cosh__2pi_xm2) +
-        f_l(dx + 3, cos2piy, cosh__2pi_xp3) + f_l(dx - 3, cos2piy, cosh__2pi_xm3);
+        f_l(dx + 1, cos2piy, cosh__2pi_xp1) + f_l(dx - 1, cos2piy, cosh__2pi_xm1) +
+        f_0(dx + 0, cos2piy, dy, cosh__2pi_x__);
 }
 
 // calculates the derivative of the stress of a dislocation wall
