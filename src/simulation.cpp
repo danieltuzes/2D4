@@ -39,7 +39,7 @@ double absvalsq(const std::vector<double>& input)
     return std::accumulate(input.begin(), input.end(), 0., [](double a, double b) {return a + b * b; });
 }
 
-// returns wall time in ms
+// returns wall time in seconds
 double get_wall_time()
 {
     // From https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
@@ -57,85 +57,17 @@ double get_wall_time()
 
 using namespace sdddstCore;
 
-Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
-    lastWriteTimeFinished(0),
-    startTime(0),
-    initSpeedCalculationIsNeeded(true),
-    energy(0),
-    sD(sD),
-    pH(new PrecisionHandler)
-{
-    // Format setting
-    sD->standardOutputLog << std::scientific << std::setprecision(16);
-
-    pH->setMinPrecisity(sD->prec);
-    pH->setSize(sD->dc);
-}
-
-double Simulation::getElement(int j, int si, int ei) const
-{
-    int len = ei - si;
-    if (len > 1)
-    {
-        int tmp = len / 2;
-        double a;
-
-        if (sD->Ai[si + tmp] > j)
-        {
-            a = getElement(j, si, si + tmp);
-            if (a != 0)
-                return a;
-        }
-        else
-        {
-            a = getElement(j, si + tmp, ei);
-            if (a != 0)
-                return a;
-        }
-    }
-    else if (sD->Ai[si] == j)
-        return sD->Ax[si];
-
-    return 0;
-}
-
-double Simulation::getSimTime() const
-{
-    return sD->simTime;
-}
-
-void Simulation::calculateSparseFormForJacobian()
-{
-    (void)umfpack_di_symbolic(sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
-    (void)umfpack_di_numeric(sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null);
-    umfpack_di_free_symbolic(&(sD->Symbolic));
-}
-
-void Simulation::solveEQSys()
-{
-    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
-}
-
-double Simulation::calculateOrderParameter(const std::vector<double>& speeds) const
-{
-    double orderParameter = 0;
-    for (size_t i = 0; i < sD->dc; i++)
-        orderParameter += sD->b(i) * speeds[i];
-
-    return orderParameter;
-}
-
 void Simulation::run()
 {
-    {
-        std::time_t start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::cout << "Simulation started on " << std::ctime(&start_time) << std::endl;
-    }
-    startTime = get_wall_time();
-    lastWriteTimeFinished = get_wall_time();
-    sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
-    calculateSpeeds(sD->disl_sorted, sD->initSpeed);
-    initSpeedCalculationIsNeeded = false; // if initSpeed corresponds to the actual state of the dislocations; false after a successful step
+    std::time_t start_date_and_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::cout << "Simulation started on " << std::ctime(&start_date_and_time) << std::endl;
+    double startTime = get_wall_time(); // start time in seconds
+    double lastLogTime = get_wall_time(); // the time of the last write into the logfile
+    double energy = 0;
+
+    double extStress = sD->externalStressProtocol->extStress(sD->simTime);
+    calculateSpeedsAtStress(sD->disl_sorted, sD->initSpeed, extStress);
+
     double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
     double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
 
@@ -148,13 +80,12 @@ void Simulation::run()
         << sumAvgSp << "\t"
         << sD->cutOff << "\t"
         << "-" << "\t"
-        << sD->externalStressProtocol->getExtStress(sD->currentStressStateType) << "\t"
+        << extStress << "\t"
         << "-" << "\t"
         << sD->totalAccumulatedStrainIncrease << "\t"
         << vsquare << "\t"
         << energy << "\t"
         << 0 << std::endl;
-
     while (
         ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
         ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
@@ -165,141 +96,123 @@ void Simulation::run()
         /////////////////////////////////
         /// step stage I
         /////////////////////////////////
-        {
-            sD->currentStressStateType = StressProtocolStepType::Original;
-            integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, initSpeedCalculationIsNeeded, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
-        }
+        integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
 
         /////////////////////////////////
         /// step stageII
         /////////////////////////////////
-        {
-            integrate(0.5 * sD->stepSize, sD->firstSmall_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
-        }
+        integrate(0.5 * sD->stepSize, sD->firstSmall_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
 
         /////////////////////////////////
         /// step stage III
         /////////////////////////////////
+        integrate(0.5 * sD->stepSize, sD->secondSmall_sorted, sD->firstSmall_sorted, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
+
+        double vsquare2 = absvalsq(sD->initSpeed2);
+        double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * 0.5 * sD->stepSize * 0.5;
+
+        calculateXError();
+
+        /// Precision related error handling
+        if (pH->getMaxErrorRatioSqr() < 1)
         {
-            integrate(0.5 * sD->stepSize, sD->secondSmall_sorted, sD->firstSmall_sorted, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
-
-            double vsquare2 = absvalsq(sD->initSpeed2);
-
-            double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * 0.5 * sD->stepSize * 0.5;
-
-            calculateXError();
-
-            /// Precision related error handling
-            if (pH->getMaxErrorRatioSqr() < 1)
+            if (sD->calculateStrainDuringSimulation)
             {
-                initSpeedCalculationIsNeeded = true;
-
-                if (sD->calculateStrainDuringSimulation)
-                {
-                    sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
-                    sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
-                }
-
-                sD->disl_sorted.swap(sD->secondSmall_sorted);
-                for (size_t i = 0; i < sD->dc; i++)
-                    normalize(sD->disl_sorted[i].x);
-
-                sD->simTime += sD->stepSize;
-                sD->succesfulSteps++;
-
-                double orderParameter = 0;
-                if (sD->orderParameterCalculationIsOn)
-                    orderParameter = calculateOrderParameter(sD->speed);
-
-                sD->currentStressStateType = StressProtocolStepType::Original;
-                sD->externalStressProtocol->calcExtStress(sD->simTime, StressProtocolStepType::Original);
-                calculateSpeeds(sD->disl_sorted, sD->initSpeed);
-                initSpeedCalculationIsNeeded = false;
-                double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
-
-                if (sD->countAvalanches)
-                {
-                    if (sD->inAvalanche && sumAvgSp < sD->avalancheSpeedThreshold)
-                    {
-                        sD->avalancheCount++;
-                        sD->inAvalanche = false;
-                    }
-                    else if (sumAvgSp > sD->avalancheSpeedThreshold)
-                        sD->inAvalanche = true;
-                }
-                double vsquare = absvalsq(sD->initSpeed);
-                energyThisStep += (vsquare + vsquare2) * 0.5 * sD->stepSize * 0.5;
-                sD->standardOutputLog << sD->simTime << "\t"
-                    << sD->succesfulSteps << "\t"
-                    << sD->failedSteps << "\t"
-                    << pH->getMaxErrorRatioSqr() << "\t"
-                    << sumAvgSp << "\t"
-                    << sD->cutOff << "\t";
-
-                if (sD->orderParameterCalculationIsOn)
-                    sD->standardOutputLog << orderParameter << "\t";
-                else
-                    sD->standardOutputLog << "-" << "\t";
-
-                sD->standardOutputLog << sD->externalStressProtocol->getExtStress(StressProtocolStepType::Original) << "\t"
-                    << get_wall_time() - lastWriteTimeFinished << "\t";
-
-                if (sD->calculateStrainDuringSimulation)
-                    sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
-                else
-                    sD->standardOutputLog << "-" << "\t";
-
-
-                if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
-                {
-                    sD->cutOffMultiplier = 1e20;
-                    sD->updateCutOff();
-                }
-
-                energy += energyThisStep;
-
-                sD->standardOutputLog << vsquare << "\t"
-                    << energy << "\t"
-                    << get_wall_time() - startTime << std::endl;
-
-                if (sD->isSaveSubConfigs)
-                {
-                    if ((!sD->inAvalanche && sD->subConfigDelay >= sD->subconfigDistanceCounter) || (sD->inAvalanche && sD->subConfigDelayDuringAvalanche >= sD->subconfigDistanceCounter))
-                    {
-                        sD->subconfigDistanceCounter = 0;
-                        std::stringstream ss;
-                        ss << std::setprecision(16);
-                        ss << sD->simTime;
-                        sD->writeDislocationDataToFile(sD->subConfigPath + ss.str() + ".dconf");
-                    }
-                    else
-                        sD->subconfigDistanceCounter++;
-                }
-
-                lastWriteTimeFinished = get_wall_time();
+                sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
+                sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
+
+            sD->disl_sorted.swap(sD->secondSmall_sorted);
+            for (size_t i = 0; i < sD->dc; i++)
+                normalize(sD->disl_sorted[i].x);
+
+            sD->simTime += sD->stepSize;
+            sD->succesfulSteps++;
+
+            double orderParameter = 0;
+            if (sD->orderParameterCalculationIsOn)
+                orderParameter = calculateOrderParameter(sD->speed);
+
+            {
+                double extStress = sD->externalStressProtocol->extStress(sD->simTime);
+                calculateSpeedsAtStress(sD->disl_sorted, sD->initSpeed, extStress);
+            }
+
+            double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+
+            if (sD->countAvalanches)
+            {
+                if (sD->inAvalanche && sumAvgSp < sD->avalancheSpeedThreshold)
+                {
+                    sD->avalancheCount++;
+                    sD->inAvalanche = false;
+                }
+                else if (sumAvgSp > sD->avalancheSpeedThreshold)
+                    sD->inAvalanche = true;
+            }
+            double vsquare = absvalsq(sD->initSpeed);
+            energyThisStep += (vsquare + vsquare2) * 0.5 * sD->stepSize * 0.5;
+            sD->standardOutputLog << sD->simTime << "\t"
+                << sD->succesfulSteps << "\t"
+                << sD->failedSteps << "\t"
+                << pH->getMaxErrorRatioSqr() << "\t"
+                << sumAvgSp << "\t"
+                << sD->cutOff << "\t";
+
+            if (sD->orderParameterCalculationIsOn)
+                sD->standardOutputLog << orderParameter << "\t";
             else
-                sD->failedSteps++;
+                sD->standardOutputLog << "-" << "\t";
 
-            sD->stepSize = pH->getNewStepSize(sD->stepSize);
-            pH->reset();
+            sD->standardOutputLog
+                << sD->externalStressProtocol->extStress(sD->simTime) << "\t"
+                << get_wall_time() - lastLogTime << "\t";
 
-            if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
-                sD->stepSize = sD->maxStepSizeLimit;
+            if (sD->calculateStrainDuringSimulation)
+                sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
+            else
+                sD->standardOutputLog << "-" << "\t";
+
+            if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
+            {
+                sD->cutOffMultiplier = 1e20;
+                sD->updateCutOff();
+            }
+
+            energy += energyThisStep;
+
+            sD->standardOutputLog << vsquare << "\t"
+                << energy << "\t"
+                << get_wall_time() - startTime << std::endl;
+
+            if (sD->isSaveSubConfigs)
+            {
+                if ((!sD->inAvalanche && sD->subConfigDelay >= sD->subconfigDistanceCounter) || (sD->inAvalanche && sD->subConfigDelayDuringAvalanche >= sD->subconfigDistanceCounter))
+                {
+                    sD->subconfigDistanceCounter = 0;
+                    std::stringstream ss;
+                    ss << std::setprecision(16);
+                    ss << sD->simTime;
+                    sD->writeDislocationDataToFile(sD->subConfigPath + ss.str() + ".dconf");
+                }
+                else
+                    sD->subconfigDistanceCounter++;
+            }
+
+            lastLogTime = get_wall_time();
         }
+        else
+            sD->failedSteps++;
+
+        sD->stepSize = pH->getNewStepSize(sD->stepSize);
+        pH->reset();
+
+        if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
+            sD->stepSize = sD->maxStepSizeLimit;
     }
 
     sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
     std::cout << "Simulation is done (" << get_wall_time() - startTime << " s).\n";
-}
-
-void Simulation::calculateXError()
-{
-    for (unsigned int i = 0; i < sD->dc; i++)
-    {
-        double tmp = fabs(sD->bigStep_sorted[i].x - sD->secondSmall_sorted[i].x);
-        pH->updateError(tmp, i);
-    }
 }
 
 /**
@@ -316,7 +229,7 @@ void Simulation::integrate(double stepsize, std::vector<DislwoB>& newDisloc, con
     bool useSpeed2, bool calcInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
 {
     newDisloc = oldDisloc; // initialize newDisloc from oldDisloc
-    calculateJacobian(stepsize, oldDisloc);
+    calcJacobian(stepsize, oldDisloc);
     calculateSparseFormForJacobian();
 
     calculateG(stepsize, newDisloc, oldDisloc, useSpeed2, calcInitSpeed, origin, end);
@@ -385,7 +298,7 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
             forces_A[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
 
             pH->updateTolerance(rSqr, i);
-    }
+        }
 #endif
         if (&forces_A == &forces_B)
             forces_A[i] += extStress_A * sD->b(i);
@@ -395,22 +308,11 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
             forces_A[i] += extStress_A * sD->b(i);
         }
 
-}
-}
-
-void Simulation::calculateSpeedsAtStress(const std::vector<DislwoB>& dis, std::vector<double>& forces, double extStress) const
-{
-    calculateSpeedsAtStresses(dis, forces, forces, extStress, extStress);
-}
-
-void Simulation::calculateSpeeds(const std::vector<DislwoB>& dis, std::vector<double>& forces) const
-{
-    double extStress = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
-    calculateSpeedsAtStress(dis, forces, extStress);
+    }
 }
 
 /**
-    @brief calculateG:     calculates the g vector
+    @brief calculateG:     calculates and modifies the g vector
     @param stepsize:       how large time step should be made
     @param newDisloc:      the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
     @param oldDisloc:      the input dislocation configuration, no need to be in the range of [-0.5:0.5)
@@ -437,19 +339,14 @@ void Simulation::calculateG(double stepsize, const std::vector<DislwoB>& newDisl
         if (origin == StressProtocolStepType::EndOfFirstSmallStep)
             t_0 += sD->stepSize * 0.5;
 
-        sD->externalStressProtocol->calcExtStress(t_0, origin);
-        sD->currentStressStateType = origin;
-        double extStresst_0 = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
+        double extStresst_0 = sD->externalStressProtocol->extStress(t_0);
 
         // for t_1
         double t_1 = sD->simTime + sD->stepSize; // the time 
         if (end == StressProtocolStepType::EndOfFirstSmallStep)
             t_1 -= sD->stepSize * 0.5;
 
-        sD->externalStressProtocol->calcExtStress(t_1, end);
-        sD->currentStressStateType = end;
-        double extStresst_1 = sD->externalStressProtocol->getExtStress(sD->currentStressStateType);
-
+        double extStresst_1 = sD->externalStressProtocol->extStress(t_1);
         calculateSpeedsAtStresses(oldDisloc, *isp, *csp, extStresst_0, extStresst_1);
     }
     else
@@ -458,17 +355,20 @@ void Simulation::calculateG(double stepsize, const std::vector<DislwoB>& newDisl
         if (end == StressProtocolStepType::EndOfFirstSmallStep)
             t_1 -= sD->stepSize * 0.5;
 
-        sD->externalStressProtocol->calcExtStress(t_1, end);
-        sD->currentStressStateType = end;
-
-        calculateSpeeds(newDisloc, *csp);
+        double extStress = sD->externalStressProtocol->extStress(t_1);
+        calculateSpeedsAtStress(newDisloc, *csp, extStress);
     }
 
     for (size_t i = 0; i < sD->dc; i++)
         sD->g[i] = newDisloc[i].x - oldDisloc[i].x - ((1 + sD->dVec[i]) * stepsize * (*csp)[i] + (1 - sD->dVec[i]) * stepsize * (*isp)[i]) / 2;
 }
 
-void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& data)
+/**
+    @brief calcJacobian:   calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
+    @param stepsize:       how large time step should be made
+    @param dislocs:        the actual positions of the dislocations
+*/
+void Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislocs)
 {
     int totalElementCounter = 0;
 
@@ -551,10 +451,10 @@ void Simulation::calculateJacobian(double stepsize, const std::vector<DislwoB>& 
         // Totally new part
         for (unsigned int i = j + 1; i < sD->dc; i++)
         {
-            dx = data[i].x - data[j].x;
+            dx = dislocs[i].x - dislocs[j].x;
             normalize(dx);
 
-            dy = data[i].y - data[j].y; // az y értékek konstansok, így ha a diszlokációk rendezve vannak tárolva, akkor csak az ellentétes típusúak között kell max 1 kivonást elvégezni a normalize függvényben
+            dy = dislocs[i].y - dislocs[j].y; // az y értékek konstansok, így ha a diszlokációk rendezve vannak tárolva, akkor csak az ellentétes típusúak között kell max 1 kivonást elvégezni a normalize függvényben
             normalize(dy);
 
             double distSq = dx * dx + dy * dy;
@@ -607,4 +507,82 @@ double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, con
         ret += sD->b(i) * (newD[i].x - old[i].x); // x is not in the range of [-0.5: 0.5), the difference is the real distance
 
     return ret;
+}
+
+void Simulation::calculateSpeedsAtStress(const std::vector<DislwoB>& dis, std::vector<double>& forces, double extStress) const
+{
+    calculateSpeedsAtStresses(dis, forces, forces, extStress, extStress);
+}
+
+void Simulation::calculateXError()
+{
+    for (unsigned int i = 0; i < sD->dc; i++)
+    {
+        double tmp = fabs(sD->bigStep_sorted[i].x - sD->secondSmall_sorted[i].x);
+        pH->updateError(tmp, i);
+    }
+}
+
+Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
+    sD(sD),
+    pH(new PrecisionHandler)
+{
+    // Format setting
+    sD->standardOutputLog << std::scientific << std::setprecision(16);
+
+    pH->setMinPrecisity(sD->prec);
+    pH->setSize(sD->dc);
+}
+
+double Simulation::getElement(int j, int si, int ei) const
+{
+    int len = ei - si;
+    if (len > 1)
+    {
+        int tmp = len / 2;
+        double a;
+
+        if (sD->Ai[si + tmp] > j)
+        {
+            a = getElement(j, si, si + tmp);
+            if (a != 0)
+                return a;
+        }
+        else
+        {
+            a = getElement(j, si + tmp, ei);
+            if (a != 0)
+                return a;
+        }
+    }
+    else if (sD->Ai[si] == j)
+        return sD->Ax[si];
+
+    return 0;
+}
+
+double Simulation::getSimTime() const
+{
+    return sD->simTime;
+}
+
+void Simulation::calculateSparseFormForJacobian() // modifies only Ai, Ax, Ap, Symbolic and Numeric
+{
+    (void)umfpack_di_symbolic(sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
+    (void)umfpack_di_numeric(sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null);
+    umfpack_di_free_symbolic(&(sD->Symbolic));
+}
+
+void Simulation::solveEQSys()
+{
+    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
+}
+
+double Simulation::calculateOrderParameter(const std::vector<double>& speeds) const
+{
+    double orderParameter = 0;
+    for (size_t i = 0; i < sD->dc; i++)
+        orderParameter += sD->b(i) * speeds[i];
+
+    return orderParameter;
 }

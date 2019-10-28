@@ -1,10 +1,18 @@
-
+// 
 // stress_protocol.h : contains the function declaration for stress_protocol.cpp, also included in project_parser.cpp
+
+/*
+# 0.2
+FixedRateProtocol has been dramatically simplified. extStress is the only non CTOR/DTOR function returning the stress value at a given simulation time
+
+# 0.1 
+First version tracked source
+*/
 
 #ifndef SDDDST_CORE_STRESS_PROTOCOL_H
 #define SDDDST_CORE_STRESS_PROTOCOL_H
 
-#define VERSION_stress_protocol 0.1
+#define VERSION_stress_protocol 0.2
 
 #include "dislocation.h"
 
@@ -31,21 +39,9 @@ namespace sdddstCore {
     public:
         StressProtocol(double initExtStress);
         StressProtocol();
-
-        /**
-         * @brief calculateStress calculates the stress value for the given situation
-         * @param simulationTime
-         * @param dislocations
-         * @param type
-         */
-        virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
-
-        /**
-         * @brief getStress returns with the stress value at the given situation
-         * @param type
-         * @return
-         */
-        virtual double getExtStress(StressProtocolStepType type) const;
+        
+        // returns the external stress at a given time
+        virtual double extStress(double simulationTime) const;
 
     protected:
         double initExtStress;
@@ -58,8 +54,8 @@ namespace sdddstCore {
         FixedRateProtocol(double initExtStress, double stressRate);
         FixedRateProtocol();
 
-        virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
-        virtual double getExtStress(StressProtocolStepType type) const;
+        // returns the external stress at a given time
+        virtual double extStress(double simulationTime) const;
 
     private:
         double m_rate;
@@ -73,8 +69,8 @@ namespace sdddstCore {
         CyclicLoadProtocol(double initExtStress, double stressRate, double period);
         CyclicLoadProtocol();
 
-        virtual void calcExtStress(double simulationTime, StressProtocolStepType type);
-        virtual double getExtStress(StressProtocolStepType type) const;
+        // returns the external stress at a given time
+        double sdddstCore::CyclicLoadProtocol::extStress(double simulationTime) const;
 
     private:
         double m_rate;

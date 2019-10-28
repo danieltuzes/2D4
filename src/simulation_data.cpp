@@ -37,7 +37,6 @@ SimulationData::SimulationData(const std::string& startDislocationConfigurationP
     simTime(DEFAULT_SIM_TIME),
     KASQR(DEFAULT_KASQR),
     A(DEFAULT_A),
-    tau(),
     Ap(nullptr),
     Ai(nullptr),
     Ax(nullptr),

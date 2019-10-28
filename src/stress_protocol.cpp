@@ -9,11 +9,9 @@ sdddstCore::StressProtocol::StressProtocol(double initExtStress) : initExtStress
 
 sdddstCore::StressProtocol::StressProtocol() : StressProtocol(0) {}
 
-void sdddstCore::StressProtocol::calcExtStress(double, StressProtocolStepType) {}
-
-double sdddstCore::StressProtocol::getExtStress(StressProtocolStepType) const
+double sdddstCore::StressProtocol::extStress(double simulationTime) const
 {
-    return initExtStress;
+    return 0;
 }
 
 #pragma endregion
@@ -28,41 +26,11 @@ sdddstCore::FixedRateProtocol::FixedRateProtocol(double initExtStress, double st
 sdddstCore::FixedRateProtocol::FixedRateProtocol() :
     FixedRateProtocol(0, 0) {}
 
-void sdddstCore::FixedRateProtocol::calcExtStress(double simulationTime, StressProtocolStepType type)
+double sdddstCore::FixedRateProtocol::extStress(double simulationTime) const
 {
-    double value = simulationTime * m_rate + initExtStress;
-    switch (type)
-    {
-    case StressProtocolStepType::Original:
-        stressValues[0] = value;
-        break;
-    case StressProtocolStepType::EndOfBigStep:
-        stressValues[1] = value;
-        break;
-    case StressProtocolStepType::EndOfFirstSmallStep:
-        stressValues[2] = value;
-        break;
-    case StressProtocolStepType::EndOfSecondSmallStep:
-        stressValues[3] = value;
-        break;
-    }
+    return simulationTime * m_rate + initExtStress;
 }
 
-double sdddstCore::FixedRateProtocol::getExtStress(StressProtocolStepType type) const
-{
-    switch (type)
-    {
-    case StressProtocolStepType::Original:
-        return stressValues[0];
-    case StressProtocolStepType::EndOfBigStep:
-        return stressValues[1];
-    case StressProtocolStepType::EndOfFirstSmallStep:
-        return stressValues[2];
-    case StressProtocolStepType::EndOfSecondSmallStep:
-        return stressValues[3];
-    }
-    return 0;
-}
 
 #pragma endregion
 
@@ -77,45 +45,15 @@ sdddstCore::CyclicLoadProtocol::CyclicLoadProtocol(double initExtStress, double 
 sdddstCore::CyclicLoadProtocol::CyclicLoadProtocol() :
     CyclicLoadProtocol(0, 0, 0) {}
 
-void sdddstCore::CyclicLoadProtocol::calcExtStress(double simulationTime, StressProtocolStepType type)
+double sdddstCore::CyclicLoadProtocol::extStress(double simulationTime) const
 {
     double periodicTime = simulationTime - std::floor((simulationTime / m_timePeriod + 1. / 4)) * m_timePeriod;
 
-    double value = m_rate * periodicTime;
+    double stress = m_rate * periodicTime; // if the derivative is positive
     if (periodicTime > m_timePeriod / 4)
-        value = m_rate * m_timePeriod / 2 - value;
+        stress = m_rate * m_timePeriod / 2 - stress; // otherwise, if it is negative
 
-    switch (type)
-    {
-    case StressProtocolStepType::Original:
-        stressValues[0] = value;
-        break;
-    case StressProtocolStepType::EndOfBigStep:
-        stressValues[1] = value;
-        break;
-    case StressProtocolStepType::EndOfFirstSmallStep:
-        stressValues[2] = value;
-        break;
-    case StressProtocolStepType::EndOfSecondSmallStep:
-        stressValues[3] = value;
-        break;
-    }
-}
-
-double sdddstCore::CyclicLoadProtocol::getExtStress(StressProtocolStepType type) const
-{
-    switch (type)
-    {
-    case StressProtocolStepType::Original:
-        return stressValues[0];
-    case StressProtocolStepType::EndOfBigStep:
-        return stressValues[1];
-    case StressProtocolStepType::EndOfFirstSmallStep:
-        return stressValues[2];
-    case StressProtocolStepType::EndOfSecondSmallStep:
-        return stressValues[3];
-    }
-    return 0;
+    return stress;
 }
 
 #pragma endregion
