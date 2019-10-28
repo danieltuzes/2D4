@@ -42,7 +42,7 @@ using disl = std::tuple<double, double, int>;
 using pair = std::pair<double, double>;
 
 // Wigner-Seitz, Box-counting and Gauss-smoothing; na: default value, wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signer, bc: box-counting, gc: Gauss-convolution, df: direct Fourier
-enum method { na, wspn, wsts, bc, gs, df };
+enum class method { na, wspn, wsts, bc, gs, df };
 
 std::istream& operator >> (std::istream&, disl&);
 std::ostream& operator << (std::ostream&, const disl&);

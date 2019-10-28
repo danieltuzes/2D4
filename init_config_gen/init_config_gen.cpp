@@ -1,8 +1,11 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen 2.0
+#define VERSION_init_config_gen 2.1
 /*changelog
+# 2.1
+Static code analysis suggested to change n to int to avoid size_t (8byte) > int (4byte) concersion
+
 # 2.0
 * sorting input information is taken now by the input named sorted and not unsorted. It can be x, y or u. The latter means no sorting. Default is y, so the behaviour is not changed.
 
@@ -220,7 +223,7 @@ int main(int argc, char** argv)
         std::vector<disl> dislocs; // container of the N number of dislocations
 
         //std::ofstream deb_conf_ofile("debug_conf.txt");
-        for (size_t n = 0; n < N; ++n) // generate the N number of dislocations
+        for (int n = 0; n < N; ++n) // generate the N number of dislocations
         {
             double x = distr(engine);
             if (A != 0)

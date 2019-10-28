@@ -1,8 +1,11 @@
 //
 // xpattern.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xpattern 1.2
+#define VERSION_xpattern 1.3
 /*changelog
+# 1.3
+method is now a scoped enum using class
+
 # 1.2
 * it is working on mutliple simulation, g++ doesn't produce warnings
 * speed up: using table to store complex exponents for different kx and ky pairs
@@ -129,7 +132,7 @@ int main(int argc, char** argv)
         exit(-1);
     }
     size_t samp = res * subs; // sampling rate for method ws
-    method um = na; // the used method for the calculation
+    method um = method::na; // the used method for the calculation
     double sigma;
     size_t half_boxwidth;
 
@@ -140,19 +143,19 @@ int main(int argc, char** argv)
         std::cout << "Sampling rate for ";
         if (vm["method"].as<std::string>() == "wspn")
         {
-            um = wspn;
+            um = method::wspn;
             methodname = "Wigner-Seitz positive and negative";
         }
         else
         {
-            um = wsts;
+            um = method::wsts;
             methodname = "Wigner-Seitz total and signed";
         }
         std::cout << methodname << ": " << samp << "\n";
     }
     else if (methodnameabbrev == "bc")
     {
-        um = bc;
+        um = method::bc;
         methodname = "box counting";
     }
     else if (methodnameabbrev == "gs")
@@ -171,12 +174,12 @@ int main(int argc, char** argv)
         half_boxwidth = std::min(size_t(6 * sigma * samp) + 1, samp / 2);
 
         std::cout << "Half-width of the Gauss-distribution: " << sigma << ", a dislocation affects 2*" << half_boxwidth << " * 2*" << half_boxwidth << " number of subcells.\n";
-        um = gs;
+        um = method::gs;
         methodname = "Gauss-smoothing";
     }
     else if (methodnameabbrev == "df")
     {
-        um = df;
+        um = method::df;
         methodname = "direct Fourier";
     }
 
@@ -235,11 +238,11 @@ int main(int argc, char** argv)
 
         std::vector<std::ofstream> o_maps(4); // output files for the maps; rho_t, kappa, rho_p, rho_n
 
-        if (create_maps || um == bc || um == gs || um == df) // bc and gs relies on the maps, but they won't be printed; df needs whole k to be calculated
+        if (create_maps || um == method::bc || um == method::gs || um == method::df) // bc and gs relies on the maps, but they won't be printed; df needs whole k to be calculated
         {
             for (size_t i = 0; i < 4; ++i)
             {
-                if (um != df)
+                if (um != method::df)
                     maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
                 else
                     cmaps.push_back(std::vector<std::vector<std::complex<double>>>(res, std::vector<std::complex<double>>(res)));
@@ -263,7 +266,7 @@ int main(int argc, char** argv)
         size_t size = dislocs.size();
 #pragma endregion
 
-        if (um == bc) // box counting case
+        if (um == method::bc) // box counting case
         {
             for (size_t i = 0; i < dislocs.size(); ++i)
             {
@@ -289,7 +292,7 @@ int main(int argc, char** argv)
                     addFourierAbsValSq1D(F_absValSqs[i], maps[i][linenum]);
         }
 
-        if (um == gs) // Gauss-smoothing case
+        if (um == method::gs) // Gauss-smoothing case
         {
             for (size_t i = 0; i < dislocs.size(); ++i)
             {
@@ -330,7 +333,7 @@ int main(int argc, char** argv)
             }
         }
 
-        if (um == wspn) // Wigner-Seitz positive and negative case
+        if (um == method::wspn) // Wigner-Seitz positive and negative case
         {
             for (auto& val : dislocs) // zero out the 3rd element, it will be used to measure the area
                 std::get<2>(val) = 0;
@@ -359,7 +362,7 @@ int main(int argc, char** argv)
             }
         }
 
-        if (um == wsts) // Wigner-Seitz total and signed
+        if (um == method::wsts) // Wigner-Seitz total and signed
         {
             for (auto& val : dislocs) // zero out the 3rd element, it will be used to measure the area
                 std::get<2>(val) = 0;
@@ -387,7 +390,7 @@ int main(int argc, char** argv)
             }
         }
 
-        if (um == df) // direct Fourier case
+        if (um == method::df) // direct Fourier case
         {
             for (size_t i = 0; i < dislocs.size(); ++i)
             {
@@ -427,7 +430,7 @@ int main(int argc, char** argv)
                 << "# The first half of the dislocations are positive, the rest are negative.\n"
                 << "# The area can be calculated separately for different types (in case wspn) or their joined set (in case wsts).\n";
 
-            if (create_maps && (um == wsts || um == wspn))
+            if (create_maps && (um == method::wsts || um == method::wspn))
             {
                 for (const auto& d : dislocs)
                     debo_disl_areafile << d << "\n"; // print out to ofile
@@ -446,7 +449,7 @@ int main(int argc, char** argv)
                     continue;
                 }
 
-                if (um != df)
+                if (um != method::df)
                 {
                     o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
                     o_maps[i] << maps[i];
