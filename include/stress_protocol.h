@@ -70,7 +70,7 @@ namespace sdddstCore {
         CyclicLoadProtocol();
 
         // returns the external stress at a given time
-        double sdddstCore::CyclicLoadProtocol::extStress(double simulationTime) const;
+        virtual double extStress(double simulationTime) const;
 
     private:
         double m_rate;

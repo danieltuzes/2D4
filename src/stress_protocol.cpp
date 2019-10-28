@@ -34,7 +34,7 @@ double sdddstCore::FixedRateProtocol::extStress(double simulationTime) const
 
 #pragma endregion
 
-#pragma region PeriodicLoadProtocol
+#pragma region CyclicLoadProtocol
 
 sdddstCore::CyclicLoadProtocol::CyclicLoadProtocol(double initExtStress, double stressRate, double timePeriod) :
     StressProtocol(initExtStress),
