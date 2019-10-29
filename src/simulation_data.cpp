@@ -139,8 +139,8 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     speed2.resize(dc);
     dVec.resize(dc);
     bigStep_sorted.resize(dc);
-    bigStep_sorted.resize(dc);
-    bigStep_sorted.resize(dc);
+    firstSmall_sorted.resize(dc);
+    secondSmall_sorted.resize(dc);
     Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
     Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
     Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));

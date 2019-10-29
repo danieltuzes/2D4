@@ -59,33 +59,40 @@ using namespace sdddstCore;
 
 void Simulation::run()
 {
+    ////////////////////////////
+    // before loop, first run
+    ////////////////////////////
     std::time_t start_date_and_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::cout << "Simulation started on " << std::ctime(&start_date_and_time) << std::endl;
-    double startTime = get_wall_time(); // start time in seconds
+    double startTime = get_wall_time();   // start time in seconds
     double lastLogTime = get_wall_time(); // the time of the last write into the logfile
-    double energy = 0;
-
-    double extStress = sD->externalStressProtocol->extStress(sD->simTime);
-    calculateSpeedsAtStress(sD->disl_sorted, sD->initSpeed, extStress);
-
-    double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
-    double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+    double energy = 0;                    // 
+    calculateSpeedsAtTime(sD->disl_sorted, sD->initSpeed, sD->simTime);
 
     // First two line in the log file
-    sD->standardOutputLog << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl;
-    sD->standardOutputLog << sD->simTime << "\t"
-        << sD->succesfulSteps << "\t"
-        << sD->failedSteps << "\t"
-        << 0 << "\t"
-        << sumAvgSp << "\t"
-        << sD->cutOff << "\t"
-        << "-" << "\t"
-        << extStress << "\t"
-        << "-" << "\t"
-        << sD->totalAccumulatedStrainIncrease << "\t"
-        << vsquare << "\t"
-        << energy << "\t"
-        << 0 << std::endl;
+    {
+        double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+        double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
+        double extStress = sD->externalStressProtocol->extStress(sD->simTime);
+
+        sD->standardOutputLog
+            << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl
+            << sD->simTime << "\t"
+            << sD->succesfulSteps << "\t"
+            << sD->failedSteps << "\t"
+            << 0 << "\t"
+            << sumAvgSp << "\t"
+            << sD->cutOff << "\t"
+            << "-" << "\t"
+            << extStress << "\t"
+            << "-" << "\t"
+            << sD->totalAccumulatedStrainIncrease << "\t"
+            << vsquare << "\t"
+            << energy << "\t"
+            << 0 << std::endl;
+    }
+    
+
     while (
         ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
         ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
@@ -96,20 +103,97 @@ void Simulation::run()
         /////////////////////////////////
         /// step stage I
         /////////////////////////////////
-        integrate(sD->stepSize, sD->bigStep_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfBigStep);
+        double t_1 = sD->simTime + sD->stepSize; // simTime at the end of a large step
+        double stepSize = sD->stepSize; // the size of the time step at the actual stage
+        {
+            calcJacobian(stepSize, sD->disl_sorted); //## kiszámolja a jakobit sD->disl_sorted-ból; sD->disl_sorted = config[1]
+            calculateSparseFormForJacobian();
+            calculateSpeedsAtTime(sD->disl_sorted, sD->speed, t_1); //## kiszámolja a sebességeket sD->disl_sorted-ból, sD->disl_sorted = config[1] !!
+
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+            solveEQSys();
+            for (unsigned int i = 0; i < sD->dc; i++)
+            {
+                sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
+                sD->bigStep_sorted[i].y = sD->disl_sorted[i].y;
+            }
+
+            calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed, t_1);  //## kiszámolja a sebességeket newDisloc-ból, newDisloc = config[2]
+
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->g[i] = sD->bigStep_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+            solveEQSys();
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->bigStep_sorted[i].x -= sD->x[i];  // newDisloc = config[3]
+
+            umfpack_di_free_numeric(&sD->Numeric);
+        }
 
         /////////////////////////////////
         /// step stageII
         /////////////////////////////////
-        integrate(0.5 * sD->stepSize, sD->firstSmall_sorted, sD->disl_sorted, false, false, StressProtocolStepType::Original, StressProtocolStepType::EndOfFirstSmallStep);
+        stepSize /= 2;
+        double t_1p2 = sD->simTime + stepSize; // the time point at the first small step
+        {
+            calcJacobian(stepSize, sD->disl_sorted);  //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[1] !!
+            calculateSparseFormForJacobian();
+
+            calculateSpeedsAtTime(sD->disl_sorted, sD->speed, t_1);  //## kiszámolja a sebességeket newDisloc-ból, newDisloc = config[1] !!
+
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+            solveEQSys();
+            for (unsigned int i = 0; i < sD->dc; i++)
+            {
+                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
+                sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
+            }
+
+            calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed, t_1p2); //## kiszámolja a sebességeket newDisloc-ból, newDisloc = config[4]
+
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->g[i] = sD->firstSmall_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+            solveEQSys();
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->firstSmall_sorted[i].x -= sD->x[i]; // newDisloc = config[5]
+
+            umfpack_di_free_numeric(&sD->Numeric);
+        } // firstSmall_sorted = config[5]
 
         /////////////////////////////////
         /// step stage III
         /////////////////////////////////
-        integrate(0.5 * sD->stepSize, sD->secondSmall_sorted, sD->firstSmall_sorted, true, true, StressProtocolStepType::EndOfFirstSmallStep, StressProtocolStepType::EndOfSecondSmallStep);
+        {
+            calcJacobian(stepSize, sD->firstSmall_sorted); //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[5]
+            calculateSparseFormForJacobian();
+
+            calculateSpeedsAtTimes(sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1); // ## kiszámolja a sebességeket oldDisloc-ból, oldDisloc = config[5] !!
+
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
+
+            solveEQSys();
+            for (unsigned int i = 0; i < sD->dc; i++)
+            {
+                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // newDisloc = config[6]
+                sD->secondSmall_sorted[i].y = sD->firstSmall_sorted[i].y;
+            }
+
+            calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1); // ## kiszámolja a sebességeket oldDisloc-ból, oldDisloc = config[6]
+
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->g[i] = sD->secondSmall_sorted[i].x - sD->firstSmall_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
+
+            solveEQSys();
+            for (unsigned int i = 0; i < sD->dc; i++)
+                sD->secondSmall_sorted[i].x -= sD->x[i];
+
+            umfpack_di_free_numeric(&sD->Numeric);
+        }
 
         double vsquare2 = absvalsq(sD->initSpeed2);
-        double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * 0.5 * sD->stepSize * 0.5;
+        double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * sD->stepSize / 4;
 
         calculateXError();
 
@@ -512,6 +596,21 @@ double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, con
 void Simulation::calculateSpeedsAtStress(const std::vector<DislwoB>& dis, std::vector<double>& forces, double extStress) const
 {
     calculateSpeedsAtStresses(dis, forces, forces, extStress, extStress);
+}
+
+// calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
+void Simulation::calculateSpeedsAtTimes(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B) const
+{
+    double extStress_A = sD->externalStressProtocol->extStress(simTime_A);
+    double extStress_B = sD->externalStressProtocol->extStress(simTime_B);
+    calculateSpeedsAtStresses(dis, forces_A, forces_B, extStress_A, extStress_B);
+}
+
+// calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
+void Simulation::calculateSpeedsAtTime(const std::vector<DislwoB>& dis, std::vector<double>& forces, double simTime) const
+{
+    double extStress = sD->externalStressProtocol->extStress(simTime);
+    calculateSpeedsAtTimes(dis, forces, forces, simTime, simTime);
 }
 
 void Simulation::calculateXError()
