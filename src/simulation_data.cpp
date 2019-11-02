@@ -1,21 +1,5 @@
-/*
- * SDDDST Simple Discrete Dislocation Dynamics Toolkit
- * Copyright (C) 2015-2019  Gábor Péterffy <peterffy95@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
- */
+// 
+// simulation_data.cpp : contains the function definitions for simulation_data.h
 
 #include "simulation_data.h"
 #include "constants.h"
@@ -103,7 +87,7 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
 
         if (fabs(b - rint(b)) > 1e-5)
         {
-            std::cerr << "Error in " << dislocationDataFilePath << ". Burger's vector supposed to be an integer, -1 or 1, but value " << b << " is found. Program terminates." << std::endl;
+            std::cerr << "Error in " << dislocationDataFilePath << ". Burgers' vector supposed to be an integer, -1 or 1, but value " << b << " is found. Program terminates." << std::endl;
             exit(-1);
         }
 
@@ -120,13 +104,10 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
 
     // order dislocations
     std::sort(dislocs_w_id.begin(), dislocs_w_id.end(), [](const DislwId& l, const DislwId& r) {return l.y + l.b > r.y + r.b; });
-    for (const auto& disloc_w_id : dislocs_w_id)
-        disl_sorted.emplace_back(disloc_w_id.x, disloc_w_id.y);
 
-    disl_order.resize(dislocs_w_id.size());
-    for (size_t i = 0; i < dislocs_w_id.size(); ++i)
+    disl_order.resize(dc);
+    for (size_t i = 0; i < dc; ++i)
     {
-        // dislocations.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y, dislocs_w_id[i].b);
         disl_sorted.emplace_back(dislocs_w_id[i].x, dislocs_w_id[i].y);
         disl_order[dislocs_w_id[i].id] = i;
     }
@@ -230,6 +211,7 @@ void SimulationData::updateCutOff()
     onePerCutOffSqr = 1 / cutOffSqr;
 }
 
+// returns the Burgers' vector type based on the index value ID; first half: +1; second half: -1
 int SimulationData::b(unsigned int ID) const
 {
     if (ID < dc / 2)
@@ -237,7 +219,27 @@ int SimulationData::b(unsigned int ID) const
     else return -1;
 }
 
+// returns true if Burgers' vector for the IDth dislocation is positive; false otherwise
 bool SimulationData::is_pos_b(unsigned int ID) const
 {
     return ID < dc / 2;
+}
+
+// prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
+void SimulationData::printAxD(std::string fname, unsigned int totalElementCounter) const
+{
+    std::ofstream Ax_of("Ax" + fname + ".txt");
+    if (!Ax_of)
+    {
+        std::cout << "Cannot create file " << fname << std::endl;
+        exit(-1);
+    }
+    std::ofstream d_of("d" + fname + ".txt");
+
+    for (int i = 0; i < totalElementCounter; ++i)
+        Ax_of << Ax[i] << "\n";
+
+    for (int i = 0; i < dc; ++i)
+        d_of << dVec[i] << "\n";
+
 }

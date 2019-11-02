@@ -115,8 +115,8 @@ double g_dx<0>(double dx, double cos2piy, double dy)
     return f_dx(dx, cos2piy, dy);
 }
 
-
-double Field::xy(double dx, double dy)
+// calculates the force field with stric IEEE precision
+double Field::xy(double dx, double dy) const
 {
     double cos2piy = cos(M_PI * 2 * dy);
     if (dx < 0)
@@ -133,7 +133,14 @@ double Field::xy(double dx, double dy)
         g<ANALYTIC_FIELD_N - 1>(dx, cos2piy, dy);
 }
 
-double Field::xy_diff_x(double dx, double dy)
+// drops exp2pix and cos2piy and calls xy(dx, dy)
+double Field::xy(double dx, double dy, double exp2pix, double cos2piy) const
+{
+    return xy(dx, dy);
+}
+
+// calculates the derived field with stric IEEE precision
+double Field::xy_diff_x(double dx, double dy) const
 {
     double cos2piy = cos(M_PI * 2 * dy);
     if (dx < 0)
@@ -154,7 +161,11 @@ double Field::xy_diff_x(double dx, double dy)
         g_dx<ANALYTIC_FIELD_N - 1>(dx, cos2piy, dy);
 }
 
-
+// drops exp2pix and cos2piy and calls xy_diff_x(dx, dy)
+double Field::xy_diff_x(double dx, double dy, double exp2pix, double cos2piy) const
+{
+    return xy_diff_x(dx, dy);
+}
 #else // calculating cosh and sinh faster but less precise way
 
 // calculates the stress of a dislocation wall in the first cell (0 for 0th image)
@@ -280,10 +291,9 @@ double g3_dx(double dx, double cos2piy, double dy, double exp2pix)
         f_dx_h(dx + 3, cos2piy, cosh__2pi_xp3) + f_dx_h(dx - 3, cos2piy, cosh__2pi_xm3);
 }
 
-double Field::xy(double dx, double dy) const
+// returns the field at point dx, dy knowing their hyperbolic and trigonometric function values
+double Field::xy(double dx, double dy, double exp2pix, double cos2piy) const
 {
-    double exp2pix = exp(M_PI * 2 * dx);
-    double cos2piy = cos(M_PI * 2 * dy);
     if (dx < 0)
     {
         return
@@ -300,10 +310,9 @@ double Field::xy(double dx, double dy) const
         g3(dx, cos2piy, dy, exp2pix);
 }
 
-double Field::xy_diff_x(double dx, double dy) const
+// returns the derivative of the field in x direction at point dx, dy knowing their hyperbolicand trigonometric function values
+double Field::xy_diff_x(double dx, double dy, double exp2pix, double cos2piy) const
 {
-    double exp2pix = exp(M_PI * 2 * dx);
-    double cos2piy = cos(M_PI * 2 * dy);
     if (dx < 0)
     {
         return
@@ -318,5 +327,21 @@ double Field::xy_diff_x(double dx, double dy) const
         f_dx_h(dx + 4, cos2piy, cosh__2pi_xp4) * (1 - dx) + f_l(dx + 4, cos2piy, cosh__2pi_xp4) * (-1) +
         f_dx_h(dx - 4, cos2piy, cosh__2pi_xm4) +
         g3_dx(dx, cos2piy, dy, exp2pix);
+}
+
+// returns the field at point dx, dy without knowing their hyperbolic and trigonometric function values
+double Field::xy(double dx, double dy) const
+{
+    double exp2pix = exp(M_PI * 2 * dx);
+    double cos2piy = cos(M_PI * 2 * dy);
+    return xy(dx, dy, exp2pix, cos2piy);
+}
+
+// returns the derivative of the field in x direction at point dx, dy without knowing their hyperbolic and trigonometric function values
+double Field::xy_diff_x(double dx, double dy) const
+{
+    double exp2pix = exp(M_PI * 2 * dx);
+    double cos2piy = cos(M_PI * 2 * dy);
+    return xy_diff_x(dx, dy, exp2pix, cos2piy);
 }
 #endif

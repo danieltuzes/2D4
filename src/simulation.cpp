@@ -57,20 +57,27 @@ double get_wall_time()
 
 using namespace sdddstCore;
 
+// starts the simulation, all required data are present; modifies the state of the system and creates files
 void Simulation::run()
 {
-    ////////////////////////////
+    ////////////////////////////////////////////////////////
     // before loop, first run
-    ////////////////////////////
-    std::time_t start_date_and_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::cout << "Simulation started on " << std::ctime(&start_date_and_time) << std::endl;
+    ////////////////////////////////////////////////////////
+
+    // cout date and time
+    {
+        std::time_t start_date_and_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::cout << "Simulation started on " << std::ctime(&start_date_and_time) << std::endl;
+    }
+
     double startTime = get_wall_time();   // start time in seconds
     double lastLogTime = get_wall_time(); // the time of the last write into the logfile
     double energy = 0;                    // 
-    calculateSpeedsAtTime(sD->disl_sorted, sD->initSpeed, sD->simTime);
 
     // First two line in the log file
     {
+        calculateSpeedsAtTime(sD->disl_sorted, sD->initSpeed, sD->simTime); // calculated only for the purpose to be able to write out initial speed values
+
         double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
         double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
         double extStress = sD->externalStressProtocol->extStress(sD->simTime);
@@ -91,7 +98,6 @@ void Simulation::run()
             << energy << "\t"
             << 0 << std::endl;
     }
-    
 
     while (
         ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
@@ -100,18 +106,16 @@ void Simulation::run()
         ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
         )
     {
-        /////////////////////////////////
-        /// step stage I
-        /////////////////////////////////
-        double t_1 = sD->simTime + sD->stepSize; // simTime at the end of a large step
-        double stepSize = sD->stepSize; // the size of the time step at the actual stage
+        //////////////////////////////////////////////////////////////////
+        /// step stage I: one large step
+        //////////////////////////////////////////////////////////////////
+        double t_1 = sD->simTime + sD->stepSize;    // simTime at the end of a large step
+        double stepSize = sD->stepSize;             // the size of the time step at the actual stage
         {
-            calcJacobian(stepSize, sD->disl_sorted); //## kiszámolja a jakobit sD->disl_sorted-ból; sD->disl_sorted = config[1]
-            calculateSparseFormForJacobian();
-            calculateSpeedsAtTime(sD->disl_sorted, sD->speed, t_1); //## kiszámolja a sebességeket sD->disl_sorted-ból, sD->disl_sorted = config[1] !!
+            calcJacobianAndSpeedsAtTime(stepSize, sD->disl_sorted, sD->speed2, t_1); //## kiszámolja a jakobit sD->disl_sorted-ból stepSize-ra stepSize/2-re; sD->disl_sorted = config[1]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -130,19 +134,15 @@ void Simulation::run()
             umfpack_di_free_numeric(&sD->Numeric);
         }
 
-        /////////////////////////////////
-        /// step stageII
-        /////////////////////////////////
+        //////////////////////////////////////////////////////////////////
+        /// step stageII: first small step
+        //////////////////////////////////////////////////////////////////
         stepSize /= 2;
         double t_1p2 = sD->simTime + stepSize; // the time point at the first small step
         {
-            calcJacobian(stepSize, sD->disl_sorted);  //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[1] !!
-            calculateSparseFormForJacobian();
-
-            calculateSpeedsAtTime(sD->disl_sorted, sD->speed, t_1);  //## kiszámolja a sebességeket newDisloc-ból, newDisloc = config[1] !!
-
+            calcJacobianFromPrev();  //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[1] !!
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -161,9 +161,9 @@ void Simulation::run()
             umfpack_di_free_numeric(&sD->Numeric);
         } // firstSmall_sorted = config[5]
 
-        /////////////////////////////////
-        /// step stage III
-        /////////////////////////////////
+        //////////////////////////////////////////////////////////////////
+        /// step stage III: second small step
+        //////////////////////////////////////////////////////////////////
         {
             calcJacobian(stepSize, sD->firstSmall_sorted); //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[5]
             calculateSparseFormForJacobian();
@@ -217,10 +217,7 @@ void Simulation::run()
             if (sD->orderParameterCalculationIsOn)
                 orderParameter = calculateOrderParameter(sD->speed);
 
-            {
-                double extStress = sD->externalStressProtocol->extStress(sD->simTime);
-                calculateSpeedsAtStress(sD->disl_sorted, sD->initSpeed, extStress);
-            }
+            calculateSpeedsAtTime(sD->disl_sorted, sD->initSpeed, sD->simTime);
 
             double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
 
@@ -299,36 +296,6 @@ void Simulation::run()
     std::cout << "Simulation is done (" << get_wall_time() - startTime << " s).\n";
 }
 
-/**
-    @brief integrate:      evolve the dislocation system in time from the actual position t_0 until t_0 + stepsize
-    @param stepsize:       how large time step should be made
-    @param newDislocation: the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
-    @param old:            the input dislocation configuration, no need to be in the range of [-0.5:0.5)
-    @param useSpeed2:      true for the second small step
-    @param calcInitSpeed:  if initSpeed can be used as the speeds of the particles; false after a successful step and after the small step
-    @param origin:         stress at the beginning of the integration
-    @param end:            stress at the end of the integration
-*/
-void Simulation::integrate(double stepsize, std::vector<DislwoB>& newDisloc, const std::vector<DislwoB>& oldDisloc,
-    bool useSpeed2, bool calcInitSpeed, StressProtocolStepType origin, StressProtocolStepType end)
-{
-    newDisloc = oldDisloc; // initialize newDisloc from oldDisloc
-    calcJacobian(stepsize, oldDisloc);
-    calculateSparseFormForJacobian();
-
-    calculateG(stepsize, newDisloc, oldDisloc, useSpeed2, calcInitSpeed, origin, end);
-    solveEQSys();
-    for (size_t j = 0; j < sD->dc; j++)
-        newDisloc[j].x -= sD->x[j];
-
-    calculateG(stepsize, newDisloc, oldDisloc, useSpeed2, false, origin, end);
-    solveEQSys();
-    for (size_t j = 0; j < sD->dc; j++)
-        newDisloc[j].x -= sD->x[j];
-
-    umfpack_di_free_numeric(&sD->Numeric);
-}
-
 void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double extStress_A, double extStress_B) const
 {
     std::fill(forces_A.begin(), forces_A.end(), 0);
@@ -350,19 +317,10 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
             pH->updateTolerance(r2, i);
             pH->updateTolerance(r2, j);
 
-            double force = sD->tau.xy(dx, dy); // The sign of Burgers vectors can be deduced from i and j
+            double force = sD->tau.xy(dx, dy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
 
-            if ((sD->is_pos_b(i) && sD->is_pos_b(j)) || (!sD->is_pos_b(i) && !sD->is_pos_b(j)))
-            {
-                forces_A[i] += force;
-                forces_A[j] -= force;
-            }
-            else
-            {
-                forces_A[i] -= force;
-                forces_A[j] += force;
-            }
-
+            forces_A[i] += force;
+            forces_A[j] -= force;
         }
 
 #ifdef USE_POINT_DEFECTS
@@ -396,63 +354,12 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
 }
 
 /**
-    @brief calculateG:     calculates and modifies the g vector
-    @param stepsize:       how large time step should be made
-    @param newDisloc:      the suggested new dislocation configuration will be stored here; wont't be in the range of [-0.5:0.5)
-    @param oldDisloc:      the input dislocation configuration, no need to be in the range of [-0.5:0.5)
-    @param useSpeed2:      true for the second small step
-    @param calcInitSpeed:  if initSpeed can be used as the speeds of the particles; calcInitSpeed is false after an unsuccessful step, at first small step and at the 2nd NR iteration; true after successful step and at the second step, but both cases only the first NR step
-    @param origin:         stress at the beginning of the integration
-    @param end:            stress at the end of the integration
+    @brief calcJacobian:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
+    @param stepsize:        how large time step should be made
+    @param dislocs:         the actual positions of the dislocations
+    @return int:            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
 */
-void Simulation::calculateG(double stepsize, const std::vector<DislwoB>& newDisloc, const std::vector<DislwoB>& oldDisloc,
-    bool useSpeed2, bool calcInitSpeed, StressProtocolStepType origin, StressProtocolStepType end) const
-{
-    std::vector<double>* isp = &(sD->initSpeed);
-    std::vector<double>* csp = &(sD->speed);
-    if (useSpeed2)
-    {
-        isp = &(sD->initSpeed2); // initial speeds
-        csp = &(sD->speed2);     // speeds at the end of the step?
-    }
-
-    if (calcInitSpeed)
-    {
-        // for t_0
-        double t_0 = sD->simTime;
-        if (origin == StressProtocolStepType::EndOfFirstSmallStep)
-            t_0 += sD->stepSize * 0.5;
-
-        double extStresst_0 = sD->externalStressProtocol->extStress(t_0);
-
-        // for t_1
-        double t_1 = sD->simTime + sD->stepSize; // the time 
-        if (end == StressProtocolStepType::EndOfFirstSmallStep)
-            t_1 -= sD->stepSize * 0.5;
-
-        double extStresst_1 = sD->externalStressProtocol->extStress(t_1);
-        calculateSpeedsAtStresses(oldDisloc, *isp, *csp, extStresst_0, extStresst_1);
-    }
-    else
-    {
-        double t_1 = sD->simTime + sD->stepSize; // the time 
-        if (end == StressProtocolStepType::EndOfFirstSmallStep)
-            t_1 -= sD->stepSize * 0.5;
-
-        double extStress = sD->externalStressProtocol->extStress(t_1);
-        calculateSpeedsAtStress(newDisloc, *csp, extStress);
-    }
-
-    for (size_t i = 0; i < sD->dc; i++)
-        sD->g[i] = newDisloc[i].x - oldDisloc[i].x - ((1 + sD->dVec[i]) * stepsize * (*csp)[i] + (1 - sD->dVec[i]) * stepsize * (*isp)[i]) / 2;
-}
-
-/**
-    @brief calcJacobian:   calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
-    @param stepsize:       how large time step should be made
-    @param dislocs:        the actual positions of the dislocations
-*/
-void Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislocs)
+int Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislocs)
 {
     int totalElementCounter = 0;
 
@@ -461,7 +368,7 @@ void Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislo
         // Previously calculated part
         for (unsigned int i = 0; i < j; i++)
         {
-            double v = getElement(j, sD->Ap[i], sD->Ap[i + 1]);
+            double v = getElement(j, i);
             if (v != 0)
             {
                 sD->Ai[totalElementCounter] = i;
@@ -569,7 +476,7 @@ void Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislo
 
         sD->Ax[sD->indexes[j]] = subSum;
 
-        if (subSum > 0) // why
+        if (subSum > 0)
             sD->dVec[j] = std::pow(1 - 1 / (subSum + 1), 2);
         else
             sD->dVec[j] = 0;
@@ -582,8 +489,233 @@ void Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislo
 
         sD->Ax[sD->indexes[j]] += 1;
     }
+
+    return totalElementCounter;
 }
 
+// like calcJacobianAndSpeedsAtTime but calculates the forces at two given time point where the forces can be different due to the load protocol
+int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B)
+{
+    int totalElementCounter = 0;
+    std::fill(forces_A.begin(), forces_A.end(), 0);
+    double extStress_A = sD->externalStressProtocol->extStress(simTime_A);
+    double extStress_B = sD->externalStressProtocol->extStress(simTime_B);
+
+    if (&forces_A != &forces_B)
+        std::fill(forces_B.begin(), forces_B.end(), 0);
+
+    for (unsigned int i = 0; i < sD->dc; i++)
+    {
+        // Previously calculated part
+        for (unsigned int j = 0; j < i; j++)
+        {
+            double v = getElement(i, j);
+            if (v != 0)
+            {
+                sD->Ai[totalElementCounter] = j;
+                sD->Ax[totalElementCounter] = v;
+                totalElementCounter++;
+            }
+        }
+        // Add the diagonal element (it will be calculated later and the point defects now)
+        sD->Ai[totalElementCounter] = i;
+
+        double tmp = 0;
+#ifdef USE_POINT_DEFECTS
+
+        for (size_t l = 0; l < sD->pc; l++)
+        {
+            double dx;
+            double dy;
+
+            dx = data[j].x - sD->points[l].x;
+            normalize(dx);
+
+            dy = data[j].y - sD->points[l].y;
+            normalize(dy);
+
+            if (pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) < 36.8 * sD->cutOffSqr)
+            {
+                double multiplier = 1;
+                if (dx * dx + dy * dy > sD->cutOffSqr)
+                {
+                    multiplier = exp(-pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) * sD->onePerCutOffSqr);
+                }
+                tmp -= sD->b(j) * (-sD->A * cos(0.2e1 * M_PI * dx) / M_PI * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
+                    ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                        pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                            pow(M_PI, -0.2e1) / 0.2e1 +
+                            (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1))) /
+                            ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)
+                    - sD->A * sin(0.2e1 * M_PI * dx) * pow(M_PI, -0.2e1) * sin(0.2e1 * M_PI * dy) * (pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)) *
+                        sD->KASQR * sin(0.2e1 * M_PI * dx) / M_PI * log(M_E) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                            pow(M_PI, -0.2e1) / 0.2e1 +
+                            (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1) -
+                            (0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
+                                0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                                pow(M_PI, -0.2e1) / 0.2e1))) *
+                        pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                        (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) *
+                        sin(0.2e1 * M_PI * dx) / M_PI + sD->KASQR * sD->KASQR * pow(M_E, -sD->KASQR *
+                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                            pow(M_PI, -0.2e1) /
+                            0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1)) *
+                        sin(0.2e1 * M_PI * dx) / M_PI * log(M_E)) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
+                            0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1) / 0.2e1 + sD->A *
+                    pow(sin(0.2e1 * M_PI * dx), 0.2e1) * pow(M_PI, -0.3e1) * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
+                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
+                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                            pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
+                                pow(M_PI, -0.2e1) / 0.2e1 +
+                                (0.1e1 - cos(0.2e1 * M_PI * dy)) *
+                                pow(M_PI, -0.2e1) / 0.2e1))) *
+                    pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) / 0.2e1) * multiplier;
+                // see simulation_tmp_simplified What is this joke? log(M_E)? 0.2e1?
+            }
+        }
+
+#endif
+
+        sD->Ax[totalElementCounter] = -tmp * stepsize;
+        totalElementCounter++;
+        // Totally new part
+        for (unsigned int j = i + 1; j < sD->dc; j++)
+        {
+            double dx = dislocs[i].x - dislocs[j].x;
+            normalize(dx);
+
+            double dy = dislocs[i].y - dislocs[j].y;
+            normalize(dy);
+
+            double distSq = dx * dx + dy * dy;
+            pH->updateTolerance(distSq * 0.0025, i);
+            pH->updateTolerance(distSq * 0.0025, j);
+
+            double exp2pix = exp(2 * M_PI * dx);
+            double cos2piy = cos(2 * M_PI * dy);
+
+            if (std::fabs(sqrt(distSq) - sD->cutOff) < 6 * sD->cutOff) // itt a 6-os szorzót simán ki kéne hagyni, meg a következő 3 sort is úgy, ahogy van, TODO
+            {
+                double multiplier = 1;
+                if (distSq > sD->cutOffSqr)
+                    multiplier = exp(-pow(sqrt(distSq) - sD->cutOff, 2) * sD->onePerCutOffSqr);
+
+                sD->Ai[totalElementCounter] = j;
+                sD->Ax[totalElementCounter] = stepsize * sD->b(j) * sD->b(i) * sD->tau.xy_diff_x(dx, dy, exp2pix, cos2piy) * multiplier;
+                totalElementCounter++;
+            }
+
+            double force = sD->tau.xy(dx, dy, exp2pix, cos2piy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
+            forces_A[i] += force;
+            forces_A[j] -= force;
+        }
+#ifdef USE_POINT_DEFECTS
+        // iterate over point defects and calulate their stress contribution
+        for (size_t j = 0; j < sD->pc; j++)
+        {
+            double dx = dis[i].x - sD->points[j].x;
+            normalize(dx);
+
+            double dy = dis[i].y - sD->points[j].y;
+            normalize(dy);
+
+            double xSqr = X2(dx);
+            double ySqr = X2(dy);
+            double rSqr = xSqr + ySqr;
+            double expXY = exp(-sD->KASQR * rSqr);
+            forces_A[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
+
+            pH->updateTolerance(rSqr, i);
+        }
+#endif
+        sD->Ap[i + 1] = totalElementCounter;
+        if (&forces_A == &forces_B)
+            forces_A[i] += extStress_A * sD->b(i);
+        else
+        {
+            forces_B[i] = forces_A[i] + extStress_B * sD->b(i);
+            forces_A[i] += extStress_A * sD->b(i);
+        }
+    }
+
+    for (unsigned int j = 0; j < sD->dc; j++)
+    {
+        double subSum = 0;
+        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
+        {
+            if (sD->Ai[i] == int(j))
+                sD->indexes[j] = i;
+
+            subSum -= sD->Ax[i];
+        }
+
+        sD->Ax[sD->indexes[j]] = subSum;
+
+        if (subSum > 0)
+            sD->dVec[j] = std::pow(1 - 1 / (subSum + 1), 2);
+        else
+            sD->dVec[j] = 0;
+    }
+       
+    for (unsigned int j = 0; j < sD->dc; j++)
+    {
+        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
+            sD->Ax[i] *= (1 + sD->dVec[sD->Ai[i]]) / 2;
+
+        sD->Ax[sD->indexes[j]] += 1;
+    }
+
+    calculateSparseFormForJacobian();
+
+    return totalElementCounter;
+}
+
+// like calcJacobian but also calculates the forces at the given time
+int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime)
+{
+    return calcJacobianAndSpeedsAtTimes(stepsize, dislocs, forces, forces, simTime, simTime);
+}
+
+// Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
+void Simulation::calcJacobianFromPrev()
+{
+    std::vector<double> new_weig(sD->dc);                                // the new weight values
+    std::vector<double> weig_fac(sD->dc);                                // for the new J_{i,j} elements
+
+    // calculates the new_w values from the old dVec values
+    std::transform(sD->dVec.begin(), sD->dVec.end(), new_weig.begin(), [](double old_weight) {return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2); });
+
+    // calcualtes the weight factors needed to calculate J_{i,j}^k
+    std::transform(
+        sD->dVec.begin(), sD->dVec.end(),
+        new_weig.begin(),
+        weig_fac.begin(),
+        [](double old_val, double new_val) {return (1 + new_val) / (1 + old_val); }
+    );
+
+    for (unsigned int j = 0; j < sD->dc; j++)                   // for all d-d interaction
+    {
+        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)         // go through the row indicies Ai for column j
+        {
+            double factor = weig_fac[sD->Ai[i]];
+            if (sD->Ai[i] == j)                                 // diagonal element
+                sD->Ax[i] = 1 + (sD->Ax[i] - 1) / 2 * factor;
+            else                                                // offdiagonal element
+                sD->Ax[i] = sD->Ax[i] / 2 * factor;
+        }
+    }
+    sD->dVec = std::move(new_weig);
+
+    calculateSparseFormForJacobian();
+}
+
+// calculates the Burgers' vector weighted sum of the displacements
 double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const
 {
     double ret = 0;
@@ -591,11 +723,6 @@ double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, con
         ret += sD->b(i) * (newD[i].x - old[i].x); // x is not in the range of [-0.5: 0.5), the difference is the real distance
 
     return ret;
-}
-
-void Simulation::calculateSpeedsAtStress(const std::vector<DislwoB>& dis, std::vector<double>& forces, double extStress) const
-{
-    calculateSpeedsAtStresses(dis, forces, forces, extStress, extStress);
 }
 
 // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
@@ -609,10 +736,10 @@ void Simulation::calculateSpeedsAtTimes(const std::vector<DislwoB>& dis, std::ve
 // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
 void Simulation::calculateSpeedsAtTime(const std::vector<DislwoB>& dis, std::vector<double>& forces, double simTime) const
 {
-    double extStress = sD->externalStressProtocol->extStress(simTime);
     calculateSpeedsAtTimes(dis, forces, forces, simTime, simTime);
 }
 
+// calculates the difference of the large and two small steps and store it for all dislocs and saves the (largest relative to toleranceAndError[ID].first)
 void Simulation::calculateXError()
 {
     for (unsigned int i = 0; i < sD->dc; i++)
@@ -622,6 +749,7 @@ void Simulation::calculateXError()
     }
 }
 
+// constructor: saves the sD pointer, creates pH object, sets output format
 Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
     sD(sD),
     pH(new PrecisionHandler)
@@ -633,26 +761,24 @@ Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
     pH->setSize(sD->dc);
 }
 
+// returns the i,j element of the dense matrix A
+double Simulation::getElement(int i, int j) const
+{
+    return getElement(i, sD->Ap[j], sD->Ap[j + 1]);
+}
+
 double Simulation::getElement(int j, int si, int ei) const
 {
     int len = ei - si;
     if (len > 1)
     {
         int tmp = len / 2;
-        double a;
 
         if (sD->Ai[si + tmp] > j)
-        {
-            a = getElement(j, si, si + tmp);
-            if (a != 0)
-                return a;
-        }
+            return getElement(j, si, si + tmp); // this is not inefficient https://softwareengineering.stackexchange.com/a/182334/350074
         else
-        {
-            a = getElement(j, si + tmp, ei);
-            if (a != 0)
-                return a;
-        }
+            return getElement(j, si + tmp, ei);
+
     }
     else if (sD->Ai[si] == j)
         return sD->Ax[si];
@@ -660,18 +786,15 @@ double Simulation::getElement(int j, int si, int ei) const
     return 0;
 }
 
-double Simulation::getSimTime() const
-{
-    return sD->simTime;
-}
-
-void Simulation::calculateSparseFormForJacobian() // modifies only Ai, Ax, Ap, Symbolic and Numeric
+// modifies only Symbolic, constant for Ap, Ai, Ax; doesn't read dVec, indexes, speeds or positions
+void Simulation::calculateSparseFormForJacobian()
 {
     (void)umfpack_di_symbolic(sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
     (void)umfpack_di_numeric(sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null);
     umfpack_di_free_symbolic(&(sD->Symbolic));
 }
 
+// solves A * Δx = g for Δx
 void Simulation::solveEQSys()
 {
     (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
