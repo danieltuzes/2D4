@@ -109,13 +109,16 @@ void Simulation::run()
         //////////////////////////////////////////////////////////////////
         /// step stage I: one large step
         //////////////////////////////////////////////////////////////////
-        double t_1 = sD->simTime + sD->stepSize;    // simTime at the end of a large step
         double stepSize = sD->stepSize;             // the size of the time step at the actual stage
+        double t_1p2 = sD->simTime + stepSize / 2;  // the time point at the first small step
+        double t_1 = t_1p2 + stepSize / 2;          // simTime at the end of a large step
         {
-            calcJacobianAndSpeedsAtTime(stepSize, sD->disl_sorted, sD->speed2, t_1); //## kiszámolja a jakobit sD->disl_sorted-ból stepSize-ra stepSize/2-re; sD->disl_sorted = config[1]
+            //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
+            // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
+            calcJacobianAndSpeedsAtTime(stepSize, sD->disl_sorted, sD->speed, t_1);
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -123,52 +126,48 @@ void Simulation::run()
                 sD->bigStep_sorted[i].y = sD->disl_sorted[i].y;
             }
 
-            calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed, t_1);  //## kiszámolja a sebességeket newDisloc-ból, newDisloc = config[2]
+            calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1);  //## calculates speeds from sD->bigStep_sorted = config[2]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->bigStep_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = sD->bigStep_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->bigStep_sorted[i].x -= sD->x[i];  // newDisloc = config[3]
+                sD->bigStep_sorted[i].x -= sD->x[i];  // sD->bigStep_sorted = config[3]
 
             umfpack_di_free_numeric(&sD->Numeric);
         }
 
         //////////////////////////////////////////////////////////////////
-        /// step stageII: first small step
+        /// step stage II: first small step
         //////////////////////////////////////////////////////////////////
         stepSize /= 2;
-        double t_1p2 = sD->simTime + stepSize; // the time point at the first small step
         {
-            calcJacobianFromPrev();  //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[1] !!
+            calcJacobianAndSpeedsFromPrev(stepSize);  //## calculates Jacobian and speed from disl_sorted = config[1], the latter is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
+                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
                 sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
             }
 
-            calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed, t_1p2); //## kiszámolja a sebességeket newDisloc-ból, newDisloc = config[4]
+            calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted-ból = config[4]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->firstSmall_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = sD->firstSmall_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->firstSmall_sorted[i].x -= sD->x[i]; // newDisloc = config[5]
+                sD->firstSmall_sorted[i].x -= sD->x[i]; // firstSmall_sorted = config[5]
 
             umfpack_di_free_numeric(&sD->Numeric);
-        } // firstSmall_sorted = config[5]
+        }
 
         //////////////////////////////////////////////////////////////////
         /// step stage III: second small step
         //////////////////////////////////////////////////////////////////
         {
-            calcJacobian(stepSize, sD->firstSmall_sorted); //## kiszámolja a jakobit oldDisloc-ból; oldDisloc = config[5]
-            calculateSparseFormForJacobian();
-
-            calculateSpeedsAtTimes(sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1); // ## kiszámolja a sebességeket oldDisloc-ból, oldDisloc = config[5] !!
+            calcJacobianAndSpeedsAtTimes(stepSize, sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1); //## calculates the Jacobian from firstSmall_sorted = config[5]
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
@@ -176,24 +175,21 @@ void Simulation::run()
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // newDisloc = config[6]
+                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // secondSmall_sorted = config[6]
                 sD->secondSmall_sorted[i].y = sD->firstSmall_sorted[i].y;
             }
 
-            calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1); // ## kiszámolja a sebességeket oldDisloc-ból, oldDisloc = config[6]
+            calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1); // ## calculates speeds from secondSmall_sorted = config[6]
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = sD->secondSmall_sorted[i].x - sD->firstSmall_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->secondSmall_sorted[i].x -= sD->x[i];
+                sD->secondSmall_sorted[i].x -= sD->x[i]; // secondSmall_sorted = config[7]
 
             umfpack_di_free_numeric(&sD->Numeric);
         }
-
-        double vsquare2 = absvalsq(sD->initSpeed2);
-        double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * sD->stepSize / 4;
 
         calculateXError();
 
@@ -205,6 +201,9 @@ void Simulation::run()
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
+
+            double vsquare2 = absvalsq(sD->initSpeed2);
+            double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * sD->stepSize / 4;
 
             sD->disl_sorted.swap(sD->secondSmall_sorted);
             for (size_t i = 0; i < sD->dc; i++)
@@ -662,7 +661,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
         else
             sD->dVec[j] = 0;
     }
-       
+
     for (unsigned int j = 0; j < sD->dc; j++)
     {
         for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
@@ -682,9 +681,13 @@ int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<D
     return calcJacobianAndSpeedsAtTimes(stepsize, dislocs, forces, forces, simTime, simTime);
 }
 
-// Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
-void Simulation::calcJacobianFromPrev()
+// Calculates the new Jacobian J_{i,j}^k from the one in the memory by halfing the non-diagonal elements and also the weights; recalculates speed too bc of the different external stress values
+void Simulation::calcJacobianAndSpeedsFromPrev(double halfStepTime)
 {
+    //////////////////////////////////////////////////////////////////
+    // Calculating the Jacobian
+    //////////////////////////////////////////////////////////////////
+
     std::vector<double> new_weig(sD->dc);                                // the new weight values
     std::vector<double> weig_fac(sD->dc);                                // for the new J_{i,j} elements
 
@@ -713,6 +716,17 @@ void Simulation::calcJacobianFromPrev()
     sD->dVec = std::move(new_weig);
 
     calculateSparseFormForJacobian();
+
+    //////////////////////////////////////////////////////////////////
+    // Calculating the new speeds
+    //////////////////////////////////////////////////////////////////
+
+    double extStress_old = sD->externalStressProtocol->extStress(sD->simTime);
+    double extStress_new = sD->externalStressProtocol->extStress(sD->simTime + halfStepTime);
+    double extStress_dif = extStress_new - extStress_old;
+
+    for (unsigned int i = 0; i < sD->dc; ++i)
+        sD->speed[i] += extStress_dif * sD->b(i);
 }
 
 // calculates the Burgers' vector weighted sum of the displacements

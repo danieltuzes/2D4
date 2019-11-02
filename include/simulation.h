@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 0.8
+Bugfix: calcJacobianFromPrev didn't calculate the new speed values at the end of the first small step, possibly lead to higher number of unsuccessful step if stress wasn't constant. calcJacobianAndSpeedsFromPrev does the right job
+
 # 0.7
 * calcJacobian returns the total number of non0 values in Ax, useful for debugging purposes
 * getElement got new interface taking arguments of i, j; old getElement became private
@@ -43,7 +46,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 0.7
+#define VERSION_simulation 0.8
 
 #include "dislocation.h"
 #include "precision_handler.h"
@@ -112,7 +115,7 @@ namespace sdddstCore {
         int calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
 
         // Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
-        void calcJacobianFromPrev();
+        void calcJacobianAndSpeedsFromPrev(double halfStepTime);
     };
 }
 
