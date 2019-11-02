@@ -9,8 +9,8 @@ sdddstCore::StressProtocol::StressProtocol(double initExtStress) : initExtStress
 
 sdddstCore::StressProtocol::StressProtocol() : StressProtocol(0) {}
 
-// returs the external stress value as a function of the simTime
-double sdddstCore::StressProtocol::extStress(double simTime) const
+// returs the external stress value as a function of the argument simTime
+double sdddstCore::StressProtocol::extStress(double) const
 {
     return 0;
 }

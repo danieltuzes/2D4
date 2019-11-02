@@ -704,7 +704,7 @@ void Simulation::calcJacobianFromPrev()
         for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)         // go through the row indicies Ai for column j
         {
             double factor = weig_fac[sD->Ai[i]];
-            if (sD->Ai[i] == j)                                 // diagonal element
+            if (sD->Ai[i] == int(j))                            // diagonal element
                 sD->Ax[i] = 1 + (sD->Ax[i] - 1) / 2 * factor;
             else                                                // offdiagonal element
                 sD->Ax[i] = sD->Ax[i] / 2 * factor;

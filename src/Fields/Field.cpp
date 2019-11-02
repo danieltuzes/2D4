@@ -134,7 +134,7 @@ double Field::xy(double dx, double dy) const
 }
 
 // drops exp2pix and cos2piy and calls xy(dx, dy)
-double Field::xy(double dx, double dy, double exp2pix, double cos2piy) const
+double Field::xy(double dx, double dy, double, double) const
 {
     return xy(dx, dy);
 }
@@ -162,7 +162,7 @@ double Field::xy_diff_x(double dx, double dy) const
 }
 
 // drops exp2pix and cos2piy and calls xy_diff_x(dx, dy)
-double Field::xy_diff_x(double dx, double dy, double exp2pix, double cos2piy) const
+double Field::xy_diff_x(double dx, double dy, double, double) const
 {
     return xy_diff_x(dx, dy);
 }

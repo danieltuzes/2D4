@@ -236,10 +236,9 @@ void SimulationData::printAxD(std::string fname, unsigned int totalElementCounte
     }
     std::ofstream d_of("d" + fname + ".txt");
 
-    for (int i = 0; i < totalElementCounter; ++i)
+    for (size_t i = 0; i < totalElementCounter; ++i)
         Ax_of << Ax[i] << "\n";
 
-    for (int i = 0; i < dc; ++i)
+    for (size_t i = 0; i < dc; ++i)
         d_of << dVec[i] << "\n";
-
 }
