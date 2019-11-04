@@ -2,6 +2,11 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 0.9
+* calcGSolveAndUpdate is implemented, it simplifies the code
+* unused functions are removed
+* code reformatted and rearranged; pragma regions added
+
 # 0.8
 Bugfix: calcJacobianFromPrev didn't calculate the new speed values at the end of the first small step, possibly lead to higher number of unsuccessful step if stress wasn't constant. calcJacobianAndSpeedsFromPrev does the right job
 
@@ -46,7 +51,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 0.8
+#define VERSION_simulation 0.9
 
 #include "dislocation.h"
 #include "precision_handler.h"
@@ -73,52 +78,75 @@ namespace sdddstCore {
         std::shared_ptr<SimulationData> sD;
         std::unique_ptr<PrecisionHandler> pH;
 
-        // calculates the difference of the large and two small steps and store it for all dislocs and saves the (largest relative to toleranceAndError[ID].first)
-        void calculateXError();
-        
-        // modifies only Symbolic, constant for Ap, Ai, Ax; doesn't read dVec, indexes, speeds or positions
-        void calculateSparseFormForJacobian();
-
-        // solves A * Δx = g for Δx
-        void solveEQSys();
-
-        double calculateOrderParameter(const std::vector<double>& speeds) const;
-
-        double getElement(int j, int si, int ei) const;
-
-        // returns the i,j element of the dense matrix A
-        double getElement(int i, int j) const;
-        
-        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) at two given external stresses
-        void calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double extStress_A, double extStress_B) const;
+#pragma region Directly called from run
 
         // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
         void calculateSpeedsAtTime(const std::vector<DislwoB>& dis, std::vector<double>& forces, double simTime) const;
 
-        // calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the external forces will be calculated from simTime_A and simTime_B
-        void calculateSpeedsAtTimes(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B) const;
-
-        // calculates the Burgers' vector weighted sum of the displacements
-        double calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const;
-
-        // like calcJacobianAndSpeedsAtTime but calculates the forces at two given time point where the forces can be different due to the load protocol
-        int calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B);
+        /**
+        @brief calcJacobianAndSpeedsAtTimes:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the forces at two different time
+        @param stepsize:                        how large time step should be made
+        @param dislocs:                         the actual positions of the dislocations
+        @param forces_A:                        the estimated speeds of the particles at simTime_A
+        @param forces_B:                        the other estimated speeds of the particles at simTime_B
+        @param simTime_A:                       the which time should the external stress be evaluated to estimate the forces
+        @param simTime_B:                       the which other time should the external stress be evaluated to estimate the forces
+        @return int:                            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
+        */
+        int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B);
 
         /**
-        @brief calcJacobian:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
+        @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
         @param stepsize:        how large time step should be made
         @param dislocs:         the actual positions of the dislocations
         @param forces:          the speeds of the particles
         @param simTime:         the value of the external force will be calcualted from tim
         @return int:            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
         */
-        int calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
+        int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
 
         // Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
         void calcJacobianAndSpeedsFromPrev();
 
-        // reaclculates speeds due to the difference of the external force difference between time_old and time_new
-        void Simulation::refreshSpeeds(double time_old, double time_new);
+        /**
+        @brief calcGSolveAndUpdate: calculates the new g vector, solves the linear equations and updates the dislocation positions
+        @param new_disloc:          the container of the target dislocation arrangement
+        @param old_config:          the actual dislocation configuration
+        @param stepSize:            the time size of the step
+        @param endSpeed:            the estimated speeds at the end of the step
+        @param initSpeed:           the speeds at the beginning of the step
+        */
+        void calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed);
+
+#pragma endregion
+
+#pragma region Related to the sparse matrix handling and solving
+
+        // modifies only Symbolic, constant for Ap, Ai, Ax; doesn't read dVec, indexes, speeds or positions
+        void calculateSparseFormForJacobian();
+
+        // solves A * Δx = g for Δx
+        void solveEQSys();
+
+        // return the jth line element that is in between si and ei indices
+        double getElement(int j, int si, int ei) const;
+
+        // returns the i,j element of the dense matrix A
+        double getElement(int i, int j) const;
+
+#pragma endregion
+
+#pragma region Required for analysis and outputs
+
+        // calculates the difference of the large and two small steps and store it for all dislocs and saves the (largest relative to toleranceAndError[ID].first)
+        void calculateXError();
+
+        // calcualtes the deformation speed: Burgers' vector signed sum of the speeds
+        double calculateOrderParameter(const std::vector<double>& speeds) const;
+
+        // calculates the Burgers' vector weighted sum of the displacements
+        double calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const;
+#pragma endregion
     };
 }
 

@@ -13,12 +13,22 @@
 
 using namespace sdddstCore;
 
+// constructor: saves the sD pointer, creates pH object, sets output format
+Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
+    sD(sD),
+    pH(new PrecisionHandler)
+{
+    // Format setting
+    sD->standardOutputLog << std::scientific << std::setprecision(16);
+
+    pH->setMinPrecisity(sD->prec);
+    pH->setSize(sD->dc);
+}
+
 // starts the simulation, all required data are present; modifies the state of the system and creates files
 void Simulation::run()
 {
-    ////////////////////////////////////////////////////////
-    // before loop, first run
-    ////////////////////////////////////////////////////////
+#pragma region stage 0: before loop, first run
 
     // cout date and time
     {
@@ -54,6 +64,7 @@ void Simulation::run()
             << energy << "\t"
             << 0 << std::endl;
     }
+#pragma endregion
 
     while (
         ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
@@ -62,9 +73,7 @@ void Simulation::run()
         ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
         )
     {
-        //////////////////////////////////////////////////////////////////
-        /// step stage I: one large step
-        //////////////////////////////////////////////////////////////////
+#pragma region step stage I: one large step
         double t_0__ = sD->simTime;                     // simTime at the beginning of a large step
         double t_1__ = sD->simTime + sD->stepSize;      // simTime at the end of a large step
         double t_1p2 = sD->simTime + sD->stepSize / 2;  // the time point at the first small step
@@ -83,19 +92,11 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
-
-            for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->bigStep_sorted[i].x - sD->disl_sorted[i].x - sD->stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
-            solveEQSys();
-            for (unsigned int i = 0; i < sD->dc; i++)
-                sD->bigStep_sorted[i].x -= sD->x[i];  // sD->bigStep_sorted = config[3]
-
-            umfpack_di_free_numeric(&sD->Numeric);
+            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed);
         }
+#pragma endregion
 
-        //////////////////////////////////////////////////////////////////
-        /// step stage II: first small step
-        //////////////////////////////////////////////////////////////////
+#pragma region step stage II: first small step
         {
             calcJacobianAndSpeedsFromPrev();  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -108,19 +109,11 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
-
-            for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->firstSmall_sorted[i].x - sD->disl_sorted[i].x - sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
-            solveEQSys();
-            for (unsigned int i = 0; i < sD->dc; i++)
-                sD->firstSmall_sorted[i].x -= sD->x[i]; // firstSmall_sorted = config[5]
-
-            umfpack_di_free_numeric(&sD->Numeric);
+            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed);
         }
+#pragma endregion
 
-        //////////////////////////////////////////////////////////////////
-        /// step stage III: second small step
-        //////////////////////////////////////////////////////////////////
+#pragma region step stage III: second small step
         {
             calcJacobianAndSpeedsAtTimes(sD->stepSize / 2, sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1__); //## calculates the Jacobian from firstSmall_sorted = config[5]
 
@@ -135,22 +128,22 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
-
-            for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->secondSmall_sorted[i].x - sD->firstSmall_sorted[i].x - sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
-
-            solveEQSys();
-            for (unsigned int i = 0; i < sD->dc; i++)
-                sD->secondSmall_sorted[i].x -= sD->x[i]; // secondSmall_sorted = config[7]
-
-            umfpack_di_free_numeric(&sD->Numeric);
+            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2);
         }
+#pragma endregion
 
+#pragma region step stage IV: accept or retry disl_sorted 
         calculateXError();
 
-        /// Precision related error handling
-        if (pH->getMaxErrorRatioSqr() < 1./400)
+        if (pH->getMaxErrorRatioSqr() < 1. / 400)
         {
+            sD->simTime += sD->stepSize;
+            sD->succesfulSteps++;
+
+            sD->disl_sorted.swap(sD->secondSmall_sorted);
+            for (auto& disl : sD->disl_sorted)
+                normalize(disl.x);
+
             if (sD->calculateStrainDuringSimulation)
             {
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
@@ -159,17 +152,6 @@ void Simulation::run()
 
             double vsquare2 = absvalsq(sD->initSpeed2);
             double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * sD->stepSize / 4;
-
-            sD->disl_sorted.swap(sD->secondSmall_sorted);
-            for (size_t i = 0; i < sD->dc; i++)
-                normalize(sD->disl_sorted[i].x);
-
-            sD->simTime += sD->stepSize;
-            sD->succesfulSteps++;
-
-            double orderParameter = 0;
-            if (sD->orderParameterCalculationIsOn)
-                orderParameter = calculateOrderParameter(sD->speed);
 
             double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
 
@@ -184,7 +166,7 @@ void Simulation::run()
                     sD->inAvalanche = true;
             }
             double vsquare = absvalsq(sD->initSpeed);
-            energyThisStep += (vsquare + vsquare2) * 0.5 * sD->stepSize * 0.5;
+            energyThisStep += (vsquare + vsquare2) * sD->stepSize / 4;
             sD->standardOutputLog << sD->simTime << "\t"
                 << sD->succesfulSteps << "\t"
                 << sD->failedSteps << "\t"
@@ -193,7 +175,7 @@ void Simulation::run()
                 << sD->cutOff << "\t";
 
             if (sD->orderParameterCalculationIsOn)
-                sD->standardOutputLog << orderParameter << "\t";
+                sD->standardOutputLog << calculateOrderParameter(sD->speed) << "\t";
             else
                 sD->standardOutputLog << "-" << "\t";
 
@@ -242,18 +224,20 @@ void Simulation::run()
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
             sD->stepSize = sD->maxStepSizeLimit;
+#pragma endregion
     }
 
     sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
     std::cout << "Simulation is done (" << get_wall_time() - startTime << " s and " << sD->succesfulSteps + sD->failedSteps << " steps).\n";
 }
 
-void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double extStress_A, double extStress_B) const
-{
-    std::fill(forces_A.begin(), forces_A.end(), 0);
+#pragma region Functions directly called from run
 
-    if (&forces_A != &forces_B)
-        std::fill(forces_B.begin(), forces_B.end(), 0);
+// calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
+void Simulation::calculateSpeedsAtTime(const std::vector<DislwoB>& dis, std::vector<double>& forces, double simTime) const
+{
+    std::fill(forces.begin(), forces.end(), 0);
+    double extStress = sD->externalStressProtocol->extStress(simTime);
 
     for (unsigned int i = 0; i < sD->dc; i++) // typically unefficient
     {
@@ -271,8 +255,8 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
 
             double force = sD->tau.xy(dx, dy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
 
-            forces_A[i] += force;
-            forces_A[j] -= force;
+            forces[i] += force;
+            forces[j] -= force;
         }
 
 #ifdef USE_POINT_DEFECTS
@@ -294,18 +278,20 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
             pH->updateTolerance(rSqr, i);
         }
 #endif
-        if (&forces_A == &forces_B)
-            forces_A[i] += extStress_A * sD->b(i);
-        else
-        {
-            forces_B[i] = forces_A[i] + extStress_B * sD->b(i);
-            forces_A[i] += extStress_A * sD->b(i);
-        }
-
+        forces[i] += extStress * sD->b(i);
     }
 }
 
-// like calcJacobianAndSpeedsAtTime but calculates the forces at two given time point where the forces can be different due to the load protocol
+/**
+@brief calcJacobianAndSpeedsAtTimes:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the forces at two different time
+@param stepsize:                        how large time step should be made
+@param dislocs:                         the actual positions of the dislocations
+@param forces_A:                        the estimated speeds of the particles at simTime_A
+@param forces_B:                        the other estimated speeds of the particles at simTime_B
+@param simTime_A:                       the which time should the external stress be evaluated to estimate the forces
+@param simTime_B:                       the which other time should the external stress be evaluated to estimate the forces
+@return int:                            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
+*/
 int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B)
 {
     int totalElementCounter = 0;
@@ -490,7 +476,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
 }
 
 /**
-@brief calcJacobian:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
+@brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
 @param stepsize:        how large time step should be made
 @param dislocs:         the actual positions of the dislocations
 @param forces:          the speeds of the particles
@@ -542,66 +528,52 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
     // Calculating the new speeds
     //////////////////////////////////////////////////////////////////
     double extStress_old = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize);
-    double extStress_new = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize/2);
+    double extStress_new = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize / 2);
     double extStress_dif = extStress_new - extStress_old;
 
     for (unsigned int i = 0; i < sD->dc; ++i)
         sD->speed[i] += extStress_dif * sD->b(i);
 }
 
-
-// calculates the Burgers' vector weighted sum of the displacements
-double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const
-{
-    double ret = 0;
-    for (size_t i = 0; i < old.size(); i++)
-        ret += sD->b(i) * (newD[i].x - old[i].x); // x is not in the range of [-0.5: 0.5), the difference is the real distance
-
-    return ret;
-}
-
-// calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
-void Simulation::calculateSpeedsAtTimes(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B) const
-{
-    double extStress_A = sD->externalStressProtocol->extStress(simTime_A);
-    double extStress_B = sD->externalStressProtocol->extStress(simTime_B);
-    calculateSpeedsAtStresses(dis, forces_A, forces_B, extStress_A, extStress_B);
-}
-
-// calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
-void Simulation::calculateSpeedsAtTime(const std::vector<DislwoB>& dis, std::vector<double>& forces, double simTime) const
-{
-    calculateSpeedsAtTimes(dis, forces, forces, simTime, simTime);
-}
-
-// calculates the difference of the large and two small steps and store it for all dislocs and saves the (largest relative to toleranceAndError[ID].first)
-void Simulation::calculateXError()
+/**
+@brief calcGSolveAndUpdate: calculates the new g vector, solves the linear equations and updates the dislocation positions
+@param new_disloc:          the container of the target dislocation arrangement
+@param old_config:          the actual dislocation configuration
+@param stepSize:            the time size of the step
+@param endSpeed:            the estimated speeds at the end of the step
+@param initSpeed:           the speeds at the beginning of the step
+*/
+void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed)
 {
     for (unsigned int i = 0; i < sD->dc; i++)
-    {
-        double tmp = fabs(sD->bigStep_sorted[i].x - sD->secondSmall_sorted[i].x);
-        pH->updateError(tmp, i);
-    }
+        sD->g[i] = new_disloc[i].x - old_config[i].x - stepSize * ((1 + sD->dVec[i]) * endSpeed[i] + (1 - sD->dVec[i]) * initSpeed[i]) / 2;
+    solveEQSys();
+    for (unsigned int i = 0; i < sD->dc; i++)
+        new_disloc[i].x -= sD->x[i];
+
+    umfpack_di_free_numeric(&sD->Numeric);
 }
 
-// constructor: saves the sD pointer, creates pH object, sets output format
-Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
-    sD(sD),
-    pH(new PrecisionHandler)
+#pragma endregion
+
+#pragma region Functions related to the sparse matrix handling and solving
+
+
+// modifies only Symbolic, constant for Ap, Ai, Ax; doesn't read dVec, indexes, speeds or positions
+void Simulation::calculateSparseFormForJacobian()
 {
-    // Format setting
-    sD->standardOutputLog << std::scientific << std::setprecision(16);
-
-    pH->setMinPrecisity(sD->prec);
-    pH->setSize(sD->dc);
+    (void)umfpack_di_symbolic(sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
+    (void)umfpack_di_numeric(sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null); // umfpack_di_free_numeric is in calcGSolveAndUpdate
+    umfpack_di_free_symbolic(&(sD->Symbolic));
 }
 
-// returns the i,j element of the dense matrix A
-double Simulation::getElement(int i, int j) const
+// solves A * Δx = g for Δx
+void Simulation::solveEQSys()
 {
-    return getElement(i, sD->Ap[j], sD->Ap[j + 1]);
+    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
 }
 
+// return the jth line element that is in between si and ei indices
 double Simulation::getElement(int j, int si, int ei) const
 {
     int len = ei - si;
@@ -621,20 +593,27 @@ double Simulation::getElement(int j, int si, int ei) const
     return 0;
 }
 
-// modifies only Symbolic, constant for Ap, Ai, Ax; doesn't read dVec, indexes, speeds or positions
-void Simulation::calculateSparseFormForJacobian()
+// returns the i,j element of the dense matrix A
+double Simulation::getElement(int i, int j) const
 {
-    (void)umfpack_di_symbolic(sD->dc, sD->dc, sD->Ap, sD->Ai, sD->Ax, &(sD->Symbolic), sD->null, sD->null);
-    (void)umfpack_di_numeric(sD->Ap, sD->Ai, sD->Ax, sD->Symbolic, &(sD->Numeric), sD->null, sD->null);
-    umfpack_di_free_symbolic(&(sD->Symbolic));
+    return getElement(i, sD->Ap[j], sD->Ap[j + 1]);
 }
 
-// solves A * Δx = g for Δx
-void Simulation::solveEQSys()
+#pragma endregion
+
+#pragma region Functions required for analysis and outputs
+
+// calculates the difference of the large and two small steps and store it for all dislocs and saves the (largest relative to toleranceAndError[ID].first)
+void Simulation::calculateXError()
 {
-    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
+    for (unsigned int i = 0; i < sD->dc; i++)
+    {
+        double tmp = fabs(sD->bigStep_sorted[i].x - sD->secondSmall_sorted[i].x);
+        pH->updateError(tmp, i);
+    }
 }
 
+// calcualtes the deformation speed: Burgers' vector signed sum of the speeds
 double Simulation::calculateOrderParameter(const std::vector<double>& speeds) const
 {
     double orderParameter = 0;
@@ -643,3 +622,15 @@ double Simulation::calculateOrderParameter(const std::vector<double>& speeds) co
 
     return orderParameter;
 }
+
+// calculates the Burgers' vector weighted sum of the displacements
+double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const
+{
+    double ret = 0;
+    for (size_t i = 0; i < old.size(); i++)
+        ret += sD->b(i) * (newD[i].x - old[i].x); // x is not in the range of [-0.5: 0.5), the difference is the real distance
+
+    return ret;
+}
+
+#pragma endregion
