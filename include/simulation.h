@@ -93,7 +93,7 @@ namespace sdddstCore {
         @param simTime_B:                       the which other time should the external stress be evaluated to estimate the forces
         @return int:                            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
         */
-        int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B);
+        int calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B);
 
         /**
         @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
@@ -103,7 +103,7 @@ namespace sdddstCore {
         @param simTime:         the value of the external force will be calcualted from tim
         @return int:            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
         */
-        int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
+        int calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
 
         // Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
         void calcJacobianAndSpeedsFromPrev();
