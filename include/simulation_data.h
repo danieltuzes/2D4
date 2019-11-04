@@ -2,6 +2,9 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.5
+Eliminated ic and macros according to constants.h v0.5
+
 # 0.4
 * disl_sorted were twice as large as needed, values were copied there two times
 
@@ -19,7 +22,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.4
+#define VERSION_simulation_data 0.5
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -128,9 +131,6 @@ namespace sdddstCore {
 
         // Count of the dislocations in the system
         unsigned int dc;
-
-        // Count of the iterations during the NR
-        unsigned int ic;
 
         // Simulation time limit. After it is reached there should be no more calculations
         double timeLimit;

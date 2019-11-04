@@ -12,26 +12,15 @@
 #include <chrono>
 
 #pragma region utilities
- // transforms n into the range [-0.5:0.5)
-inline void normalize(double& n)
+ // transforms x into the range [-0.5:0.5)
+void normalize(double& n)
 {
-    while (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if", but it isn't faster
+    if (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if", but it isn't faster
         n += 1;
 
-    while (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if", but it isn't faster
+    if (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if", but it isn't faster
         n -= 1;
 }
-
-inline double X(double x)
-{
-    return sin(2 * M_PI * x) * 0.5 / M_PI;
-}
-
-inline double X2(double x)
-{
-    return (1 - cos(2 * M_PI * x)) * 0.5 / M_PI / M_PI;
-}
-
 
 // calculates the absolute value square of a vector as in mathematics
 double absvalsq(const std::vector<double>& input)
@@ -70,9 +59,9 @@ void Simulation::run()
         std::cout << "Simulation started on " << std::ctime(&start_date_and_time) << std::endl;
     }
 
-    double startTime = get_wall_time();   // start time in seconds
-    double lastLogTime = get_wall_time(); // the time of the last write into the logfile
-    double energy = 0;                    // 
+    double startTime = get_wall_time();     // start time in seconds
+    double lastLogTime = get_wall_time();   // the time of the last write into the logfile
+    double energy = 0;                      // 
 
     // First two line in the log file
     {
@@ -109,16 +98,15 @@ void Simulation::run()
         //////////////////////////////////////////////////////////////////
         /// step stage I: one large step
         //////////////////////////////////////////////////////////////////
-        double stepSize = sD->stepSize;             // the size of the time step at the actual stage
-        double t_1p2 = sD->simTime + stepSize / 2;  // the time point at the first small step
-        double t_1 = t_1p2 + stepSize / 2;          // simTime at the end of a large step
+        double t_1__ = sD->simTime + sD->stepSize;      // simTime at the end of a large step
+        double t_1p2 = sD->simTime + sD->stepSize / 2;  // the time point at the first small step
         {
             //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
             // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
-            calcJacobianAndSpeedsAtTime(stepSize, sD->disl_sorted, sD->speed, t_1);
+            calcJacobianAndSpeedsAtTime(sD->stepSize, sD->disl_sorted, sD->speed, t_1__);
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
+                sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -126,10 +114,10 @@ void Simulation::run()
                 sD->bigStep_sorted[i].y = sD->disl_sorted[i].y;
             }
 
-            calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1);  //## calculates speeds from sD->bigStep_sorted = config[2]
+            calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->bigStep_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = sD->bigStep_sorted[i].x - sD->disl_sorted[i].x - sD->stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->bigStep_sorted[i].x -= sD->x[i];  // sD->bigStep_sorted = config[3]
@@ -140,11 +128,10 @@ void Simulation::run()
         //////////////////////////////////////////////////////////////////
         /// step stage II: first small step
         //////////////////////////////////////////////////////////////////
-        stepSize /= 2;
         {
-            calcJacobianAndSpeedsFromPrev(stepSize);  //## calculates Jacobian and speed from disl_sorted = config[1], the latter is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
+            calcJacobianAndSpeedsFromPrev();  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -152,10 +139,10 @@ void Simulation::run()
                 sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
             }
 
-            calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted-ból = config[4]
+            calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->firstSmall_sorted[i].x - sD->disl_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
+                sD->g[i] = sD->firstSmall_sorted[i].x - sD->disl_sorted[i].x - sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->firstSmall_sorted[i].x -= sD->x[i]; // firstSmall_sorted = config[5]
@@ -167,10 +154,10 @@ void Simulation::run()
         /// step stage III: second small step
         //////////////////////////////////////////////////////////////////
         {
-            calcJacobianAndSpeedsAtTimes(stepSize, sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1); //## calculates the Jacobian from firstSmall_sorted = config[5]
+            calcJacobianAndSpeedsAtTimes(sD->stepSize / 2, sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1__); //## calculates the Jacobian from firstSmall_sorted = config[5]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
+                sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -179,10 +166,10 @@ void Simulation::run()
                 sD->secondSmall_sorted[i].y = sD->firstSmall_sorted[i].y;
             }
 
-            calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1); // ## calculates speeds from secondSmall_sorted = config[6]
+            calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = sD->secondSmall_sorted[i].x - sD->firstSmall_sorted[i].x - stepSize * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
+                sD->g[i] = sD->secondSmall_sorted[i].x - sD->firstSmall_sorted[i].x - sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
             solveEQSys();
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -194,7 +181,7 @@ void Simulation::run()
         calculateXError();
 
         /// Precision related error handling
-        if (pH->getMaxErrorRatioSqr() < 1)
+        if (pH->getMaxErrorRatioSqr() < 1./400)
         {
             if (sD->calculateStrainDuringSimulation)
             {
@@ -292,7 +279,7 @@ void Simulation::run()
     }
 
     sD->writeDislocationDataToFile(sD->endDislocationConfigurationPath);
-    std::cout << "Simulation is done (" << get_wall_time() - startTime << " s).\n";
+    std::cout << "Simulation is done (" << get_wall_time() - startTime << " s and " << sD->succesfulSteps + sD->failedSteps << " steps).\n";
 }
 
 void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std::vector<double>& forces_A, std::vector<double>& forces_B, double extStress_A, double extStress_B) const
@@ -312,9 +299,9 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
             double dy = dis[i].y - dis[j].y;
             normalize(dy);
 
-            double r2 = (dx * dx + dy * dy) * 0.0025; // proportional to distance square
-            pH->updateTolerance(r2, i);
-            pH->updateTolerance(r2, j);
+            double distSq = dx * dx + dy * dy; // proportional to distance square
+            pH->updateTolerance(distSq, i);
+            pH->updateTolerance(distSq, j);
 
             double force = sD->tau.xy(dx, dy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
 
@@ -593,11 +580,15 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             normalize(dy);
 
             double distSq = dx * dx + dy * dy;
-            pH->updateTolerance(distSq * 0.0025, i);
-            pH->updateTolerance(distSq * 0.0025, j);
+            pH->updateTolerance(distSq, i);
+            pH->updateTolerance(distSq, j);
 
             double exp2pix = exp(2 * M_PI * dx);
             double cos2piy = cos(2 * M_PI * dy);
+
+            double force = sD->tau.xy(dx, dy, exp2pix, cos2piy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
+            forces_A[i] += force;
+            forces_A[j] -= force;
 
             if (std::fabs(sqrt(distSq) - sD->cutOff) < 6 * sD->cutOff) // itt a 6-os szorzót simán ki kéne hagyni, meg a következő 3 sort is úgy, ahogy van, TODO
             {
@@ -610,9 +601,6 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
                 totalElementCounter++;
             }
 
-            double force = sD->tau.xy(dx, dy, exp2pix, cos2piy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
-            forces_A[i] += force;
-            forces_A[j] -= force;
         }
 #ifdef USE_POINT_DEFECTS
         // iterate over point defects and calulate their stress contribution
@@ -682,7 +670,7 @@ int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<D
 }
 
 // Calculates the new Jacobian J_{i,j}^k from the one in the memory by halfing the non-diagonal elements and also the weights; recalculates speed too bc of the different external stress values
-void Simulation::calcJacobianAndSpeedsFromPrev(double halfStepTime)
+void Simulation::calcJacobianAndSpeedsFromPrev()
 {
     //////////////////////////////////////////////////////////////////
     // Calculating the Jacobian
@@ -720,14 +708,14 @@ void Simulation::calcJacobianAndSpeedsFromPrev(double halfStepTime)
     //////////////////////////////////////////////////////////////////
     // Calculating the new speeds
     //////////////////////////////////////////////////////////////////
-
-    double extStress_old = sD->externalStressProtocol->extStress(sD->simTime);
-    double extStress_new = sD->externalStressProtocol->extStress(sD->simTime + halfStepTime);
+    double extStress_old = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize);
+    double extStress_new = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize/2);
     double extStress_dif = extStress_new - extStress_old;
 
     for (unsigned int i = 0; i < sD->dc; ++i)
         sD->speed[i] += extStress_dif * sD->b(i);
 }
+
 
 // calculates the Burgers' vector weighted sum of the displacements
 double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const

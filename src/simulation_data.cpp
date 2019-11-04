@@ -8,17 +8,16 @@
 using namespace sdddstCore;
 
 SimulationData::SimulationData(const std::string& startDislocationConfigurationPath, const std::string& fixpointsDataFilePath) :
-    cutOffMultiplier(DEFAULT_CUTOFF_MULTIPLIER),
-    cutOff(DEFAULT_CUTOFF),
+    cutOffMultiplier(0),
+    cutOff(0),
     cutOffSqr(cutOff* cutOff),
     onePerCutOffSqr(1. / cutOffSqr),
-    prec(DEFAULT_PRECISION),
+    prec(0),
     pc(0),
     dc(0),
-    ic(DEFAULT_ITERATION_COUNT),
-    timeLimit(DEFAULT_TIME_LIMIT),
-    stepSize(DEFAULT_STEP_SIZE),
-    simTime(DEFAULT_SIM_TIME),
+    timeLimit(0),
+    stepSize(0),
+    simTime(0),
     KASQR(DEFAULT_KASQR),
     A(DEFAULT_A),
     Ap(nullptr),

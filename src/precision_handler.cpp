@@ -7,13 +7,10 @@
 using namespace sdddstCore;
 
 PrecisionHandler::PrecisionHandler() :
-    minPrecisity(1e-6),
-    minPrecisitySqr(1e-12),
+    minPrecisity(0),
+    minPrecisitySqr(0),
     maxErrorRatioSqr(0),
-    selectedID(0)
-{
-    //Nothing to do
-}
+    selectedID(0) {}
 
 void PrecisionHandler::setSize(unsigned int size)
 {
@@ -30,16 +27,16 @@ void PrecisionHandler::reset()
 }
 
 // if distanceSQ_fraction is smaller than the prescribed minPrecisitySqr, the function overwrites it for that particle with distanceSQ_fraction
-void PrecisionHandler::updateTolerance(double distanceSQ_fraction, unsigned int ID)
+void PrecisionHandler::updateTolerance(double distanceSQ, unsigned int ID)
 {
-    if (distanceSQ_fraction < minPrecisitySqr &&
-        distanceSQ_fraction < toleranceAndError[ID].first)
-        toleranceAndError[ID].first = distanceSQ_fraction;
+    if (distanceSQ < minPrecisitySqr &&
+        distanceSQ < toleranceAndError[ID].first)
+        toleranceAndError[ID].first = distanceSQ;
 }
 
 void PrecisionHandler::updateError(double error, unsigned int ID)
 {
-    if (toleranceAndError[ID].second < error)
+    if (error > toleranceAndError[ID].second)
     {
         toleranceAndError[ID].second = error;
         double tmp = error * error / toleranceAndError[ID].first;
@@ -53,10 +50,7 @@ void PrecisionHandler::updateError(double error, unsigned int ID)
 
 double PrecisionHandler::getNewStepSize(double oldStepSize) const
 {
-    if (0 == maxErrorRatioSqr)
-        return oldStepSize * 2;
-
-    double factor = std::min(2., pow(maxErrorRatioSqr, -1. / 6)); // heuristic multiplier (why?)
+    double factor = std::min(2., pow(maxErrorRatioSqr * 400, -1. / 6)); // heuristic multiplier
 
     return 0.9 * oldStepSize * factor;
 }

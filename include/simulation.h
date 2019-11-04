@@ -115,7 +115,10 @@ namespace sdddstCore {
         int calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
 
         // Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
-        void calcJacobianAndSpeedsFromPrev(double halfStepTime);
+        void calcJacobianAndSpeedsFromPrev();
+
+        // reaclculates speeds due to the difference of the external force difference between time_old and time_new
+        void Simulation::refreshSpeeds(double time_old, double time_new);
     };
 }
 
