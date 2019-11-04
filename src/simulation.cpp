@@ -11,39 +11,6 @@
 #include <ctime>
 #include <chrono>
 
-#pragma region utilities
- // transforms x into the range [-0.5:0.5)
-void normalize(double& n)
-{
-    if (n < -0.5) // it shouldn't be smaller than -0.9999999, "while" could be changed to "if", but it isn't faster
-        n += 1;
-
-    if (n >= 0.5) // it shouldn't be larger than 0.99999999, "while" could be changed to "if", but it isn't faster
-        n -= 1;
-}
-
-// calculates the absolute value square of a vector as in mathematics
-double absvalsq(const std::vector<double>& input)
-{
-    return std::accumulate(input.begin(), input.end(), 0., [](double a, double b) {return a + b * b; });
-}
-
-// returns wall time in seconds
-double get_wall_time()
-{
-    // From https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
-
-    auto t_start = std::chrono::high_resolution_clock::now();
-    auto t_start_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(t_start);
-    auto t_start_se = t_start_ms.time_since_epoch();
-
-    double time_in_ms = static_cast<double>(t_start_se.count());
-
-    return time_in_ms / 1000.;
-}
-
-#pragma endregion
-
 using namespace sdddstCore;
 
 // starts the simulation, all required data are present; modifies the state of the system and creates files
@@ -98,12 +65,13 @@ void Simulation::run()
         //////////////////////////////////////////////////////////////////
         /// step stage I: one large step
         //////////////////////////////////////////////////////////////////
+        double t_0__ = sD->simTime;                     // simTime at the beginning of a large step
         double t_1__ = sD->simTime + sD->stepSize;      // simTime at the end of a large step
         double t_1p2 = sD->simTime + sD->stepSize / 2;  // the time point at the first small step
         {
             //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
             // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
-            calcJacobianAndSpeedsAtTime(sD->stepSize, sD->disl_sorted, sD->speed, t_1__);
+            calcJacobianAndSpeedsAtTimes(sD->stepSize, sD->disl_sorted, sD->initSpeed, sD->speed, t_0__, t_1__);
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
@@ -202,8 +170,6 @@ void Simulation::run()
             double orderParameter = 0;
             if (sD->orderParameterCalculationIsOn)
                 orderParameter = calculateOrderParameter(sD->speed);
-
-            calculateSpeedsAtTime(sD->disl_sorted, sD->initSpeed, sD->simTime);
 
             double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
 
@@ -337,146 +303,6 @@ void Simulation::calculateSpeedsAtStresses(const std::vector<DislwoB>& dis, std:
         }
 
     }
-}
-
-/**
-    @brief calcJacobian:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
-    @param stepsize:        how large time step should be made
-    @param dislocs:         the actual positions of the dislocations
-    @return int:            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
-*/
-int Simulation::calcJacobian(double stepsize, const std::vector<DislwoB>& dislocs)
-{
-    int totalElementCounter = 0;
-
-    for (unsigned int j = 0; j < sD->dc; j++)
-    {
-        // Previously calculated part
-        for (unsigned int i = 0; i < j; i++)
-        {
-            double v = getElement(j, i);
-            if (v != 0)
-            {
-                sD->Ai[totalElementCounter] = i;
-                sD->Ax[totalElementCounter++] = v;
-            }
-        }
-        // Add the diagonal element (it will be calculated later and the point defects now)
-        sD->Ai[totalElementCounter] = j;
-
-        double dx;
-        double dy;
-        double tmp = 0;
-#ifdef USE_POINT_DEFECTS
-
-        for (size_t l = 0; l < sD->pc; l++)
-        {
-            dx = data[j].x - sD->points[l].x;
-            normalize(dx);
-            dy = data[j].y - sD->points[l].y;
-            normalize(dy);
-
-            if (pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) < 36.8 * sD->cutOffSqr)
-            {
-                double multiplier = 1;
-                if (dx * dx + dy * dy > sD->cutOffSqr)
-                {
-                    multiplier = exp(-pow(sqrt(dx * dx + dy * dy) - sD->cutOff, 2) * sD->onePerCutOffSqr);
-                }
-                tmp -= sD->b(j) * (-sD->A * cos(0.2e1 * M_PI * dx) / M_PI * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
-                    ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                        pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                            pow(M_PI, -0.2e1) / 0.2e1 +
-                            (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                            pow(M_PI, -0.2e1) / 0.2e1))) /
-                            ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)
-                    - sD->A * sin(0.2e1 * M_PI * dx) * pow(M_PI, -0.2e1) * sin(0.2e1 * M_PI * dy) * (pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1)) *
-                        sD->KASQR * sin(0.2e1 * M_PI * dx) / M_PI * log(M_E) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                            pow(M_PI, -0.2e1) / 0.2e1 +
-                            (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                            pow(M_PI, -0.2e1) / 0.2e1) -
-                            (0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
-                                0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                pow(M_PI, -0.2e1) / 0.2e1))) *
-                        pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                        (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) *
-                        sin(0.2e1 * M_PI * dx) / M_PI + sD->KASQR * sD->KASQR * pow(M_E, -sD->KASQR *
-                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                            pow(M_PI, -0.2e1) /
-                            0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                            pow(M_PI, -0.2e1) / 0.2e1)) *
-                        sin(0.2e1 * M_PI * dx) / M_PI * log(M_E)) / ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) /
-                            0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                            pow(M_PI, -0.2e1) / 0.2e1) / 0.2e1 + sD->A *
-                    pow(sin(0.2e1 * M_PI * dx), 0.2e1) * pow(M_PI, -0.3e1) * sin(0.2e1 * M_PI * dy) * ((0.1e1 - pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 +
-                    (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1))) /
-                        ((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                            pow(M_PI, -0.2e1) / 0.2e1) - sD->KASQR * pow(M_E, -sD->KASQR * ((0.1e1 - cos(0.2e1 * M_PI * dx)) *
-                                pow(M_PI, -0.2e1) / 0.2e1 +
-                                (0.1e1 - cos(0.2e1 * M_PI * dy)) *
-                                pow(M_PI, -0.2e1) / 0.2e1))) *
-                    pow((0.1e1 - cos(0.2e1 * M_PI * dx)) * pow(M_PI, -0.2e1) / 0.2e1 + (0.1e1 - cos(0.2e1 * M_PI * dy)) * pow(M_PI, -0.2e1) / 0.2e1, -0.2e1) / 0.2e1) * multiplier;
-                // see simulation_tmp_simplified What is this joke? log(M_E)? 0.2e1?
-            }
-        }
-
-#endif
-
-        sD->Ax[totalElementCounter++] = -tmp * stepsize;
-        // Totally new part
-        for (unsigned int i = j + 1; i < sD->dc; i++)
-        {
-            dx = dislocs[i].x - dislocs[j].x;
-            normalize(dx);
-
-            dy = dislocs[i].y - dislocs[j].y; // az y értékek konstansok, így ha a diszlokációk rendezve vannak tárolva, akkor csak az ellentétes típusúak között kell max 1 kivonást elvégezni a normalize függvényben
-            normalize(dy);
-
-            double distSq = dx * dx + dy * dy;
-
-            if (std::fabs(sqrt(distSq) - sD->cutOff) < 6 * sD->cutOff) // itt a 6-os szorzót simán ki kéne hagyni, meg a következő 3 sort is úgy, ahogy van, TODO
-            {
-                double multiplier = 1;
-                if (distSq > sD->cutOffSqr)
-                    multiplier = exp(-pow(sqrt(distSq) - sD->cutOff, 2) * sD->onePerCutOffSqr);
-
-                sD->Ai[totalElementCounter] = i;
-                sD->Ax[totalElementCounter++] = stepsize * sD->b(i) * sD->b(j) * sD->tau.xy_diff_x(dx, dy) * multiplier;
-            }
-        }
-        sD->Ap[j + 1] = totalElementCounter;
-    }
-
-    for (unsigned int j = 0; j < sD->dc; j++)
-    {
-        double subSum = 0;
-        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
-        {
-            if (sD->Ai[i] == int(j))
-                sD->indexes[j] = i;
-
-            subSum -= sD->Ax[i];
-        }
-
-        sD->Ax[sD->indexes[j]] = subSum;
-
-        if (subSum > 0)
-            sD->dVec[j] = std::pow(1 - 1 / (subSum + 1), 2);
-        else
-            sD->dVec[j] = 0;
-    }
-
-    for (unsigned int j = 0; j < sD->dc; j++)
-    {
-        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
-            sD->Ax[i] *= (1 + sD->dVec[sD->Ai[i]]) * 0.5;
-
-        sD->Ax[sD->indexes[j]] += 1;
-    }
-
-    return totalElementCounter;
 }
 
 // like calcJacobianAndSpeedsAtTime but calculates the forces at two given time point where the forces can be different due to the load protocol
@@ -663,7 +489,14 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
     return totalElementCounter;
 }
 
-// like calcJacobian but also calculates the forces at the given time
+/**
+@brief calcJacobian:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
+@param stepsize:        how large time step should be made
+@param dislocs:         the actual positions of the dislocations
+@param forces:          the speeds of the particles
+@param simTime:         the value of the external force will be calcualted from tim
+@return int:            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
+*/
 int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime)
 {
     return calcJacobianAndSpeedsAtTimes(stepsize, dislocs, forces, forces, simTime, simTime);

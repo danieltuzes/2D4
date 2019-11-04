@@ -52,6 +52,7 @@ First version tracked source
 #include "precision_handler.h"
 #include "simulation_data.h"
 #include "stress_protocol.h"
+#include "sim_utils.h"
 
 #include <memory>
 #include <sstream>
@@ -100,18 +101,17 @@ namespace sdddstCore {
         // calculates the Burgers' vector weighted sum of the displacements
         double calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const;
 
+        // like calcJacobianAndSpeedsAtTime but calculates the forces at two given time point where the forces can be different due to the load protocol
+        int calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B);
+
         /**
         @brief calcJacobian:    calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec
         @param stepsize:        how large time step should be made
         @param dislocs:         the actual positions of the dislocations
+        @param forces:          the speeds of the particles
+        @param simTime:         the value of the external force will be calcualted from tim
         @return int:            totalElementCounter, the total number of nonezero elements in the matrix J_{i,j}^k
         */
-        int calcJacobian(double stepsize, const std::vector<DislwoB>& dislocs);
-
-        // like calcJacobianAndSpeedsAtTime but calculates the forces at two given time point where the forces can be different due to the load protocol
-        int calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces_A, std::vector<double>& forces_B, double simTime_A, double simTime_B);
-
-        // like calcJacobian but also calculates the forces at the given time
         int calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
 
         // Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights

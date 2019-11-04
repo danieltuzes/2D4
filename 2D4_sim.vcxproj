@@ -52,6 +52,7 @@
     <ClCompile Include="src\project_parser.cpp" />
     <ClCompile Include="src\simulation.cpp" />
     <ClCompile Include="src\simulation_data.cpp" />
+    <ClCompile Include="src\sim_utils.cpp" />
     <ClCompile Include="src\stress_protocol.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -64,6 +65,7 @@
     <ClInclude Include="include\simulation.h" />
     <ClInclude Include="include\simulation_data.h" />
     <ClInclude Include="include\stress_protocol.h" />
+    <ClInclude Include="src\sim_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\README.md" />
