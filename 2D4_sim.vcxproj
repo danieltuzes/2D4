@@ -64,8 +64,8 @@
     <ClInclude Include="include\project_parser.h" />
     <ClInclude Include="include\simulation.h" />
     <ClInclude Include="include\simulation_data.h" />
+    <ClInclude Include="include\sim_utils.h" />
     <ClInclude Include="include\stress_protocol.h" />
-    <ClInclude Include="src\sim_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\README.md" />

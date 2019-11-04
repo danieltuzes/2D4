@@ -54,7 +54,7 @@
     <ClInclude Include="include\fields\Field.h">
       <Filter>Header Files\Fields</Filter>
     </ClInclude>
-    <ClInclude Include="src\sim_utils.h">
+    <ClInclude Include="include\sim_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
