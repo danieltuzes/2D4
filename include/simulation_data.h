@@ -1,7 +1,13 @@
-// 
+﻿// 
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.5
+Eliminated ic and macros according to constants.h v0.5
+
+# 0.4
+* disl_sorted were twice as large as needed, values were copied there two times
+
 # 0.3
 * Dislocations are stored without their Burgers' vector, old dislocation code is removed from the source
 * Unused phython binding is removed
@@ -16,7 +22,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.3
+#define VERSION_simulation_data 0.5
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -52,11 +58,12 @@ namespace sdddstCore {
 
         ///////////////////
         /// UTILITIES
-        ///
+        ///////////////////
 
         /// Data file handling utilities
         void readDislocationDataFromFile(std::string dislocationDataFilePath);
         void writeDislocationDataToFile(std::string dislocationDataFilePath) const;
+
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
         void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
@@ -67,9 +74,15 @@ namespace sdddstCore {
         // returns the Burgers' vector type based on the index value ID; first half: +1; second half: -1
         int b(unsigned int ID) const;
 
-        //////////////////
+        // returns true if Burgers' vector for the IDth dislocation is positive; false otherwise
+        bool is_pos_b(unsigned int ID) const;
+
+        // prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
+        void printAxD(std::string fname, unsigned int totalElementCounter) const;
+
+        ///////////////////
         /// DATA FIELDS
-        ///
+        ///////////////////
 
         // Valid dislocation position data -> state of the simulation at simTime; the sorted dislocations, Burger's vector is not needed
         std::vector<DislwoB> disl_sorted;
@@ -98,10 +111,10 @@ namespace sdddstCore {
         // Stores the d values for the integration scheme
         std::vector<double> dVec;
 
-        // The value of the cut off multiplier
+        // The value of the cut off multiplier read from input "cutoff-multiplier"
         double cutOffMultiplier;
 
-        // The value of the cutoff
+        // The value of the cutoff = cutOffMultiplier / sqrt(dc)
         double cutOff;
 
         // The value of the cutoff^2
@@ -118,9 +131,6 @@ namespace sdddstCore {
 
         // Count of the dislocations in the system
         unsigned int dc;
-
-        // Count of the iterations during the NR
-        unsigned int ic;
 
         // Simulation time limit. After it is reached there should be no more calculations
         double timeLimit;
@@ -147,14 +157,13 @@ namespace sdddstCore {
         std::vector<DislwoB> secondSmall_sorted;
 
         // The used interaction field
-        std::unique_ptr<Field> tau;
+        Field tau;
 
         // UMFPack specified sparse format stored Jacobian
-        int* Ap;
-        int* Ai;
-        double* Ax;
-        // Result data
-        double* x;
+        int* Ap;        // index values i ∈ [Ap[j], Ap[j+1]) is used to determine the row values by Ai[i] for which A_{i,j} is non zero
+        int* Ai;        // from Ap[j] to Ap[j+1] it stores the row index for the non zero elements in A_{i,j}
+        double* Ax;     // The values of the sparse matrix, row-column order
+        double* x;      // for which the linear equations will be solved; Ax * Δx = g for Δx
 
         // UMFPack required variables
         double* null;
@@ -181,7 +190,7 @@ namespace sdddstCore {
         // True, if there is an upper limit set for the step size
         bool isMaxStepSizeLimit;
 
-        // The upper limit of a step size if is set
+        // The upper limit of a step size if it is set
         double maxStepSizeLimit;
 
         // True if a simulation time limit is set for the simulation

@@ -2,6 +2,12 @@
 // constants.h : contains some constant expressions from different places of the code. Included in simulation_data.cpp, project_parser.cpp, precision_handler.cpp and AnalyticField.h
 
 /*changelog
+# 0.5
+DEFAULT_CUTOFF_MULTIPLIER and DEFAULT_CUTOFF are eliminated, bc they are read from input or has default boost::program_option value
+
+# 0.4
+potential bug fix around USE_IEEE_HYPERBOLIC and ANALYTIC_FIELD_N
+
 # 0.3
 In case USE_IEEE_HYPERBOLIC is false, program calculates cosh(x) and sinh(x) from the exponential function, sinh = cosh is considered for arguments larger than 6*pi.
 
@@ -15,24 +21,19 @@ first version with VERSION_constants
 #ifndef SDDDST_CORE_CONSTANTS_H
 #define SDDDST_CORE_CONSTANTS_H
 
-#define VERSION_constants 0.3
+#define VERSION_constants 0.5
 
 #define ANALYTIC_FIELD_N 4
 #define EPS 1e-12
-#define DEFAULT_CUTOFF_MULTIPLIER 1.0
-#define DEFAULT_CUTOFF 1.0
-#define DEFAULT_PRECISION 1e-8
-#define DEFAULT_ITERATION_COUNT 2
-#define DEFAULT_TIME_LIMIT 0.0
-#define DEFAULT_STEP_SIZE 1.0
-#define DEFAULT_SIM_TIME 0.0
 #define DEFAULT_KASQR (1.65 * 1.65 * 1e6 / 256)
 #define DEFAULT_A (1e-4 * 16)
 
-#define USE_IEEE_HYPERBOLIC 1
-#if (ANALYTIC_FIELD_N == 4)
-#undef USE_IEEE_HYPERBOLIC // I'd like to give a value again
-#define USE_IEEE_HYPERBOLIC 0 // if false, program calculates hyperbolic functions with identities: faster but less precise
+#define USE_IEEE_HYPERBOLIC 0
+#if (ANALYTIC_FIELD_N != 4)     // USE_IEEE_HYPERBOLIC must be true, bc the non IEEE version is implemented only for 4 images
+#undef USE_IEEE_HYPERBOLIC      // I'd like to give a value again
+#define USE_IEEE_HYPERBOLIC 1   // if false, program calculates hyperbolic functions with identities: faster but less precise
+#endif
+
 #if !USE_IEEE_HYPERBOLIC
 #define cosh2pi 267.746761483748222245931879901    // cosh(2 * pi)
 #define cosh4pi 143375.656570070321051450310133    // cosh(4 * pi)
@@ -64,4 +65,3 @@ first version with VERSION_constants
 #endif
 #endif
 
-#endif

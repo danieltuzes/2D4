@@ -19,8 +19,6 @@
 
 #include "constants.h"
 #include "project_parser.h"
-#include "Fields/AnalyticField.h"
-#include "Fields/PeriodicShearStressELTE.h"
 #include "stress_protocol.h"
 
 #include <iostream>
@@ -51,15 +49,10 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not exceed this value")
         ("calculate-strain,S", "turns on strain calculation for the simulation")
         ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
-        ("position-precision,P", boost::program_options::value<double>()->default_value(1e-5), "minimum precision for the positions for the adaptive step size protocol")
+        ("position-precision,P", boost::program_options::value<double>()->default_value(2e-4), "minimum precision for the positions for the adaptive step size protocol")
         ("save-sub-configurations,o", boost::program_options::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
         ("sub-configuration-delay,N", boost::program_options::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
         ("sub-configuration-delay-during-avalanche,n", boost::program_options::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
-        ;
-
-    fieldOptions.add_options()
-        ("periodic-stress-field-elte,p", boost::program_options::value<std::string>(), "periodic stress field based on ELTE library, the argument should be the folder where the compressed numerical data can be found (default)")
-        ("periodic-stress-field-analytic,m", ("analytic periodic stress field (default), number of images in each direction: " + std::to_string(ANALYTIC_FIELD_N)).c_str())
         ;
 
     externalStressProtocolOptions.add_options()
@@ -71,7 +64,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
 
     boost::program_options::options_description options;
 
-    options.add(requiredOptions).add(optionalOptions).add(fieldOptions).add(externalStressProtocolOptions).add_options()
+    options.add(requiredOptions).add(optionalOptions).add(externalStressProtocolOptions).add_options()
         ("help", "shows this help")
         ("hide-copyright,c", "hides the copyright notice from the standard output");
 
@@ -93,11 +86,9 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     {
         std::cout 
             << "Detailed version and compiler info:\n"
-            << "VERSION_analytic_field:             " << VERSION_analytic_field << "\n"
             << "VERSION_constants:                  " << VERSION_constants << "\n"
             << "VERSION_dislocations:               " << VERSION_dislocations << "\n"
             << "VERSION_field:                      " << VERSION_field << "\n"
-            << "VERSION_periodic_shear_stress_elte: " << VERSION_periodic_shear_stress_elte << "\n"
             << "VERSION_point_defect:               " << VERSION_point_defect << "\n"
             << "VERSION_precision_handler:          " << VERSION_precision_handler << "\n"
             << "VERSION_project_parser:             " << VERSION_project_parser << "\n"
@@ -123,11 +114,10 @@ std::shared_ptr<sdddstCore::SimulationData> sdddstCore::ProjectParser::getSimula
 
 void sdddstCore::ProjectParser::printLicense(int argc, char** argv) // if used multiple times, should move outside this cpp
 {
-    double totalVersion = VERSION_analytic_field +
+    double totalVersion = 
         VERSION_constants +
         VERSION_dislocations +
         VERSION_field +
-        VERSION_periodic_shear_stress_elte +
         VERSION_point_defect +
         VERSION_precision_handler +
         VERSION_project_parser +
@@ -245,16 +235,6 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
             std::cerr << "Cannot create result dislocation configuration file at " << sD->endDislocationConfigurationPath << ". Program terminates.\n";
             exit(-1);
         }
-    }
-
-    if (!vm.count("periodic-stress-field-elte"))
-        sD->tau = std::unique_ptr<Field>(new AnalyticField());
-    else
-    {
-        std::unique_ptr<sdddstCoreELTE::PeriodicShearStressELTE> tmp(new sdddstCoreELTE::PeriodicShearStressELTE());
-        tmp->loadStress(vm["periodic-stress-field-elte"].as<std::string>(), "xy", 1024);
-        tmp->loadStress(vm["periodic-stress-field-elte"].as<std::string>(), "xy_diff_x", 1024);
-        sD->tau = std::move(tmp);
     }
 
     double ext_stress = vm["const-external-stress"].as<double>();

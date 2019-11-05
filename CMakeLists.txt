@@ -66,7 +66,10 @@ elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   # Update if necessary
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wextra")
   # -O3 makes it faster, -march=native makes it platform dependent and faster, -ffast-math makes it a bit faster but modifies the results a but, especially because of the pow function
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USR_COMP_OPTIONS} -DGCC_MACHINE_INFO=\"${hostname}\" -DUSR_COMP_OPTIONS=\"${USR_COMP_OPTIONS}\"")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USR_COMP_OPTIONS} -DGCC_MACHINE_INFO=\"${hostname}\" -DUSR_COMP_OPTIONS=\"${USR_COMP_OPTIONS}\"") # to use point defects, uncomment the next line
+  
+  # to use point defects, uncomment the next line
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_POINT_DEFECTS") 
 endif()
 # use -DCMAKE_BUILD_TYPE="Debug|Release" to choose
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")

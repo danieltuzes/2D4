@@ -2,6 +2,9 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 0.4
+position-precision is decreased by a factor of 20
+
 # 0.3
 program call is printed out and an endl is included, therefore the stdout will show the message during the simulation
 
