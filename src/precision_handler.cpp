@@ -70,3 +70,8 @@ double PrecisionHandler::getMaxErrorRatioSqr() const
 {
     return maxErrorRatioSqr;
 }
+
+unsigned int PrecisionHandler::maxErrorRatioID() const
+{
+    return selectedID;
+}

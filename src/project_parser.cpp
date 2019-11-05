@@ -1,21 +1,5 @@
-/*
- * SDDDST Simple Discrete Dislocation Dynamics Toolkit
- * Copyright (C) 2015-2019 Gábor Péterffy <peterffy95@gmail.com>, Dániel Tüzes <tuzes@metal.elte.hu> and their friends.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
- */
+//
+// project_parser.cpp : contains the function definitions for project_parser.h
 
 #include "constants.h"
 #include "project_parser.h"
@@ -53,6 +37,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("save-sub-configurations,o", boost::program_options::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
         ("sub-configuration-delay,N", boost::program_options::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
         ("sub-configuration-delay-during-avalanche,n", boost::program_options::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
+        ("sub-config-times,T", boost::program_options::value<double>()->default_value(0), "subconfigs must be written out if simulation time is integer multiples of this value")
         ;
 
     externalStressProtocolOptions.add_options()
@@ -225,6 +210,7 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         sD->isSaveSubConfigs = true;
         sD->subConfigPath = vm["save-sub-configurations"].as<std::string>();
         sD->subConfigDelay = vm["sub-configuration-delay"].as<unsigned int>();
+        sD->subConfigTimes = vm["sub-config-times"].as<double>();
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
     }
 

@@ -49,10 +49,11 @@ void Simulation::run()
         double extStress = sD->externalStressProtocol->extStress(sD->simTime);
 
         sD->standardOutputLog
-            << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl
+            << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tmaxErrorRatioID\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl
             << sD->simTime << "\t"
             << sD->succesfulSteps << "\t"
             << sD->failedSteps << "\t"
+            << 0 << "\t"
             << 0 << "\t"
             << sumAvgSp << "\t"
             << sD->cutOff << "\t"
@@ -167,6 +168,7 @@ void Simulation::run()
                 << sD->succesfulSteps << "\t"
                 << sD->failedSteps << "\t"
                 << pH->getMaxErrorRatioSqr() << "\t"
+                << pH->maxErrorRatioID() << "\t"
                 << sumAvgSp << "\t"
                 << sD->cutOff << "\t";
 
@@ -203,7 +205,7 @@ void Simulation::run()
                 {
                     sD->subconfigDistanceCounter = 0;
                     std::stringstream ss;
-                    ss << std::setprecision(16);
+                    ss << std::setprecision(9);
                     ss << sD->simTime;
                     sD->writeDislocationDataToFile(sD->subConfigPath + ss.str() + ".dconf");
                 }
@@ -217,6 +219,14 @@ void Simulation::run()
             sD->failedSteps++;
 
         sD->stepSize = pH->getNewStepSize(sD->stepSize);
+        if (sD->isSaveSubConfigs && sD->subConfigTimes != 0)
+        {
+            double remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
+            if (remainder < sD->stepSize)
+                sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
+
+        }
+
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)

@@ -53,6 +53,7 @@ SimulationData::SimulationData(const std::string& startDislocationConfigurationP
     subConfigDelay(0),
     subConfigDelayDuringAvalanche(0),
     subconfigDistanceCounter(0),
+    subConfigTimes(0),
     currentStressStateType(StressProtocolStepType::Original),
     speedThresholdForCutoffChange(0),
     isSpeedThresholdForCutoffChange(false)

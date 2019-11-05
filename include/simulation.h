@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.0
+subConfigTimes is implemented to print subconfigs at give times
+
 # 0.9
 * calcGSolveAndUpdate is implemented, it simplifies the code
 * unused functions are removed

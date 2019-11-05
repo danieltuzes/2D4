@@ -2,6 +2,9 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.6
+subConfigTimes is added
+
 # 0.5
 Eliminated ic and macros according to constants.h v0.5
 
@@ -22,7 +25,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.5
+#define VERSION_simulation_data 0.6
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -249,6 +252,9 @@ namespace sdddstCore {
 
         // The number of elapsed steps since the last subconfig written
         unsigned int subconfigDistanceCounter;
+
+        // subconfigs must be written out at every simTime / subConfigTimes elment of N
+        double subConfigTimes;
 
         // What kind of stress state should be used
         StressProtocolStepType currentStressStateType;

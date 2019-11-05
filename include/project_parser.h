@@ -2,6 +2,9 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 0.5
+subConfigTimes is added
+
 # 0.4
 position-precision is decreased by a factor of 20
 
@@ -18,7 +21,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.2
+#define VERSION_project_parser 0.5
 
 // define macros for version tracking
 #define STR(x) #x
