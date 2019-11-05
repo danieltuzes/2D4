@@ -150,10 +150,7 @@ void Simulation::run()
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
 
-            double vsquare2 = absvalsq(sD->initSpeed2);
-            double energyThisStep = (absvalsq(sD->initSpeed) + vsquare2) * sD->stepSize / 4;
-
-            double sumAvgSp = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+            double sumAvgSp = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
 
             if (sD->countAvalanches)
             {
@@ -165,8 +162,7 @@ void Simulation::run()
                 else if (sumAvgSp > sD->avalancheSpeedThreshold)
                     sD->inAvalanche = true;
             }
-            double vsquare = absvalsq(sD->initSpeed);
-            energyThisStep += (vsquare + vsquare2) * sD->stepSize / 4;
+
             sD->standardOutputLog << sD->simTime << "\t"
                 << sD->succesfulSteps << "\t"
                 << sD->failedSteps << "\t"
@@ -194,9 +190,10 @@ void Simulation::run()
                 sD->updateCutOff();
             }
 
-            energy += energyThisStep;
+            double vsquare_end = absvalsq(sD->speed2);  // best approximation for speeds at the end of the 2nd small step
+            energy += (absvalsq(sD->initSpeed) + 2 * absvalsq(sD->initSpeed2) + vsquare_end) * sD->stepSize / 4;
 
-            sD->standardOutputLog << vsquare << "\t"
+            sD->standardOutputLog << vsquare_end << "\t"
                 << energy << "\t"
                 << get_wall_time() - startTime << std::endl;
 

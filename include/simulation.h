@@ -6,6 +6,7 @@
 * calcGSolveAndUpdate is implemented, it simplifies the code
 * unused functions are removed
 * code reformatted and rearranged; pragma regions added
+* energies are calculated a bit differently bc speeds at the end of the 2nd small step is not available at the end of the 2nd large step.
 
 # 0.8
 Bugfix: calcJacobianFromPrev didn't calculate the new speed values at the end of the first small step, possibly lead to higher number of unsuccessful step if stress wasn't constant. calcJacobianAndSpeedsFromPrev does the right job
@@ -51,7 +52,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 0.9
+#define VERSION_simulation 1.0
 
 #include "dislocation.h"
 #include "precision_handler.h"
