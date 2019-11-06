@@ -136,7 +136,7 @@ void Simulation::run()
 #pragma region step stage IV: accept or retry disl_sorted 
         calculateXError();
 
-        if (pH->getMaxErrorRatioSqr() < 1. / 400)
+        if (pH->getMaxErrorRatioSqr() < 1. / 400) // accept step
         {
             sD->simTime += sD->stepSize;
             sD->succesfulSteps++;
@@ -145,13 +145,54 @@ void Simulation::run()
             for (auto& disl : sD->disl_sorted)
                 normalize(disl.x);
 
-            if (sD->calculateStrainDuringSimulation)
+            // for simulation criterium and output
+            if (sD->calculateStrainDuringSimulation) 
             {
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
 
-            double sumAvgSp = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc;
+            double sumAvgSp = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc; // for logfile and cutoff modification
+
+            // logfile write
+            {
+                double vsquare_end = absvalsq(sD->speed2);  // best approximation for speeds at the end of the 2nd small step
+                energy += (absvalsq(sD->initSpeed) + 2 * absvalsq(sD->initSpeed2) + vsquare_end) * sD->stepSize / 4;
+
+                sD->standardOutputLog << sD->simTime << "\t"
+                    << sD->succesfulSteps << "\t"
+                    << sD->failedSteps << "\t"
+                    << pH->getMaxErrorRatioSqr() << "\t"
+                    << pH->maxErrorRatioID() << "\t"
+                    << sumAvgSp << "\t"
+                    << sD->cutOff << "\t";
+
+                if (sD->orderParameterCalculationIsOn)
+                    sD->standardOutputLog << calculateOrderParameter(sD->speed) << "\t";
+                else
+                    sD->standardOutputLog << "-" << "\t";
+
+                sD->standardOutputLog
+                    << sD->externalStressProtocol->extStress(sD->simTime) << "\t"
+                    << get_wall_time() - lastLogTime << "\t";
+
+                if (sD->calculateStrainDuringSimulation)
+                    sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
+                else
+                    sD->standardOutputLog << "-" << "\t";
+
+                sD->standardOutputLog << vsquare_end << "\t"
+                    << energy << "\t"
+                    << get_wall_time() - startTime << std::endl;
+
+                lastLogTime = get_wall_time();
+            }
+
+            if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp) // must be after printout to logfile
+            {
+                sD->cutOffMultiplier = 1e20;
+                sD->updateCutOff();
+            }
 
             if (sD->countAvalanches)
             {
@@ -163,41 +204,6 @@ void Simulation::run()
                 else if (sumAvgSp > sD->avalancheSpeedThreshold)
                     sD->inAvalanche = true;
             }
-
-            sD->standardOutputLog << sD->simTime << "\t"
-                << sD->succesfulSteps << "\t"
-                << sD->failedSteps << "\t"
-                << pH->getMaxErrorRatioSqr() << "\t"
-                << pH->maxErrorRatioID() << "\t"
-                << sumAvgSp << "\t"
-                << sD->cutOff << "\t";
-
-            if (sD->orderParameterCalculationIsOn)
-                sD->standardOutputLog << calculateOrderParameter(sD->speed) << "\t";
-            else
-                sD->standardOutputLog << "-" << "\t";
-
-            sD->standardOutputLog
-                << sD->externalStressProtocol->extStress(sD->simTime) << "\t"
-                << get_wall_time() - lastLogTime << "\t";
-
-            if (sD->calculateStrainDuringSimulation)
-                sD->standardOutputLog << sD->totalAccumulatedStrainIncrease << "\t";
-            else
-                sD->standardOutputLog << "-" << "\t";
-
-            if (sD->isSpeedThresholdForCutoffChange && sD->speedThresholdForCutoffChange > sumAvgSp)
-            {
-                sD->cutOffMultiplier = 1e20;
-                sD->updateCutOff();
-            }
-
-            double vsquare_end = absvalsq(sD->speed2);  // best approximation for speeds at the end of the 2nd small step
-            energy += (absvalsq(sD->initSpeed) + 2 * absvalsq(sD->initSpeed2) + vsquare_end) * sD->stepSize / 4;
-
-            sD->standardOutputLog << vsquare_end << "\t"
-                << energy << "\t"
-                << get_wall_time() - startTime << std::endl;
 
             if (sD->isSaveSubConfigs)
             {
@@ -213,7 +219,6 @@ void Simulation::run()
                     sD->subconfigDistanceCounter++;
             }
 
-            lastLogTime = get_wall_time();
         }
         else
             sD->failedSteps++;
