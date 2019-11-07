@@ -59,9 +59,7 @@ namespace sdddstCore {
          */
         SimulationData(const std::string& dislocationConfigurationPath, const std::string& pointDefectDataFilePath);
 
-        ///////////////////
-        /// UTILITIES
-        ///////////////////
+#pragma region utility functions
 
         /// Data file handling utilities
         void readDislocationDataFromFile(std::string dislocationDataFilePath);
@@ -80,12 +78,28 @@ namespace sdddstCore {
         // returns true if Burgers' vector for the IDth dislocation is positive; false otherwise
         bool is_pos_b(unsigned int ID) const;
 
+#pragma endregion
+
+#pragma region debugging function tools
+
         // prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
         void printAxD(std::string fname, unsigned int totalElementCounter) const;
 
-        ///////////////////
-        /// DATA FIELDS
-        ///////////////////
+        // check if the container is finite
+        bool isFinite(std::vector<double> m_vector);
+
+        // checks if the dislocation has finite x coordinate
+        bool isFinite(std::vector<DislwoB> disl);
+
+        // check if the dynamically allocated array is finite
+        bool isFinite(double* m_array, size_t size);
+
+        // checks for all container if the are finite
+        bool isAllFinite(size_t nz, std::string label);
+
+#pragma endregion
+
+#pragma region data fields
 
         // Valid dislocation position data -> state of the simulation at simTime; the sorted dislocations, Burger's vector is not needed
         std::vector<DislwoB> disl_sorted;
@@ -113,6 +127,35 @@ namespace sdddstCore {
 
         // Stores the d values for the integration scheme
         std::vector<double> dVec;
+
+        // The dislocation data after the big step
+        std::vector<DislwoB> bigStep_sorted;
+
+        // The dislocation data after the first small step
+        std::vector<DislwoB> firstSmall_sorted;
+
+        // The dislocation data after the second small step
+        std::vector<DislwoB> secondSmall_sorted;
+
+        // UMFPack specified sparse format stored Jacobian
+        int* Ap;        // index values i ∈ [Ap[j], Ap[j+1]) is used to determine the row values by Ai[i] for which A_{i,j} is non zero
+        int* Ai;        // from Ap[j] to Ap[j+1] it stores the row index for the non zero elements in A_{i,j}
+        double* Ax;     // The values of the sparse matrix, row-column order
+        double* x;      // for which the linear equations will be solved; Ax * Δx = g for Δx
+
+        // UMFPack required variables
+        double* null;
+        void* Symbolic, * Numeric;
+
+        // Diagonal indexes in the Jacobian
+        std::vector<int> indexes;
+
+#pragma endregion
+
+#pragma region variables
+
+        // The used interaction field
+        Field tau;
 
         // The value of the cut off multiplier read from input "cutoff-multiplier"
         double cutOffMultiplier;
@@ -149,31 +192,6 @@ namespace sdddstCore {
 
         // Interaction strength between a point defect and a dislocation
         double A;
-
-        // The dislocation data after the big step
-        std::vector<DislwoB> bigStep_sorted;
-
-        // The dislocation data after the first small step
-        std::vector<DislwoB> firstSmall_sorted;
-
-        // The dislocation data after the second small step
-        std::vector<DislwoB> secondSmall_sorted;
-
-        // The used interaction field
-        Field tau;
-
-        // UMFPack specified sparse format stored Jacobian
-        int* Ap;        // index values i ∈ [Ap[j], Ap[j+1]) is used to determine the row values by Ai[i] for which A_{i,j} is non zero
-        int* Ai;        // from Ap[j] to Ap[j+1] it stores the row index for the non zero elements in A_{i,j}
-        double* Ax;     // The values of the sparse matrix, row-column order
-        double* x;      // for which the linear equations will be solved; Ax * Δx = g for Δx
-
-        // UMFPack required variables
-        double* null;
-        void* Symbolic, * Numeric;
-
-        // Diagonal indexes in the Jacobian
-        std::vector<int> indexes;
 
         // Number of the successfully finished steps
         size_t succesfulSteps;
@@ -263,6 +281,7 @@ namespace sdddstCore {
         double speedThresholdForCutoffChange;
 
         bool isSpeedThresholdForCutoffChange;
+#pragma endregion
 
     private:
     };

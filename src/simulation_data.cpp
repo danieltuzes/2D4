@@ -5,6 +5,8 @@
 #include "constants.h"
 #include "stress_protocol.h"
 
+#include <type_traits>
+
 using namespace sdddstCore;
 
 SimulationData::SimulationData(const std::string& startDislocationConfigurationPath, const std::string& fixpointsDataFilePath) :
@@ -63,6 +65,7 @@ SimulationData::SimulationData(const std::string& startDislocationConfigurationP
     initSimulationVariables();
 }
 
+#pragma region utility functions
 void SimulationData::readDislocationDataFromFile(std::string dislocationDataFilePath)
 {
     std::ifstream ifile(dislocationDataFilePath);
@@ -225,6 +228,10 @@ bool SimulationData::is_pos_b(unsigned int ID) const
     return ID < dc / 2;
 }
 
+#pragma endregion
+
+#pragma region debugging function tools
+
 // prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
 void SimulationData::printAxD(std::string fname, unsigned int totalElementCounter) const
 {
@@ -242,3 +249,109 @@ void SimulationData::printAxD(std::string fname, unsigned int totalElementCounte
     for (size_t i = 0; i < dc; ++i)
         d_of << dVec[i] << "\n";
 }
+
+
+// check if the container is finite
+bool SimulationData::isFinite(std::vector<double> m_vector)
+{
+    bool allfinite = true;
+    for (size_t i = 0; i < m_vector.size(); ++i)
+    {
+        if (std::isfinite(m_vector[i]))
+        {
+            std::cerr << "index " << i << " is not finite\n";
+            allfinite = false;
+        }
+    }
+    return allfinite;
+}
+
+bool SimulationData::isFinite(std::vector<DislwoB> m_vector)
+{
+    bool allfinite = true;
+    for (size_t i = 0; i < m_vector.size(); ++i)
+    {
+        if (std::isfinite(m_vector[i].x))
+        {
+            std::cerr << "index " << i << " is not finite\n";
+            allfinite = false;
+        }
+    }
+    return allfinite;
+}
+
+bool SimulationData::isFinite(double* m_array, size_t size)
+{
+    std::vector<double> m_vector(m_array, m_array + size);
+    return isFinite(m_vector);
+}
+
+
+bool SimulationData::isAllFinite(size_t nz, std::string label)
+{
+    bool allfinite = true;
+    if (!isFinite(speed))
+    {
+        std::cerr << "speed is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(speed2))
+    {
+        std::cerr << "speed2 is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(initSpeed))
+    {
+        std::cerr << "initSpeed is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(initSpeed2))
+    {
+        std::cerr << "initSpeed2 is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(disl_sorted))
+    {
+        std::cerr << "disl_order is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(firstSmall_sorted))
+    {
+        std::cerr << "firstSmall_sorted is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(secondSmall_sorted))
+    {
+        std::cerr << "secondSmall_sorted is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(bigStep_sorted))
+    {
+        std::cerr << "bigStep_sorted is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(dVec))
+    {
+        std::cerr << "dVec is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(g))
+    {
+        std::cerr << "g is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(Ax, nz))
+    {
+        std::cerr << "Ax is not finite\n";
+        allfinite = false;
+    }
+    if (!isFinite(x, nz))
+    {
+        std::cerr << "x is not finite\n";
+        allfinite = false;
+    }
+    if (!allfinite)
+        std::cerr << label << std::endl;
+    return allfinite;
+}
+#pragma endregion
