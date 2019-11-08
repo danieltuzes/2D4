@@ -230,28 +230,65 @@ bool SimulationData::is_pos_b(unsigned int ID) const
 
 #pragma endregion
 
-#pragma region debugging function tools
+#ifdef DEBUG_VERSION
 
-// prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
-void SimulationData::printAxD(std::string fname, unsigned int totalElementCounter) const
+void SimulationData::printOut(std::string fname, const std::vector<double>& m_vector) const
 {
-    std::ofstream Ax_of("Ax" + fname + ".txt");
-    if (!Ax_of)
+    std::ofstream of(fname, std::ios_base::app);
+    if (!of)
+        std::cerr << "Cannot create or append to file " << fname << std::endl;
+    else
     {
-        std::cout << "Cannot create file " << fname << std::endl;
-        exit(-1);
+        for (size_t i = 0; i < m_vector.size(); ++i)
+            of << m_vector[i] << "\n";
     }
-    std::ofstream d_of("d" + fname + ".txt");
-
-    for (size_t i = 0; i < totalElementCounter; ++i)
-        Ax_of << Ax[i] << "\n";
-
-    for (size_t i = 0; i < dc; ++i)
-        d_of << dVec[i] << "\n";
 }
 
+// prints out the selected container's x values to fname        
+void SimulationData::printOut(std::string fname, const std::vector<DislwoB>& m_vector) const
+{
+    std::ofstream of(fname, std::ios_base::app);
+    if (!of)
+        std::cerr << "Cannot create or append to file " << fname << std::endl;
+    else
+    {
+        for (size_t i = 0; i < m_vector.size(); ++i)
+            of << m_vector[i].x << "\n";
+    }
+}
 
-// check if the container is finite
+// prints out size number of elements from the selected array's values to fname        
+void SimulationData::printOut(std::string fname, double* array, int size) const
+{
+    std::ofstream of(fname, std::ios_base::app);
+    if (!of)
+        std::cerr << "Cannot create or append to file " << fname << std::endl;
+    else
+    {
+        for (int i = 0; i < size; ++i)
+            of << array[i] << "\n";
+    }
+}
+
+// prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
+void SimulationData::printAll(std::string fname, unsigned int nz) const
+{
+    printOut("speed" + fname, speed);
+    printOut("speed2" + fname, speed2);
+    printOut("initSpeed" + fname, initSpeed);
+    printOut("initSpeed2" + fname, initSpeed2);
+    printOut("disl_sorted" + fname, disl_sorted);
+    printOut("disl_sorted" + fname, disl_sorted);
+    printOut("firstSmall_sorted" + fname, firstSmall_sorted);
+    printOut("secondSmall_sorted" + fname, secondSmall_sorted);
+    printOut("bigStep_sorted" + fname, bigStep_sorted);
+    printOut("dVec" + fname, dVec);
+    printOut("g" + fname, g);
+    printOut("Ax" + fname, Ax, nz);
+    printOut("x" + fname, x, dc);
+}
+
+// checks if all values in the container are finite
 bool SimulationData::isFinite(std::vector<double> m_vector)
 {
     bool allfinite = true;
@@ -259,13 +296,14 @@ bool SimulationData::isFinite(std::vector<double> m_vector)
     {
         if (std::isfinite(m_vector[i]))
         {
-            std::cerr << "index " << i << " is not finite\n";
+            std::cerr << "index " << i << " is not finite.\n";
             allfinite = false;
         }
     }
     return allfinite;
 }
 
+// checks if all x coordinate values in the container are finite
 bool SimulationData::isFinite(std::vector<DislwoB> m_vector)
 {
     bool allfinite = true;
@@ -280,15 +318,19 @@ bool SimulationData::isFinite(std::vector<DislwoB> m_vector)
     return allfinite;
 }
 
-bool SimulationData::isFinite(double* m_array, size_t size)
+// checks if the first nz number of elements in the array are finite
+bool SimulationData::isFinite(double* m_array, size_t nz)
 {
-    std::vector<double> m_vector(m_array, m_array + size);
+    std::vector<double> m_vector(m_array, m_array + nz);
     return isFinite(m_vector);
 }
 
-
+// checks if all the containers and arrays up to nz number of elements contain only finite values
 bool SimulationData::isAllFinite(size_t nz, std::string label)
 {
+    if (simTime < 8.4337859528891158e-04)
+        return true;
+
     bool allfinite = true;
     if (!isFinite(speed))
     {
@@ -345,13 +387,26 @@ bool SimulationData::isAllFinite(size_t nz, std::string label)
         std::cerr << "Ax is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(x, nz))
+    if (!isFinite(x, dc))
     {
         std::cerr << "x is not finite\n";
         allfinite = false;
     }
+
     if (!allfinite)
-        std::cerr << label << std::endl;
+    {
+        std::cerr
+            << label << "\t"
+            << succesfulSteps << "\t"
+            << failedSteps << "\t"
+            << stepSize << "\t"
+            << simTime << std::endl;
+
+        std::stringstream ss;
+        ss << label << "_" << succesfulSteps<< "_" << failedSteps << ".txt";
+        printAll(ss.str(), nz);
+    }
     return allfinite;
 }
-#pragma endregion
+
+#endif

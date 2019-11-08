@@ -2,6 +2,10 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 0.6
+* prints out umfpack version info
+* always prints out version info
+
 # 0.5
 subConfigTimes is added
 
@@ -21,7 +25,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.5
+#define VERSION_project_parser 0.6
 
 // define macros for version tracking
 #define STR(x) #x
@@ -34,7 +38,7 @@ Ther first version tracked file
 #ifdef _MSC_VER
 #define COMPILER_VERSION MSVSC++  _MSC_VER
 #define MACHINE_INFO A windows machine
-#define USR_COMP_OPTIONS default MSVSC++ options
+#define USR_COMP_OPTIONS MSVSC++ options
 #else
 #define COMPILER_VERSION unknown compiler
 #define MACHINE_INFO unknown machine

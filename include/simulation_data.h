@@ -2,6 +2,9 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.7
+debugging tools are added
+
 # 0.6
 subConfigTimes is added
 
@@ -25,7 +28,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.6
+#define VERSION_simulation_data 0.7
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -80,24 +83,33 @@ namespace sdddstCore {
 
 #pragma endregion
 
-#pragma region debugging function tools
+#ifdef DEBUG_VERSION
 
-        // prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
-        void printAxD(std::string fname, unsigned int totalElementCounter) const;
+        // prints out the selected container to fname        
+        void printOut(std::string fname, const std::vector<double>& m_vector) const;
 
-        // check if the container is finite
+        // prints out the selected container's x values to fname        
+        void printOut(std::string fname, const std::vector<DislwoB>& m_vector) const;
+
+        // prints out size number of elements from the selected array's values to fname        
+        void SimulationData::printOut(std::string fname, double* array, int size) const;
+
+        // prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
+        void printAll(std::string fname, unsigned int nz) const;
+
+        // checks if all values in the container are finite
         bool isFinite(std::vector<double> m_vector);
 
-        // checks if the dislocation has finite x coordinate
+        // checks if all x coordinate values in the container are finite
         bool isFinite(std::vector<DislwoB> disl);
 
-        // check if the dynamically allocated array is finite
+        // checks if the first nz number of elements in the array are finite
         bool isFinite(double* m_array, size_t size);
 
-        // checks for all container if the are finite
+        // checks if all the containers and arrays up to nz number of elements contain only finite values
         bool isAllFinite(size_t nz, std::string label);
 
-#pragma endregion
+#endif
 
 #pragma region data fields
 

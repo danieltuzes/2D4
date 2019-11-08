@@ -78,14 +78,18 @@ void Simulation::run()
         double t_0__ = sD->simTime;                     // simTime at the beginning of a large step
         double t_1__ = sD->simTime + sD->stepSize;      // simTime at the end of a large step
         double t_1p2 = sD->simTime + sD->stepSize / 2;  // the time point at the first small step
+        int nz;                                         // the number of non0 element in the Jacobian
         {
             //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
             // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
-            calcJacobianAndSpeedsAtTimes(sD->stepSize, sD->disl_sorted, sD->initSpeed, sD->speed, t_0__, t_1__);
+            nz = calcJacobianAndSpeedsAtTimes(sD->stepSize, sD->disl_sorted, sD->initSpeed, sD->speed, t_0__, t_1__);
+            sD->isAllFinite(nz, "A\n");
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
             solveEQSys();
+            sD->isAllFinite(nz, "B\n");
+
             for (unsigned int i = 0; i < sD->dc; i++)
             {
                 sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
@@ -93,13 +97,19 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
+            sD->isAllFinite(nz, "C\n");
+
             calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed);
+            sD->isAllFinite(nz, "D\n");
+
         }
 #pragma endregion
 
 #pragma region step stage II: first small step
         {
             calcJacobianAndSpeedsFromPrev();  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
+            sD->isAllFinite(nz, "E\n");
+
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
             solveEQSys();
@@ -108,20 +118,28 @@ void Simulation::run()
                 sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
                 sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
             }
+            sD->isAllFinite(nz, "F\n");
 
             calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
+            sD->isAllFinite(nz, "G\n");
+
             calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed);
+            sD->isAllFinite(nz, "H\n");
+
         }
 #pragma endregion
 
 #pragma region step stage III: second small step
         {
             calcJacobianAndSpeedsAtTimes(sD->stepSize / 2, sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1__); //## calculates the Jacobian from firstSmall_sorted = config[5]
+            sD->isAllFinite(nz, "I\n");
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
             solveEQSys();
+            sD->isAllFinite(nz, "J\n");
+
             for (unsigned int i = 0; i < sD->dc; i++)
             {
                 sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // secondSmall_sorted = config[6]
@@ -129,7 +147,11 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
+            sD->isAllFinite(nz, "K\n");
+
             calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2);
+            sD->isAllFinite(nz, "L\n");
+
         }
 #pragma endregion
 
@@ -231,11 +253,14 @@ void Simulation::run()
                 sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
 
         }
+        sD->isAllFinite(nz, "J\n");
 
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
             sD->stepSize = sD->maxStepSizeLimit;
+        sD->isAllFinite(nz, "M\n");
+
 #pragma endregion
     }
 
