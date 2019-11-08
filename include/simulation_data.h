@@ -92,7 +92,7 @@ namespace sdddstCore {
         void printOut(std::string fname, const std::vector<DislwoB>& m_vector) const;
 
         // prints out size number of elements from the selected array's values to fname        
-        void SimulationData::printOut(std::string fname, double* array, int size) const;
+        void printOut(std::string fname, double* array, int size) const;
 
         // prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
         void printAll(std::string fname, unsigned int nz) const;
