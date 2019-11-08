@@ -10,6 +10,13 @@
 using namespace sdddstCore;
 
 SimulationData::SimulationData(const std::string& startDislocationConfigurationPath, const std::string& fixpointsDataFilePath) :
+    Ap(nullptr),
+    Ai(nullptr),
+    Ax(nullptr),
+    x(nullptr),
+    null(NULL),
+    Symbolic(nullptr),
+    Numeric(nullptr),
     cutOffMultiplier(0),
     cutOff(0),
     cutOffSqr(cutOff* cutOff),
@@ -20,13 +27,6 @@ SimulationData::SimulationData(const std::string& startDislocationConfigurationP
     timeLimit(0),
     stepSize(0),
     simTime(0),
-    Ap(nullptr),
-    Ai(nullptr),
-    Ax(nullptr),
-    x(nullptr),
-    null(NULL),
-    Symbolic(nullptr),
-    Numeric(nullptr),
     KASQR(DEFAULT_KASQR),
     A(DEFAULT_A),
     succesfulSteps(0),
