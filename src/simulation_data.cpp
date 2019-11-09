@@ -278,7 +278,6 @@ void SimulationData::printAll(std::string fname, unsigned int nz) const
     printOut("initSpeed" + fname, initSpeed);
     printOut("initSpeed2" + fname, initSpeed2);
     printOut("disl_sorted" + fname, disl_sorted);
-    printOut("disl_sorted" + fname, disl_sorted);
     printOut("firstSmall_sorted" + fname, firstSmall_sorted);
     printOut("secondSmall_sorted" + fname, secondSmall_sorted);
     printOut("bigStep_sorted" + fname, bigStep_sorted);
@@ -291,31 +290,29 @@ void SimulationData::printAll(std::string fname, unsigned int nz) const
 // checks if all values in the container are finite
 bool SimulationData::isFinite(std::vector<double> m_vector)
 {
-    bool allfinite = true;
     for (size_t i = 0; i < m_vector.size(); ++i)
     {
-        if (std::isfinite(m_vector[i]))
+        if (!std::isfinite(m_vector[i]))
         {
-            std::cerr << "index " << i << " is not finite.\n";
-            allfinite = false;
+            std::cerr << "index " << i << " is not finite and there can be more.\n";
+            return false;
         }
     }
-    return allfinite;
+    return true;
 }
 
 // checks if all x coordinate values in the container are finite
 bool SimulationData::isFinite(std::vector<DislwoB> m_vector)
 {
-    bool allfinite = true;
     for (size_t i = 0; i < m_vector.size(); ++i)
     {
-        if (std::isfinite(m_vector[i].x))
+        if (!std::isfinite(m_vector[i].x))
         {
-            std::cerr << "index " << i << " is not finite\n";
-            allfinite = false;
+            std::cerr << "index " << i << " is not finite and there can be more.\n";
+            return false;
         }
     }
-    return allfinite;
+    return true;
 }
 
 // checks if the first nz number of elements in the array are finite
@@ -325,7 +322,8 @@ bool SimulationData::isFinite(double* m_array, size_t nz)
     return isFinite(m_vector);
 }
 
-// checks if all the containers and arrays up to nz number of elements contain only finite values
+// checks if all the containers and arrays up to nz number of elements contain only finite values and
+// print out results to labeled filenames, label should match ^[\w,\s-]+
 bool SimulationData::isAllFinite(size_t nz, std::string label)
 {
     if (simTime < 8.4337859528891158e-04)
@@ -354,7 +352,7 @@ bool SimulationData::isAllFinite(size_t nz, std::string label)
     }
     if (!isFinite(disl_sorted))
     {
-        std::cerr << "disl_order is not finite\n";
+        std::cerr << "disl_sorted is not finite\n";
         allfinite = false;
     }
     if (!isFinite(firstSmall_sorted))

@@ -28,7 +28,7 @@ first version with VERSION_constants
 
 // uncomment if you want to include and call debugging functions
 // modifications in debug functions change the affected file's version only, calls on those functions changes only DEBUG_VERSION number only
-#define DEBUG_VERSION 0.1
+#define DEBUG_VERSION 0.2
 
 #define ANALYTIC_FIELD_N 4
 #define EPS 1e-12

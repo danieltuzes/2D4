@@ -2,6 +2,13 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.8
+debugging tools are improved
+* isFinite doesn't print out all nonfinite variables, only the first
+* disl_order was false printed, it was disl_sorted in reality
+* disl_sorted was printed to file twice
+* isFinite is checked if the value is finite, not if itsn't finite
+
 # 0.7
 debugging tools are added
 
@@ -28,7 +35,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.7
+#define VERSION_simulation_data 0.8
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -106,7 +113,8 @@ namespace sdddstCore {
         // checks if the first nz number of elements in the array are finite
         bool isFinite(double* m_array, size_t size);
 
-        // checks if all the containers and arrays up to nz number of elements contain only finite values
+        // checks if all the containers and arrays up to nz number of elements contain only finite values and
+        // print out results to labeled filenames, label should match ^[\w,\s-]+
         bool isAllFinite(size_t nz, std::string label);
 
 #endif
