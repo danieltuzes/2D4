@@ -229,7 +229,8 @@ void Simulation::run()
 
             if (sD->isSaveSubConfigs)
             {
-                if ((!sD->inAvalanche && sD->subConfigDelay >= sD->subconfigDistanceCounter) || (sD->inAvalanche && sD->subConfigDelayDuringAvalanche >= sD->subconfigDistanceCounter))
+                if ((!sD->inAvalanche && sD->subConfigDelay <= sD->subconfigDistanceCounter) ||
+                    (sD->inAvalanche && sD->subConfigDelayDuringAvalanche <= sD->subconfigDistanceCounter))
                 {
                     sD->subconfigDistanceCounter = 0;
                     std::stringstream ss;
@@ -251,7 +252,7 @@ void Simulation::run()
             double remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
             if (remainder < sD->stepSize)
                 sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
-
+            sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
         }
         sD->isAllFinite(nz, "L");
 
@@ -607,7 +608,17 @@ void Simulation::calculateSparseFormForJacobian()
 // solves A * Δx = g for Δx
 void Simulation::solveEQSys()
 {
-    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
+    int status = umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
+    if (status == UMFPACK_WARNING_singular_matrix)
+    {
+        std::cerr
+            << "Warning: singular matrix at time " << sD->simTime
+            << " using stepSize " << sD->stepSize
+            << " after " << sD->succesfulSteps << " succesful and " << sD->failedSteps << " failed steps. All nonfinite result values will be zeroed out." << std::endl;
+        for (unsigned int i = 0; i < sD->dc; ++i)
+            if (!std::isfinite(sD->x[i]))
+                sD->x[i] = 0;
+    }
 }
 
 // return the jth line element that is in between si and ei indices

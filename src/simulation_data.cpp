@@ -294,7 +294,7 @@ bool SimulationData::isFinite(std::vector<double> m_vector)
     {
         if (!std::isfinite(m_vector[i]))
         {
-            std::cerr << "index " << i << " is not finite and there can be more.\n";
+            std::cerr << "index " << i << " is not finite and there can be more\n";
             return false;
         }
     }

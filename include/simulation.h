@@ -2,6 +2,11 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.1
+ * bugfix: sD->subConfigDelay >= sD->subconfigDistanceCounter was checked but <= was expected
+ * if subConfigTimes modifies sD->stepSize, sD->subConfigDelay is increased to trigger file writeout next time
+ * checks for umfpack_di_solve's return value: if it says that the matrix is singular, nonfinite x values are zeroed out
+
 # 1.0
 subConfigTimes is implemented to print subconfigs at give times
 
@@ -55,7 +60,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.0
+#define VERSION_simulation 1.1
 
 #include "dislocation.h"
 #include "precision_handler.h"
