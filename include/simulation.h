@@ -3,7 +3,7 @@
 
 /*
 # 1.3
-std::isfinite is useless with ffast-math; range are used insted of std::isfinite, it is implemented in debugging functions isFinite and solveEQSys too
+std::isfinite is useless with ffast-math; ranges are used instead of std::isfinite, it is implemented in debugging functions isFinite and solveEQSys too
 
 # 1.2
 solveEQSys contains label to make error messages easier to understand; calcGSolveAndUpdate also takes one therefore
@@ -66,7 +66,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.2
+#define VERSION_simulation 1.3
 
 #include "dislocation.h"
 #include "precision_handler.h"
