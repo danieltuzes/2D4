@@ -168,7 +168,7 @@ void Simulation::run()
                 normalize(disl.x);
 
             // for simulation criterium and output
-            if (sD->calculateStrainDuringSimulation) 
+            if (sD->calculateStrainDuringSimulation)
             {
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
@@ -538,8 +538,8 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
 
     // calculates the new_w values from the old dVec values
     std::transform(
-        sD->dVec.begin(), sD->dVec.end(), 
-        new_weig.begin(), 
+        sD->dVec.begin(), sD->dVec.end(),
+        new_weig.begin(),
         [](double old_weight)
         {
             return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2);
@@ -624,9 +624,9 @@ void Simulation::solveEQSys(std::string label)
             << " using stepSize " << sD->stepSize
             << " after " << sD->succesfulSteps << " succesful and " << sD->failedSteps << " failed steps at position labeled as " << label << ". All nonfinite result values should be removed." << std::endl;
         for (unsigned int i = 0; i < sD->dc; ++i)
-            if (!std::isfinite(sD->x[i]))
+            if (!((-1 < sD->x[i]) && (sD->x[i] < 1)))
             {
-                std::cerr << "non finite value found in x[" << i << "], a new value 0 is assigned to it to avoid further errors\n";
+                std::cerr << "x[" << i << "] = " << sD->x[i] << " is problematic, a new value 0 is assigned to it to avoid further errors\n";
                 sD->x[i] = 0;
             }
     }

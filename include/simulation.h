@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.3
+std::isfinite is useless with ffast-math; range are used insted of std::isfinite, it is implemented in debugging functions isFinite and solveEQSys too
+
 # 1.2
 solveEQSys contains label to make error messages easier to understand; calcGSolveAndUpdate also takes one therefore
 

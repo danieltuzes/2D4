@@ -105,13 +105,13 @@ namespace sdddstCore {
         void printAll(std::string fname, unsigned int nz) const;
 
         // checks if all values in the container are finite
-        bool isFinite(std::vector<double> m_vector);
+        bool isFinite(std::vector<double> m_vector, double lb, double ub);
 
         // checks if all x coordinate values in the container are finite
-        bool isFinite(std::vector<DislwoB> disl);
+        bool isFinite(std::vector<DislwoB> disl, double lb, double ub);
 
         // checks if the first nz number of elements in the array are finite
-        bool isFinite(double* m_array, size_t size);
+        bool isFinite(double* m_array, size_t size, double lb, double ub);
 
         // checks if all the containers and arrays up to nz number of elements contain only finite values and
         // print out results to labeled filenames, label should match ^[\w,\s-]+

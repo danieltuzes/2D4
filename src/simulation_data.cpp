@@ -291,11 +291,11 @@ void SimulationData::printAll(std::string fname, unsigned int nz) const
 }
 
 // checks if all values in the container are finite
-bool SimulationData::isFinite(std::vector<double> m_vector)
+bool SimulationData::isFinite(std::vector<double> m_vector, double lb, double ub)
 {
     for (size_t i = 0; i < m_vector.size(); ++i)
     {
-        if (!std::isfinite(m_vector[i]))
+        if (!((lb < m_vector[i]) && (m_vector[i] < ub)))
         {
             std::cerr << "index " << i << " is not finite and there can be more\n";
             return false;
@@ -305,11 +305,11 @@ bool SimulationData::isFinite(std::vector<double> m_vector)
 }
 
 // checks if all x coordinate values in the container are finite
-bool SimulationData::isFinite(std::vector<DislwoB> m_vector)
+bool SimulationData::isFinite(std::vector<DislwoB> m_vector, double lb, double ub)
 {
     for (size_t i = 0; i < m_vector.size(); ++i)
     {
-        if (!std::isfinite(m_vector[i].x))
+        if (!((lb < m_vector[i].x) && (m_vector[i].x < ub)))
         {
             std::cerr << "index " << i << " is not finite and there can be more.\n";
             return false;
@@ -319,10 +319,10 @@ bool SimulationData::isFinite(std::vector<DislwoB> m_vector)
 }
 
 // checks if the first nz number of elements in the array are finite
-bool SimulationData::isFinite(double* m_array, size_t nz)
+bool SimulationData::isFinite(double* m_array, size_t nz, double lb, double ub)
 {
     std::vector<double> m_vector(m_array, m_array + nz);
-    return isFinite(m_vector);
+    return isFinite(m_vector, lb, ub);
 }
 
 // checks if all the containers and arrays up to nz number of elements contain only finite values and
@@ -333,62 +333,62 @@ bool SimulationData::isAllFinite(size_t nz, std::string label)
         return true;
 
     bool allfinite = true;
-    if (!isFinite(speed))
+    if (!isFinite(speed, -1E18, 1E18))
     {
         std::cerr << "speed is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(speed2))
+    if (!isFinite(speed2, -1E18, 1E18))
     {
         std::cerr << "speed2 is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(initSpeed))
+    if (!isFinite(initSpeed, -1E18, 1E18))
     {
         std::cerr << "initSpeed is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(initSpeed2))
+    if (!isFinite(initSpeed2, -1E18, 1E18))
     {
         std::cerr << "initSpeed2 is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(disl_sorted))
+    if (!isFinite(disl_sorted, -1, 1))
     {
         std::cerr << "disl_sorted is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(firstSmall_sorted))
+    if (!isFinite(firstSmall_sorted, -1, 1))
     {
         std::cerr << "firstSmall_sorted is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(secondSmall_sorted))
+    if (!isFinite(secondSmall_sorted, -1, 1))
     {
         std::cerr << "secondSmall_sorted is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(bigStep_sorted))
+    if (!isFinite(bigStep_sorted, -1, 1))
     {
         std::cerr << "bigStep_sorted is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(dVec))
+    if (!isFinite(dVec, 0, 1))
     {
         std::cerr << "dVec is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(g))
+    if (!isFinite(g, -1E18, 1E18))
     {
         std::cerr << "g is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(Ax, nz))
+    if (!isFinite(Ax, nz, -dc, dc))
     {
         std::cerr << "Ax is not finite\n";
         allfinite = false;
     }
-    if (!isFinite(x, dc))
+    if (!isFinite(x, dc, -1, 1))
     {
         std::cerr << "x is not finite\n";
         allfinite = false;
@@ -404,7 +404,7 @@ bool SimulationData::isAllFinite(size_t nz, std::string label)
             << simTime << std::endl;
 
         std::stringstream ss;
-        ss << label << "_" << succesfulSteps<< "_" << failedSteps << ".txt";
+        ss << label << "_" << succesfulSteps << "_" << failedSteps << ".txt";
         printAll(ss.str(), nz);
     }
     return allfinite;
