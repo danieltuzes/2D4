@@ -78,7 +78,7 @@ void Simulation::run()
         double t_0__ = sD->simTime;                     // simTime at the beginning of a large step
         double t_1__ = sD->simTime + sD->stepSize;      // simTime at the end of a large step
         double t_1p2 = sD->simTime + sD->stepSize / 2;  // the time point at the first small step
-        int nz;                                         // the number of non0 element in the Jacobian
+        int nz;                                         // the number of non0 elements in the Jacobian
         {
             //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
             // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
@@ -87,7 +87,7 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
-            solveEQSys();
+            solveEQSys("stage I,A");
             sD->isAllFinite(nz, "B");
 
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -99,7 +99,7 @@ void Simulation::run()
             calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
             sD->isAllFinite(nz, "C");
 
-            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed);
+            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed, "stage I, B");
             sD->isAllFinite(nz, "D");
 
         }
@@ -112,7 +112,7 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
-            solveEQSys();
+            solveEQSys("stage II, C");
             for (unsigned int i = 0; i < sD->dc; i++)
             {
                 sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
@@ -123,7 +123,7 @@ void Simulation::run()
             calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
             sD->isAllFinite(nz, "G");
 
-            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed);
+            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed, "stage II, D");
             sD->isAllFinite(nz, "H");
 
         }
@@ -137,7 +137,7 @@ void Simulation::run()
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
-            solveEQSys();
+            solveEQSys("stage III, E");
             sD->isAllFinite(nz, "J");
 
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -149,7 +149,7 @@ void Simulation::run()
             calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
             sD->isAllFinite(nz, "K");
 
-            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2);
+            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2, "stage III, F");
             sD->isAllFinite(nz, "L");
 
         }
@@ -537,15 +537,23 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
     std::vector<double> weig_fac(sD->dc);                                // for the new J_{i,j} elements
 
     // calculates the new_w values from the old dVec values
-    std::transform(sD->dVec.begin(), sD->dVec.end(), new_weig.begin(), [](double old_weight) {return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2); });
+    std::transform(
+        sD->dVec.begin(), sD->dVec.end(), 
+        new_weig.begin(), 
+        [](double old_weight)
+        {
+            return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2);
+        });
 
     // calcualtes the weight factors needed to calculate J_{i,j}^k
     std::transform(
         sD->dVec.begin(), sD->dVec.end(),
         new_weig.begin(),
         weig_fac.begin(),
-        [](double old_val, double new_val) {return (1 + new_val) / (1 + old_val); }
-    );
+        [](double old_val, double new_val)
+        {
+            return (1 + new_val) / (1 + old_val);
+        });
 
     for (unsigned int j = 0; j < sD->dc; j++)                   // for all d-d interaction
     {
@@ -581,11 +589,11 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
 @param endSpeed:            the estimated speeds at the end of the step
 @param initSpeed:           the speeds at the beginning of the step
 */
-void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed)
+void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed, std::string label)
 {
     for (unsigned int i = 0; i < sD->dc; i++)
         sD->g[i] = new_disloc[i].x - old_config[i].x - stepSize * ((1 + sD->dVec[i]) * endSpeed[i] + (1 - sD->dVec[i]) * initSpeed[i]) / 2;
-    solveEQSys();
+    solveEQSys(label);
     for (unsigned int i = 0; i < sD->dc; i++)
         new_disloc[i].x -= sD->x[i];
 
@@ -606,7 +614,7 @@ void Simulation::calculateSparseFormForJacobian()
 }
 
 // solves A * Δx = g for Δx
-void Simulation::solveEQSys()
+void Simulation::solveEQSys(std::string label)
 {
     int status = umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
     if (status == UMFPACK_WARNING_singular_matrix)
@@ -614,10 +622,13 @@ void Simulation::solveEQSys()
         std::cerr
             << "Warning: singular matrix at time " << sD->simTime
             << " using stepSize " << sD->stepSize
-            << " after " << sD->succesfulSteps << " succesful and " << sD->failedSteps << " failed steps. All nonfinite result values will be zeroed out." << std::endl;
+            << " after " << sD->succesfulSteps << " succesful and " << sD->failedSteps << " failed steps at position labeled as " << label << ". All nonfinite result values should be removed." << std::endl;
         for (unsigned int i = 0; i < sD->dc; ++i)
             if (!std::isfinite(sD->x[i]))
+            {
+                std::cerr << "non finite value found in x[" << i << "], a new value 0 is assigned to it to avoid further errors\n";
                 sD->x[i] = 0;
+            }
     }
 }
 

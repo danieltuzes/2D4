@@ -241,6 +241,7 @@ void SimulationData::printOut(std::string fname, const std::vector<double>& m_ve
     {
         for (size_t i = 0; i < m_vector.size(); ++i)
             of << m_vector[i] << "\n";
+        std::cout << fname << " is created for debugging." << std::endl;
     }
 }
 
@@ -254,6 +255,7 @@ void SimulationData::printOut(std::string fname, const std::vector<DislwoB>& m_v
     {
         for (size_t i = 0; i < m_vector.size(); ++i)
             of << m_vector[i].x << "\n";
+        std::cout << fname << " is created for debugging." << std::endl;
     }
 }
 
@@ -267,6 +269,7 @@ void SimulationData::printOut(std::string fname, double* array, int size) const
     {
         for (int i = 0; i < size; ++i)
             of << array[i] << "\n";
+        std::cout << fname << " is created for debugging." << std::endl;
     }
 }
 
@@ -326,7 +329,7 @@ bool SimulationData::isFinite(double* m_array, size_t nz)
 // print out results to labeled filenames, label should match ^[\w,\s-]+
 bool SimulationData::isAllFinite(size_t nz, std::string label)
 {
-    if (simTime < 8.4337859528891158e-04)
+    if (simTime < 8.433e-04)
         return true;
 
     bool allfinite = true;

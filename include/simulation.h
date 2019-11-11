@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.2
+solveEQSys contains label to make error messages easier to understand; calcGSolveAndUpdate also takes one therefore
+
 # 1.1
  * bugfix: sD->subConfigDelay >= sD->subconfigDistanceCounter was checked but <= was expected
  * if subConfigTimes modifies sD->stepSize, sD->subConfigDelay is increased to trigger file writeout next time
@@ -125,7 +128,7 @@ namespace sdddstCore {
         @param endSpeed:            the estimated speeds at the end of the step
         @param initSpeed:           the speeds at the beginning of the step
         */
-        void calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed);
+        void calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed, std::string label);
 
 #pragma endregion
 
@@ -135,7 +138,7 @@ namespace sdddstCore {
         void calculateSparseFormForJacobian();
 
         // solves A * Δx = g for Δx
-        void solveEQSys();
+        void solveEQSys(std::string label);
 
         // return the jth line element that is in between si and ei indices
         double getElement(int j, int si, int ei) const;
