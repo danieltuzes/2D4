@@ -92,7 +92,7 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - std::remainder(sD->x[i],1); // bigStep_sorted = config[2]
+                sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
                 sD->bigStep_sorted[i].y = sD->disl_sorted[i].y;
             }
 
@@ -115,7 +115,7 @@ void Simulation::run()
             solveEQSys("stage II, 3.");
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - std::remainder(sD->x[i],1); // firstSmall_sorted = config[4]
+                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
                 sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
             }
             sD->isAllFinite(nz, "F");
@@ -142,7 +142,7 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - std::remainder(sD->x[i],1); // secondSmall_sorted = config[6]
+                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // secondSmall_sorted = config[6]
                 sD->secondSmall_sorted[i].y = sD->firstSmall_sorted[i].y;
             }
 
@@ -595,7 +595,7 @@ void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std
         sD->g[i] = new_disloc[i].x - old_config[i].x - stepSize * ((1 + sD->dVec[i]) * endSpeed[i] + (1 - sD->dVec[i]) * initSpeed[i]) / 2;
     solveEQSys(label);
     for (unsigned int i = 0; i < sD->dc; i++)
-        new_disloc[i].x -= std::remainder(sD->x[i],1);
+        new_disloc[i].x -= sD->x[i],1;
 
     umfpack_di_free_numeric(&sD->Numeric);
 }

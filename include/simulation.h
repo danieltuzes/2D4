@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.5
+remainder is removed and normalize does a loop
+
 # 1.4
 * std::remainder is added when modifying x with Δx 
 * solveEQSys are relabelled
