@@ -595,7 +595,7 @@ void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std
         sD->g[i] = new_disloc[i].x - old_config[i].x - stepSize * ((1 + sD->dVec[i]) * endSpeed[i] + (1 - sD->dVec[i]) * initSpeed[i]) / 2;
     solveEQSys(label);
     for (unsigned int i = 0; i < sD->dc; i++)
-        new_disloc[i].x -= sD->x[i],1;
+        new_disloc[i].x -= sD->x[i];
 
     umfpack_di_free_numeric(&sD->Numeric);
 }
