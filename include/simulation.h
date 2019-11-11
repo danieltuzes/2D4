@@ -2,6 +2,10 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.4
+* std::remainder is added when modifying x with Δx 
+* solveEQSys are relabelled
+
 # 1.3
 std::isfinite is useless with ffast-math; ranges are used instead of std::isfinite, it is implemented in debugging functions isFinite and solveEQSys too
 
@@ -66,7 +70,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.3
+#define VERSION_simulation 1.4
 
 #include "dislocation.h"
 #include "precision_handler.h"

@@ -2,6 +2,9 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 0.9
+range investigation allows equal values and prints out the value if it turns out to be problematic
+
 # 0.8
 debugging tools are improved
 * isFinite doesn't print out all nonfinite variables, only the first
@@ -35,7 +38,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.8
+#define VERSION_simulation_data 0.9
 
 #include "dislocation.h"
 #include "point_defect.h"

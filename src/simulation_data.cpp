@@ -295,9 +295,9 @@ bool SimulationData::isFinite(std::vector<double> m_vector, double lb, double ub
 {
     for (size_t i = 0; i < m_vector.size(); ++i)
     {
-        if (!((lb < m_vector[i]) && (m_vector[i] < ub)))
+        if (!((lb <= m_vector[i]) && (m_vector[i] <= ub)))
         {
-            std::cerr << "index " << i << " is not finite and there can be more\n";
+            std::cerr << "value at [" << i << "] is " << m_vector[i] << " is unexpected\n";
             return false;
         }
     }
@@ -309,9 +309,9 @@ bool SimulationData::isFinite(std::vector<DislwoB> m_vector, double lb, double u
 {
     for (size_t i = 0; i < m_vector.size(); ++i)
     {
-        if (!((lb < m_vector[i].x) && (m_vector[i].x < ub)))
+        if (!((lb <= m_vector[i].x) && (m_vector[i].x <= ub)))
         {
-            std::cerr << "index " << i << " is not finite and there can be more.\n";
+            std::cerr << "value at [" << i << "] is " << m_vector[i].x << " is unexpected\n";
             return false;
         }
     }
@@ -335,77 +335,81 @@ bool SimulationData::isAllFinite(size_t nz, std::string label)
     bool allfinite = true;
     if (!isFinite(speed, -1E18, 1E18))
     {
-        std::cerr << "speed is not finite\n";
+        std::cerr << "speed can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(speed2, -1E18, 1E18))
     {
-        std::cerr << "speed2 is not finite\n";
+        std::cerr << "speed2 can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(initSpeed, -1E18, 1E18))
     {
-        std::cerr << "initSpeed is not finite\n";
+        std::cerr << "initSpeed can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(initSpeed2, -1E18, 1E18))
     {
-        std::cerr << "initSpeed2 is not finite\n";
+        std::cerr << "initSpeed2 can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(disl_sorted, -1, 1))
     {
-        std::cerr << "disl_sorted is not finite\n";
+        std::cerr << "disl_sorted can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(firstSmall_sorted, -1, 1))
     {
-        std::cerr << "firstSmall_sorted is not finite\n";
+        std::cerr << "firstSmall_sorted can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(secondSmall_sorted, -1, 1))
     {
-        std::cerr << "secondSmall_sorted is not finite\n";
+        std::cerr << "secondSmall_sorted can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(bigStep_sorted, -1, 1))
     {
-        std::cerr << "bigStep_sorted is not finite\n";
+        std::cerr << "bigStep_sorted can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(dVec, 0, 1))
     {
-        std::cerr << "dVec is not finite\n";
+        std::cerr << "dVec can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(g, -1E18, 1E18))
     {
-        std::cerr << "g is not finite\n";
+        std::cerr << "g can lead to nonfinite result\n";
         allfinite = false;
     }
-    if (!isFinite(Ax, nz, -dc, dc))
+    if (!isFinite(Ax, nz, -(int)dc, dc))
     {
-        std::cerr << "Ax is not finite\n";
+        std::cerr << "Ax can lead to nonfinite result\n";
         allfinite = false;
     }
     if (!isFinite(x, dc, -1, 1))
     {
-        std::cerr << "x is not finite\n";
+        std::cerr << "x can lead to nonfinite result\n";
         allfinite = false;
     }
 
     if (!allfinite)
     {
         std::cerr
+            << "The error was found at label "
             << label << "\t"
             << succesfulSteps << "\t"
             << failedSteps << "\t"
             << stepSize << "\t"
-            << simTime << std::endl;
+            << simTime << "\n"
+            << "Debugging files will be creatred."
+            << std::endl;
 
         std::stringstream ss;
         ss << label << "_" << succesfulSteps << "_" << failedSteps << ".txt";
         printAll(ss.str(), nz);
+        std::cerr << std::endl;
     }
     return allfinite;
 }

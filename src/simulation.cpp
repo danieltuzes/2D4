@@ -87,19 +87,19 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
-            solveEQSys("stage I,A");
+            solveEQSys("stage I, 1.");
             sD->isAllFinite(nz, "B");
 
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
+                sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - std::remainder(sD->x[i],1); // bigStep_sorted = config[2]
                 sD->bigStep_sorted[i].y = sD->disl_sorted[i].y;
             }
 
             calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
             sD->isAllFinite(nz, "C");
 
-            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed, "stage I, B");
+            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed, "stage I, 2.");
             sD->isAllFinite(nz, "D");
 
         }
@@ -112,10 +112,10 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
-            solveEQSys("stage II, C");
+            solveEQSys("stage II, 3.");
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
+                sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - std::remainder(sD->x[i],1); // firstSmall_sorted = config[4]
                 sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
             }
             sD->isAllFinite(nz, "F");
@@ -123,7 +123,7 @@ void Simulation::run()
             calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
             sD->isAllFinite(nz, "G");
 
-            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed, "stage II, D");
+            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed, "stage II, 4.");
             sD->isAllFinite(nz, "H");
 
         }
@@ -137,19 +137,19 @@ void Simulation::run()
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
-            solveEQSys("stage III, E");
+            solveEQSys("stage III, 5.");
             sD->isAllFinite(nz, "J");
 
             for (unsigned int i = 0; i < sD->dc; i++)
             {
-                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // secondSmall_sorted = config[6]
+                sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - std::remainder(sD->x[i],1); // secondSmall_sorted = config[6]
                 sD->secondSmall_sorted[i].y = sD->firstSmall_sorted[i].y;
             }
 
             calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
             sD->isAllFinite(nz, "K");
 
-            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2, "stage III, F");
+            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2, "stage III, 6.");
             sD->isAllFinite(nz, "L");
 
         }
@@ -254,13 +254,13 @@ void Simulation::run()
                 sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
             sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
         }
-        sD->isAllFinite(nz, "L");
+        sD->isAllFinite(nz, "M");
 
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
             sD->stepSize = sD->maxStepSizeLimit;
-        sD->isAllFinite(nz, "M");
+        sD->isAllFinite(nz, "N");
 
 #pragma endregion
     }
@@ -595,7 +595,7 @@ void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std
         sD->g[i] = new_disloc[i].x - old_config[i].x - stepSize * ((1 + sD->dVec[i]) * endSpeed[i] + (1 - sD->dVec[i]) * initSpeed[i]) / 2;
     solveEQSys(label);
     for (unsigned int i = 0; i < sD->dc; i++)
-        new_disloc[i].x -= sD->x[i];
+        new_disloc[i].x -= std::remainder(sD->x[i],1);
 
     umfpack_di_free_numeric(&sD->Numeric);
 }
