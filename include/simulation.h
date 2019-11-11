@@ -73,7 +73,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.4
+#define VERSION_simulation 1.5
 
 #include "dislocation.h"
 #include "precision_handler.h"
