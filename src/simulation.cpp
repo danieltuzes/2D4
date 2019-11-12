@@ -78,6 +78,7 @@ void Simulation::run()
         double t_0__ = sD->simTime;                     // simTime at the beginning of a large step
         double t_1__ = sD->simTime + sD->stepSize;      // simTime at the end of a large step
         double t_1p2 = sD->simTime + sD->stepSize / 2;  // the time point at the first small step
+        // int nz;                                         // the number of non0 elements in the Jacobian
         {
             //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
             // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
@@ -85,7 +86,8 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
-            solveEQSys();
+            solveEQSys("stage I, 1.");
+
             for (unsigned int i = 0; i < sD->dc; i++)
             {
                 sD->bigStep_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // bigStep_sorted = config[2]
@@ -93,16 +95,18 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
-            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed);
+
+            calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed, "stage I, 2.");
         }
 #pragma endregion
 
 #pragma region step stage II: first small step
         {
             calcJacobianAndSpeedsFromPrev();  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
+
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
-            solveEQSys();
+            solveEQSys("stage II, 3.");
             for (unsigned int i = 0; i < sD->dc; i++)
             {
                 sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
@@ -110,7 +114,8 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
-            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed);
+
+            calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed, "stage II, 4.");
         }
 #pragma endregion
 
@@ -121,7 +126,8 @@ void Simulation::run()
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
-            solveEQSys();
+            solveEQSys("stage III, 5.");
+
             for (unsigned int i = 0; i < sD->dc; i++)
             {
                 sD->secondSmall_sorted[i].x = sD->firstSmall_sorted[i].x - sD->x[i]; // secondSmall_sorted = config[6]
@@ -129,7 +135,8 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
-            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2);
+
+            calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2, "stage III, 6.");
         }
 #pragma endregion
 
@@ -141,16 +148,16 @@ void Simulation::run()
             sD->simTime += sD->stepSize;
             sD->succesfulSteps++;
 
-            sD->disl_sorted.swap(sD->secondSmall_sorted);
-            for (auto& disl : sD->disl_sorted)
-                normalize(disl.x);
-
             // for simulation criterium and output
-            if (sD->calculateStrainDuringSimulation) 
+            if (sD->calculateStrainDuringSimulation)
             {
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
+
+            sD->disl_sorted.swap(sD->secondSmall_sorted);
+            for (auto& disl : sD->disl_sorted)
+                normalize(disl.x);
 
             double sumAvgSp = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc; // for logfile and cutoff modification
 
@@ -207,7 +214,8 @@ void Simulation::run()
 
             if (sD->isSaveSubConfigs)
             {
-                if ((!sD->inAvalanche && sD->subConfigDelay >= sD->subconfigDistanceCounter) || (sD->inAvalanche && sD->subConfigDelayDuringAvalanche >= sD->subconfigDistanceCounter))
+                if ((!sD->inAvalanche && sD->subConfigDelay <= sD->subconfigDistanceCounter) ||
+                    (sD->inAvalanche && sD->subConfigDelayDuringAvalanche <= sD->subconfigDistanceCounter))
                 {
                     sD->subconfigDistanceCounter = 0;
                     std::stringstream ss;
@@ -229,13 +237,14 @@ void Simulation::run()
             double remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
             if (remainder < sD->stepSize)
                 sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
-
+            sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
         }
 
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
             sD->stepSize = sD->maxStepSizeLimit;
+
 #pragma endregion
     }
 
@@ -316,6 +325,9 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
 
     for (unsigned int i = 0; i < sD->dc; i++)
     {
+        if (sD->currentStorageSize - totalElementCounter < sD->dc) // if free memory is less than sD->dc
+            sD->increaseCurrentStorageSize(totalElementCounter);
+
         // Previously calculated part
         for (unsigned int j = 0; j < i; j++)
         {
@@ -453,7 +465,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             forces_B[i] = forces_A[i] + extStress_B * sD->b(i);
             forces_A[i] += extStress_A * sD->b(i);
         }
-    }
+        }
 
     for (unsigned int j = 0; j < sD->dc; j++)
     {
@@ -485,7 +497,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
     calculateSparseFormForJacobian();
 
     return totalElementCounter;
-}
+    }
 
 /**
 @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
@@ -511,15 +523,23 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
     std::vector<double> weig_fac(sD->dc);                                // for the new J_{i,j} elements
 
     // calculates the new_w values from the old dVec values
-    std::transform(sD->dVec.begin(), sD->dVec.end(), new_weig.begin(), [](double old_weight) {return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2); });
+    std::transform(
+        sD->dVec.begin(), sD->dVec.end(),
+        new_weig.begin(),
+        [](double old_weight)
+        {
+            return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2);
+        });
 
     // calcualtes the weight factors needed to calculate J_{i,j}^k
     std::transform(
         sD->dVec.begin(), sD->dVec.end(),
         new_weig.begin(),
         weig_fac.begin(),
-        [](double old_val, double new_val) {return (1 + new_val) / (1 + old_val); }
-    );
+        [](double old_val, double new_val)
+        {
+            return (1 + new_val) / (1 + old_val);
+        });
 
     for (unsigned int j = 0; j < sD->dc; j++)                   // for all d-d interaction
     {
@@ -555,11 +575,11 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
 @param endSpeed:            the estimated speeds at the end of the step
 @param initSpeed:           the speeds at the beginning of the step
 */
-void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed)
+void Simulation::calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed, std::string label)
 {
     for (unsigned int i = 0; i < sD->dc; i++)
         sD->g[i] = new_disloc[i].x - old_config[i].x - stepSize * ((1 + sD->dVec[i]) * endSpeed[i] + (1 - sD->dVec[i]) * initSpeed[i]) / 2;
-    solveEQSys();
+    solveEQSys(label);
     for (unsigned int i = 0; i < sD->dc; i++)
         new_disloc[i].x -= sD->x[i];
 
@@ -580,9 +600,22 @@ void Simulation::calculateSparseFormForJacobian()
 }
 
 // solves A * Δx = g for Δx
-void Simulation::solveEQSys()
+void Simulation::solveEQSys(std::string label)
 {
-    (void)umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
+    int status = umfpack_di_solve(UMFPACK_A, sD->Ap, sD->Ai, sD->Ax, sD->x, sD->g.data(), sD->Numeric, sD->null, sD->null);
+    if (status == UMFPACK_WARNING_singular_matrix)
+    {
+        std::cerr
+            << "Warning: singular matrix at time " << sD->simTime
+            << " using stepSize " << sD->stepSize
+            << " after " << sD->succesfulSteps << " succesful and " << sD->failedSteps << " failed steps at position labeled as " << label << ". All nonfinite result values should be removed." << std::endl;
+        for (unsigned int i = 0; i < sD->dc; ++i)
+            if (!((-1 < sD->x[i]) && (sD->x[i] < 1)))
+            {
+                std::cerr << "x[" << i << "] = " << sD->x[i] << " is problematic, a new value 0 is assigned to it to avoid further errors\n";
+                sD->x[i] = 0;
+            }
+    }
 }
 
 // return the jth line element that is in between si and ei indices
