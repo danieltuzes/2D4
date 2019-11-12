@@ -2,6 +2,10 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 1.0
+* currentStorageSize is introduced to save the actual size of Ax and Ai
+* increaseCurrentStorageSize is introduced to reserve storage fro Ax and Ai
+
 # 0.9
 range investigation allows equal values and prints out the value if it turns out to be problematic
 
@@ -74,14 +78,22 @@ namespace sdddstCore {
 
 #pragma region utility functions
 
+        ////////////////////////////////////
         /// Data file handling utilities
+        ////////////////////////////////////
         void readDislocationDataFromFile(std::string dislocationDataFilePath);
+
+        // increases the reserved size of Ax and Ai by dc and increases currentStorageSize by dc
+        void increaseCurrentStorageSize(int lastUsedSize);
+
         void writeDislocationDataToFile(std::string dislocationDataFilePath) const;
 
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
         void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
+        ////////////////////////////////////
         /// Other utilities
+        ////////////////////////////////////
         void initSimulationVariables();
         void updateCutOff();
 
@@ -191,6 +203,9 @@ namespace sdddstCore {
 
         // The value of the 1/(cutoff^2)
         double onePerCutOffSqr;
+
+        // the size of the dynamically allocated Ax and Ai; Ap is always dc + 1
+        unsigned currentStorageSize;
 
         // Precisity of the simulation, set from position-precision
         double prec;

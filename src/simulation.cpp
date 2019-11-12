@@ -83,12 +83,10 @@ void Simulation::run()
             //## calculates the Jacobian from disl_sorted with stepSize (therefore at stage II Jacobian can be deduced for stepSize/2); disl_sorted = config[1]
             // speed is also calculated from config[1] at time t_1 (therefore at stage II speed can be deduced at time t_1p2), and in case of failure step, for the next steps stage II can be reused again !!
             nz = calcJacobianAndSpeedsAtTimes(sD->stepSize, sD->disl_sorted, sD->initSpeed, sD->speed, t_0__, t_1__);
-            sD->isAllFinite(nz, "A");
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
             solveEQSys("stage I, 1.");
-            sD->isAllFinite(nz, "B");
 
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -97,18 +95,14 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->bigStep_sorted, sD->speed2, t_1__);  //## calculates speeds from sD->bigStep_sorted = config[2]
-            sD->isAllFinite(nz, "C");
 
             calcGSolveAndUpdate(sD->bigStep_sorted, sD->disl_sorted, sD->stepSize, sD->speed2, sD->initSpeed, "stage I, 2.");
-            sD->isAllFinite(nz, "D");
-
         }
 #pragma endregion
 
 #pragma region step stage II: first small step
         {
             calcJacobianAndSpeedsFromPrev();  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
-            sD->isAllFinite(nz, "E");
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
@@ -118,27 +112,21 @@ void Simulation::run()
                 sD->firstSmall_sorted[i].x = sD->disl_sorted[i].x - sD->x[i]; // firstSmall_sorted = config[4]
                 sD->firstSmall_sorted[i].y = sD->disl_sorted[i].y;
             }
-            sD->isAllFinite(nz, "F");
 
             calculateSpeedsAtTime(sD->firstSmall_sorted, sD->speed2, t_1p2); //## calculates speed from firstSmall_sorted = config[4]
-            sD->isAllFinite(nz, "G");
 
             calcGSolveAndUpdate(sD->firstSmall_sorted, sD->disl_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed, "stage II, 4.");
-            sD->isAllFinite(nz, "H");
-
         }
 #pragma endregion
 
 #pragma region step stage III: second small step
         {
             calcJacobianAndSpeedsAtTimes(sD->stepSize / 2, sD->firstSmall_sorted, sD->initSpeed2, sD->speed2, t_1p2, t_1__); //## calculates the Jacobian from firstSmall_sorted = config[5]
-            sD->isAllFinite(nz, "I");
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed2[i] + (1 - sD->dVec[i]) * sD->initSpeed2[i]) / 2;
 
             solveEQSys("stage III, 5.");
-            sD->isAllFinite(nz, "J");
 
             for (unsigned int i = 0; i < sD->dc; i++)
             {
@@ -147,11 +135,8 @@ void Simulation::run()
             }
 
             calculateSpeedsAtTime(sD->secondSmall_sorted, sD->speed2, t_1__); // ## calculates speeds from secondSmall_sorted = config[6]
-            sD->isAllFinite(nz, "K");
 
             calcGSolveAndUpdate(sD->secondSmall_sorted, sD->firstSmall_sorted, sD->stepSize / 2, sD->speed2, sD->initSpeed2, "stage III, 6.");
-            sD->isAllFinite(nz, "L");
-
         }
 #pragma endregion
 
@@ -163,16 +148,16 @@ void Simulation::run()
             sD->simTime += sD->stepSize;
             sD->succesfulSteps++;
 
-            sD->disl_sorted.swap(sD->secondSmall_sorted);
-            for (auto& disl : sD->disl_sorted)
-                normalize(disl.x);
-
             // for simulation criterium and output
             if (sD->calculateStrainDuringSimulation)
             {
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->disl_sorted, sD->firstSmall_sorted);
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
+
+            sD->disl_sorted.swap(sD->secondSmall_sorted);
+            for (auto& disl : sD->disl_sorted)
+                normalize(disl.x);
 
             double sumAvgSp = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc; // for logfile and cutoff modification
 
@@ -254,13 +239,11 @@ void Simulation::run()
                 sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
             sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
         }
-        sD->isAllFinite(nz, "M");
 
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
             sD->stepSize = sD->maxStepSizeLimit;
-        sD->isAllFinite(nz, "N");
 
 #pragma endregion
     }
@@ -342,6 +325,9 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
 
     for (unsigned int i = 0; i < sD->dc; i++)
     {
+        if (sD->currentStorageSize - totalElementCounter < sD->dc) // if free memory is less than sD->dc
+            sD->increaseCurrentStorageSize(totalElementCounter);
+
         // Previously calculated part
         for (unsigned int j = 0; j < i; j++)
         {
@@ -479,7 +465,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             forces_B[i] = forces_A[i] + extStress_B * sD->b(i);
             forces_A[i] += extStress_A * sD->b(i);
         }
-    }
+        }
 
     for (unsigned int j = 0; j < sD->dc; j++)
     {
@@ -511,7 +497,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
     calculateSparseFormForJacobian();
 
     return totalElementCounter;
-}
+    }
 
 /**
 @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point

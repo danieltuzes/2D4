@@ -3,7 +3,9 @@
 
 /*
 # 1.5
-remainder is removed and normalize does a loop
+* remainder is removed and normalize does a loop
+* strain is calculated again in the right time: before normalization
+* memory for Ax and Ai (re)allocated only when necessary
 
 # 1.4
 * std::remainder is added when modifying x with Δx 

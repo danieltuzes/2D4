@@ -21,6 +21,7 @@ SimulationData::SimulationData(const std::string& startDislocationConfigurationP
     cutOff(0),
     cutOffSqr(cutOff* cutOff),
     onePerCutOffSqr(1. / cutOffSqr),
+    currentStorageSize(0),
     prec(0),
     pc(0),
     dc(0),
@@ -125,9 +126,11 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     bigStep_sorted.resize(dc);
     firstSmall_sorted.resize(dc);
     secondSmall_sorted.resize(dc);
+    
+    currentStorageSize = dc;
     Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
-    Ai = (int*)calloc(size_t(dc) * dc, sizeof(int));
-    Ax = (double*)calloc(size_t(dc) * dc, sizeof(double));
+    Ai = (int*)calloc(dc, sizeof(int));
+    Ax = (double*)calloc(dc, sizeof(double));
     x = (double*)calloc(dc, sizeof(double));
     if (Ap == NULL)
         throw std::runtime_error("Memory allocation for Ap failed. Program terminates.");
@@ -142,6 +145,27 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
         throw std::runtime_error("Memory allocation for x failed. Program terminates.");
 
     indexes.resize(dc);
+}
+
+// increases the reserved size of Ax and Ai by dc and increases currentStorageSize by dc
+void SimulationData::increaseCurrentStorageSize(int lastUsedSize)
+{
+    currentStorageSize += dc;
+    double* tmp_Ax = (double*)(realloc(Ax, currentStorageSize * sizeof(double)));
+    int* tmp_Ai = (int*)(realloc(Ai, currentStorageSize * sizeof(int)));
+    if (tmp_Ax == nullptr || tmp_Ai == nullptr)
+    {
+        std::cerr << "Cannot realloc memory for Ax and Ai. Program terminates." << std::endl;
+        exit(-4);
+    }
+    Ax = tmp_Ax;
+    Ai = tmp_Ai;
+
+    for (unsigned int i = lastUsedSize; i < currentStorageSize; i++)
+    {
+        Ax[i] = 0;
+        Ai[i] = 0;
+    }
 }
 
 void SimulationData::writeDislocationDataToFile(std::string dislocationDataFilePath) const
