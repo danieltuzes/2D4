@@ -1,21 +1,25 @@
 ﻿// conf_compare.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#pragma region header with functions
-
-#define VERSION_conf_compare 0.3
 /*changelog
+# 0.4
+findNearestsIndex in comf_compare.cpp is implemented
+
 # 0.3
 * positional input filenames can represent lists if they end with ini, comparison between the two files lines by lines; if positional input filename end with dconf, single comparison happens
 * output file path is added as optional argument, program uses cout if parameter is not present
 * find-to-compare switch is included but not implemented yet
 
-# 0.2 
+# 0.2
 difference in y values are allowed up to individual tolerance
 
 # 0.1
 First release
 */
+
+#pragma region header with functions
+
+#define VERSION_conf_compare 0.3
 
 #include <iostream>
 #include <fstream>
@@ -28,7 +32,7 @@ First release
 namespace bpo = boost::program_options;
 using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
 
-// evaluate ifname nad put one or more filenames to ifnames
+// evaluate ifname and put one or more filenames to ifnames
 std::vector<std::string> processInputFile(std::string ifname)
 {
     std::vector<std::string> ifnames;
@@ -121,6 +125,33 @@ void normalize(double& n)
         n -= 1;
 }
 
+// returns the index from the vector for which selectFrom[index] is closest to val
+size_t findNearestsIndex(double val, const std::vector<double>& selectFrom)
+{
+    double larger = INFINITY;   // the smallest larger value in the list
+    size_t largerID = 0;        // the position of larger in the list
+    double smaller = 0;         // the largest smaller value in the list
+    size_t smallerID = 0;       // the position of smaller in the list
+    for (int i = 0; i < selectFrom.size(); ++i)
+    {
+        if (selectFrom[i] > smaller && selectFrom[i] <= val)
+        {
+            smaller = selectFrom[i];
+            smallerID = i;
+        }
+        if (selectFrom[i] < larger && selectFrom[i] >= val)
+        {
+            larger = selectFrom[i];
+            largerID = i;
+        }
+
+    }
+    if (val - smaller < larger - val)
+        return smallerID;
+    else
+        return largerID;
+}
+
 #pragma endregion
 
 int main(int argc, char** argv)
@@ -198,15 +229,13 @@ int main(int argc, char** argv)
         ifnames_b_values.resize(ifnames_b.size());
         std::transform(ifnames_a.begin(), ifnames_a.end(), ifnames_a_values.begin(), [](std::string fname)
             {
-                fname.erase(fname.size() - 6, 6);
-                double val = std::stod(fname);
-                return val;
+                fname.erase(fname.size() - 6, 6);   // removes .dconf
+                return std::stod(fname);            // interpret the filename as double
             });
         std::transform(ifnames_b.begin(), ifnames_b.end(), ifnames_b_values.begin(), [](std::string fname)
             {
                 fname.erase(fname.size() - 6, 6);
-                double val = std::stod(fname);
-                return val;
+                return std::stod(fname);
             });
     }
 
@@ -240,10 +269,15 @@ int main(int argc, char** argv)
 
     for (unsigned int i = 0; i < fileListSize; ++i)
     {
-        std::vector<disl> dislocsA, dislocsB; // container of the N number of dislocations
+        std::vector<disl> dislocsA, dislocsB; // containers of the N number of dislocations
 
-        readInDislocs(ifnames_a[i], dislocsA);
-        readInDislocs(ifnames_b[i], dislocsB);
+        std::string ifname_a = ifnames_a[i];
+        std::string ifname_b = ifnames_b[i];
+        if (findToCompare)
+            ifname_b = ifnames_b[findNearestsIndex(ifnames_a_values[i], ifnames_b_values)];
+
+        readInDislocs(ifname_a, dislocsA);
+        readInDislocs(ifname_b, dislocsB);
 
         std::cerr.precision(16);
         std::cout.precision(16);
@@ -261,10 +295,10 @@ int main(int argc, char** argv)
             std::sort(dislocsB.begin(), dislocsB.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
         }
 
-        double sum_fabs = 0;    // the sum of the absolute value of the normalized differences the Burger's vector
-        double sum_fabsSQ = 0;  // the sum of the absolute value of the normalized differences the Burger's vector
-        double max_diff = 0;    // the largest absolute-normalized-difference of the Burger's vector
-        size_t outlierID = 0;   // the ID of the dislocation with the highest difference
+        double sum_fabs = 0;    // the sum of the absolute value of the normalized differences of the x position
+        double sum_fabsSQ = 0;  // the sum of the square of the normalized differences of the x position
+        double max_diff = 0;    // the largest absolute-normalized-difference of the x position
+        size_t max_ID = 0;      // the ID of the dislocation with the highest difference
 
         for (size_t i = 0; i < size; ++i)
         {
@@ -283,7 +317,7 @@ int main(int argc, char** argv)
             if (fabs_diff > max_diff)
             {
                 max_diff = fabs_diff;
-                outlierID = i;
+                max_ID = i;
             }
         }
         double avg_fabs = sum_fabs / size;
@@ -295,8 +329,8 @@ int main(int argc, char** argv)
             {
                 std::cout << "\tLargest x-coordinate difference is \n"
                     << "\t\t d = " << max_diff << " for dislocation with \n"
-                    << "\t\tID = " << outlierID << " and y coordinate\n"
-                    << "\t\t y = " << std::get<1>(dislocsA[outlierID]) << "\n";
+                    << "\t\tID = " << max_ID << " and y coordinate\n"
+                    << "\t\t y = " << std::get<1>(dislocsA[max_ID]) << "\n";
             }
 
             if (max_diff < indTol)
@@ -320,14 +354,14 @@ int main(int argc, char** argv)
                 << ifnames_a[i] << "\t"
                 << ifnames_b[i] << "\t"
                 << max_diff << "\t"
-                << outlierID << "\t"
-                << std::get<1>(dislocsA[outlierID]) << "\t"
+                << max_ID << "\t"
+                << std::get<1>(dislocsA[max_ID]) << "\t"
                 << avg_fabs << "\t"
                 << avg_fabsSQ << "\n";
         }
     }
     
     std::cout.rdbuf(coutbuf);
-    std::cout << "Comparison is done." << std::endl;
+    std::cout << fileListSize << " pair of files have been compared." << std::endl;
     return 0;
 }
