@@ -5,6 +5,7 @@
 # 1.0
 * currentStorageSize is introduced to save the actual size of Ax and Ai
 * increaseCurrentStorageSize is introduced to reserve storage fro Ax and Ai
+* dipole_prec is introduced to control the sensitivity in precision with respect to the closest dislocation, called as dipole criterium
 
 # 0.9
 range investigation allows equal values and prints out the value if it turns out to be problematic
@@ -42,7 +43,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.9
+#define VERSION_simulation_data 1.0
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -207,8 +208,11 @@ namespace sdddstCore {
         // the size of the dynamically allocated Ax and Ai; Ap is always dc + 1
         unsigned currentStorageSize;
 
-        // Precisity of the simulation, set from position-precision
+        // absolute precisity of the simulation, set from position-precision
         double prec;
+
+        // precisity relative to the closest dislocation, set from dipole-precision
+        double dipole_prec;
 
         // Count of the point defects in the system
         unsigned int pc;

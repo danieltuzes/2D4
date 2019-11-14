@@ -2,6 +2,10 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 0.7
+* checks for dipole-precision
+* position-precision's default value is 1e-5 again
+
 # 0.6
 * prints out umfpack version info
 * always prints out version info
@@ -25,7 +29,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.6
+#define VERSION_project_parser 0.7
 
 // define macros for version tracking
 #define STR(x) #x

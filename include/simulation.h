@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.6
+stage IV checks if pH->getMaxErrorRatioSqr() < 1, as it was before, but now getMaxErrorRatioSqr() returns maxErrorToleranceRatioSq / dipolePrecisitySq
+
 # 1.5
 * remainder is removed and normalize does a loop
 * strain is calculated again in the right time: before normalization
@@ -75,7 +78,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.5
+#define VERSION_simulation 1.6
 
 #include "dislocation.h"
 #include "precision_handler.h"

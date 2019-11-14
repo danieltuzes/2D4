@@ -34,7 +34,8 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
         ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not exceed this value")
         ("calculate-strain,S", "turns on strain calculation for the simulation")
         ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
-        ("position-precision,P", boost::program_options::value<double>()->default_value(2e-4), "minimum precision for the positions for the adaptive step size protocol")
+        ("position-precision,P", boost::program_options::value<double>()->default_value(1e-5), "minimum precision for the positions for the adaptive step size protocol")
+        ("dipole-precision,p", boost::program_options::value<double>()->default_value(0.05), "minimum precision with respect to the nearest dislocation; use 0 to disable this feature")
         ("save-sub-configurations,o", boost::program_options::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
         ("sub-configuration-delay,N", boost::program_options::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
         ("sub-configuration-delay-during-avalanche,n", boost::program_options::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
@@ -152,17 +153,12 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         sD->timeLimit = vm["time-limit"].as<double>();
     }
 
-    if (vm.count("initial-stepsize"))
-        sD->stepSize = vm["initial-stepsize"].as<double>();
+    sD->stepSize = vm["initial-stepsize"].as<double>();
+    sD->prec = vm["position-precision"].as<double>();
+    sD->dipole_prec = vm["dipole-precision"].as<double>();
 
-    if (vm.count("position-precision"))
-        sD->prec = vm["position-precision"].as<double>();
-
-    if (vm.count("cutoff-multiplier"))
-    {
-        sD->cutOffMultiplier = vm["cutoff-multiplier"].as<double>();
-        sD->updateCutOff();
-    }
+    sD->cutOffMultiplier = vm["cutoff-multiplier"].as<double>();
+    sD->updateCutOff();
 
     if (vm.count("strain-increase-limit"))
     {

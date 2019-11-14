@@ -22,6 +22,7 @@ Simulation::Simulation(std::shared_ptr<SimulationData> sD) :
     sD->standardOutputLog << std::scientific << std::setprecision(16);
 
     pH->setMinPrecisity(sD->prec);
+    pH->setDipolePrecisity(sD->dipole_prec);
     pH->setSize(sD->dc);
 }
 
@@ -40,7 +41,7 @@ void Simulation::run()
     double lastLogTime = get_wall_time();   // the time of the last write into the logfile
     double energy = 0;                      // 
 
-    // First two line in the log file
+    // First two lines in the log file
     {
         calculateSpeedsAtTime(sD->disl_sorted, sD->initSpeed, sD->simTime); // calculated only for the purpose to be able to write out initial speed values
 
@@ -143,7 +144,7 @@ void Simulation::run()
 #pragma region step stage IV: accept or retry disl_sorted 
         calculateXError();
 
-        if (pH->getMaxErrorRatioSqr() < 1. / 400) // accept step
+        if (pH->getMaxErrorRatioSqr() < 1) // accept step
         {
             sD->simTime += sD->stepSize;
             sD->succesfulSteps++;
@@ -654,7 +655,8 @@ void Simulation::calculateXError()
     for (unsigned int i = 0; i < sD->dc; i++)
     {
         double tmp = fabs(sD->bigStep_sorted[i].x - sD->secondSmall_sorted[i].x);
-        pH->updateError(tmp, i);
+        pH->updateMaxErrorToleranceRatioSq(tmp, i);
+        //pH->updateError(tmp, i);
     }
 }
 
