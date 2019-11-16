@@ -1,7 +1,9 @@
 ﻿# 2D4\::sandbox::ieee_hyperbolic
-This project helps to identify the effect of using *non-IEEE compatible hyperbolic function calculation* instead of *IEEE compatible hyperbolic function calculation*. The latter is the default but implementations of the first supposed to be faster.
+This project helps to identify the effect of using *non-IEEE compatible hyperbolic function calculation* instead of *IEEE compatible hyperbolic function calculation*. The latter was implemented first but implementation of the first supposed to be faster. It turns out that this is indeed the case and the precision is acceptable.
 
 This improvements also eliminates checking for the case of close dislocations for the far fields. It is obvious and known apriori, that distance( [-0.5:0.5), ± i ) cannot be < 10^{-6}, where i is integer.
+
+Further improvements with regard to this line is implemented not investigated here, namely that instead of calculating `sinh` and `cosh` one can calculate only `exp` and derive the required function from it.
 
 ## Hyperbolic identities
 The first non-IEEE compatible way to calculate cosh and sinh functions is applied on the calculation of cosh[2π * (x±i)] and on sinh[2π * (x±i)] by using the [identities of the hyperbolic function of their argument sum](https://en.wikipedia.org/wiki/Hyperbolic_function#Sums_of_arguments). This makes it possible to calculate only cosh(2π) and sinh(2π), and all the other calculations, cosh[2π * (x±i)] and sinh[2π * (x±i)], i∈{1, 2, 3, 4}, can be applied. E.g.:
