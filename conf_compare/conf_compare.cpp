@@ -132,7 +132,7 @@ size_t findNearestsIndex(double val, const std::vector<double>& selectFrom)
     size_t largerID = 0;        // the position of larger in the list
     double smaller = 0;         // the largest smaller value in the list
     size_t smallerID = 0;       // the position of smaller in the list
-    for (int i = 0; i < selectFrom.size(); ++i)
+    for (size_t  i = 0; i < selectFrom.size(); ++i)
     {
         if (selectFrom[i] > smaller && selectFrom[i] <= val)
         {
