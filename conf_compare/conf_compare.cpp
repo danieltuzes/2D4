@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 0.6
+bugfix: program wrote out not the filename_b it was working with
+
 # 0.5
 if findToCompare, filenames are allowed to contain slashes and underscores before the time value: chars before the last slash and underscore are removed
 
@@ -22,7 +25,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 0.5
+#define VERSION_conf_compare 0.6
 
 #include <iostream>
 #include <fstream>
@@ -402,8 +405,8 @@ int main(int argc, char** argv)
         else
         {
             std::cout
-                << ifnames_a[i] << "\t"
-                << ifnames_b[i] << "\t"
+                << ifname_a << "\t"
+                << ifname_b << "\t"
                 << max_diff << "\t"
                 << max_ID << "\t"
                 << std::get<1>(dislocsA[max_ID]) << "\t"
