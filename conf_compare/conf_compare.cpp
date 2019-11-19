@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 0.8
+if findToCompare, files with larger time values than maxVal are not compared
+
 # 0.7
 * bugfix: program didn't use the filename for filename_a from sorted ifnames_a_values
 * restructured code: comparison is moved to compareDislocConfs, renamed variables
@@ -30,7 +33,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 0.7
+#define VERSION_conf_compare 0.8
 
 #include <iostream>
 #include <fstream>
@@ -340,9 +343,11 @@ int main(int argc, char** argv)
     auto ifnames_b = processInputFile(ifnames[1]);  // contains all (1 or more of) the filenames for files that can be compared with
     std::vector<fname_value> ifnames_values_a;      // filenames and their corresponding time values for sorting
     std::vector<fname_value> ifnames_values_b;      // filenames and their corresponding time values to pass to ib_values for selecting
-    std::vector<double> if_b_values;                  // contains time values for b files for selecting
+    std::vector<double> if_b_values;                // contains time values for b files for selecting
 
     bool findToCompare = false;
+    double maxVal;                                  // the largest time value to make comparison if findToCompare
+
     if (vm.count("find-to-compare"))
     {
         findToCompare = true;
@@ -351,6 +356,8 @@ int main(int argc, char** argv)
         for (auto fname : ifnames_b)
             ifnames_values_b.emplace_back(fname);
         std::sort(ifnames_values_a.begin(), ifnames_values_a.end());
+        std::sort(ifnames_values_b.begin(), ifnames_values_b.end());
+        maxVal = std::min(ifnames_values_a.back().value(), ifnames_values_b.back().value());
 
         for (auto val : ifnames_values_b)
             if_b_values.push_back(val.value());
@@ -410,9 +417,11 @@ int main(int argc, char** argv)
             ifname_a = next_ifname_values_a.fname();            // The upcoming ifname_a in the ordered list
             ifname_a_value = next_ifname_values_a.value();
             auto nearest_b = findNearest(ifname_a_value, if_b_values);
-            size_t nearestIndex = nearest_b.first;      // the index for which the value from ib_values is closest to nextIfname_a.value()
-            nearestB_value = nearest_b.second;          // the value closest to nextIfname_a.value()
-            ifname_b = ifnames_b[nearestIndex];         // the best ifname_b
+            size_t nearestIndex = nearest_b.first;  // the index for which the value from ib_values is closest to nextIfname_a.value()
+            nearestB_value = nearest_b.second;      // the value closest to nextIfname_a.value()
+            ifname_b = ifnames_b[nearestIndex];     // the best ifname_b
+            if (ifname_a_value > maxVal)            // exit if there is no reason to continue comparison
+                break;
         }
 
         double max_diff = 0;    // the largest absolute-normalized-difference of the x position
