@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 0.9
+bugfix: max_IDsy was not calculated
+
 # 0.8
 if findToCompare, files with larger time values than maxVal are not compared
 
@@ -33,7 +36,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 0.8
+#define VERSION_conf_compare 0.9
 
 #include <iostream>
 #include <fstream>
@@ -200,6 +203,7 @@ bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTo
 
     avg_fabs = sum_fabs / size;
     avg_fabsSQ = sum_fabsSQ / size;
+    max_IDsy = std::get<1>(dislocsA[max_ID]);
 
     return true;
 }
