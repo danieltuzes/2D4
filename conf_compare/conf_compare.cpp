@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 1.0
+bugfix: ifname_b was falsely selected from ifnames_b and not from the sorted ifnames_values_b if findToCompare
+
 # 0.9
 bugfix: max_IDsy was not calculated
 
@@ -36,7 +39,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 0.9
+#define VERSION_conf_compare 1.0
 
 #include <iostream>
 #include <fstream>
@@ -345,9 +348,9 @@ int main(int argc, char** argv)
 #pragma region processing input variables
     auto ifnames_a = processInputFile(ifnames[0]);  // contains all (1 or more of) the filenames for files that has to be compared to
     auto ifnames_b = processInputFile(ifnames[1]);  // contains all (1 or more of) the filenames for files that can be compared with
-    std::vector<fname_value> ifnames_values_a;      // filenames and their corresponding time values for sorting
-    std::vector<fname_value> ifnames_values_b;      // filenames and their corresponding time values to pass to ib_values for selecting
-    std::vector<double> if_b_values;                // contains time values for b files for selecting
+    std::vector<fname_value> ifnames_values_a;      // filenames and their corresponding time values for sorting; sorted
+    std::vector<fname_value> ifnames_values_b;      // filenames and their corresponding time values to pass to ib_values for selecting, sorted
+    std::vector<double> if_b_values;                // contains time values for b files for selecting; sorted
 
     bool findToCompare = false;
     double maxVal;                                  // the largest time value to make comparison if findToCompare
@@ -419,12 +422,12 @@ int main(int argc, char** argv)
         {
             auto next_ifname_values_a = ifnames_values_a[i];    // the upcoming ifname_a with its value
             ifname_a = next_ifname_values_a.fname();            // The upcoming ifname_a in the ordered list
-            ifname_a_value = next_ifname_values_a.value();
+            ifname_a_value = next_ifname_values_a.value();      // The time value of the upcoming ifname_a in the ordered list
             auto nearest_b = findNearest(ifname_a_value, if_b_values);
-            size_t nearestIndex = nearest_b.first;  // the index for which the value from ib_values is closest to nextIfname_a.value()
-            nearestB_value = nearest_b.second;      // the value closest to nextIfname_a.value()
-            ifname_b = ifnames_b[nearestIndex];     // the best ifname_b
-            if (ifname_a_value > maxVal)            // exit if there is no reason to continue comparison
+            size_t nearestIndex = nearest_b.first;              // the index for which the value from ib_values is closest to nextIfname_a.value()
+            nearestB_value = nearest_b.second;                  // the value closest to nextIfname_a.value()
+            ifname_b = ifnames_values_b[nearestIndex].fname();  // the best ifname_b
+            if (ifname_a_value > maxVal)                        // exit if there is no reason to continue comparison
                 break;
         }
 
