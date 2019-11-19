@@ -270,7 +270,7 @@ int main(int argc, char** argv)
 
     for (const auto& ifile_data : ifile_datas)          // for each data file
     {
-        int m_i = 0;                                    // index moving through the merged values
+        size_t m_i = 0;                                    // index moving through the merged values
         for (size_t i = 0; i < ifile_data.size(); ++i)  // for each datapoint in the file
         {
             while (m_i < merged.size() && merged[m_i] < ifile_data[i])                  // skip the merged values till a datapoint is available
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
                 double weight_r = 1 - (ifile_data[i+1].x() - merged[m_i].x()) / deltax; // the weight of the right value from the linear interpolation
                 double weight_l = 1 - (merged[m_i].x() - ifile_data[i].x()) / deltax;   // the weight of the left value from the linear interpolation
 
-                for (int j = 0; j < ifile_data[i].y().size(); ++j)                      // interpolate all the requested y values
+                for (size_t j = 0; j < ifile_data[i].y().size(); ++j)                      // interpolate all the requested y values
                     merged[m_i].y()[j] += weight_r * ifile_data[i+1].y()[j] + weight_l * ifile_data[i].y()[j];
 
                 merged_c[m_i]++;                        // at averaging it will be needed to know with that it should be divided
