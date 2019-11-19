@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 
     // print out program call
     {
-        std::cout << "# Program is called as: ";
+        std::cout << "# Program call: ";
         for (int i = 0; i < argc; ++i)
             std::cout << argv[i] << " ";
         std::cout << std::endl;
