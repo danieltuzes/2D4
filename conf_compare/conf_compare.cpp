@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 1.1
+bugfix: findNearest didn't return the correct closest val if it was the 0th and smaller, but 0
+
 # 1.0
 bugfix: ifname_b was falsely selected from ifnames_b and not from the sorted ifnames_values_b if findToCompare
 
@@ -39,7 +42,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 1.0
+#define VERSION_conf_compare 1.1
 
 #include <iostream>
 #include <fstream>
@@ -216,7 +219,7 @@ std::pair<size_t, double> findNearest(double val, const std::vector<double>& sel
 {
     double larger = INFINITY;   // the smallest larger value in the list
     size_t largerID = 0;        // the position of larger in the list
-    double smaller = 0;         // the largest smaller value in the list
+    double smaller = -INFINITY; // the largest smaller value in the list
     size_t smallerID = 0;       // the position of smaller in the list
     for (size_t i = 0; i < selectFrom.size(); ++i)
     {
