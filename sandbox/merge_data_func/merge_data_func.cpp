@@ -2,6 +2,9 @@
 //
 
 /*
+# 0.3
+If cannot read in a value from a line, skips that line
+
 # 0.2
 If a line in the data file starts with a #, the line will be neglected
 
@@ -10,7 +13,7 @@ First version tracket file
 */
 
 #pragma region header namespaces, includes and defines
-#define VERSION_merge_data_func 0.2
+#define VERSION_merge_data_func 0.3
 
 #include <iostream>
 #include <fstream>
@@ -112,18 +115,32 @@ std::vector<DP<double, std::vector<double>>> readFromFile(std::string fname, int
         std::vector<double> y_col_val(y_cols.size(), 0);     // the different type of values for y in that line
 
         size_t lastYCol = 0;
+        bool successLine = true;
         for (int i = 0; ; ++i)                              // iterating through the columns
         {
             std::string value;                              // a value of the actual column
             ss >> value;
 
-
             if (i == x_col)
+            {
                 x = std::stod(value);
+                if (std::isnan(x))
+                {
+                    successLine = false;
+                    break;
+                }
+            }
 
             auto y_col_match = std::find(y_cols.begin(), y_cols.end(), i); // the position of i in the list
             if (y_col_match != y_cols.end())                // if i is in the list
             {
+                double y = std::stod(value);
+                if (std::isnan(y))
+                {
+                    successLine = false;
+                    break;
+                }
+
                 y_col_val[lastYCol] = std::stod(value);     // then store the column
                 lastYCol++;
             }
@@ -131,7 +148,8 @@ std::vector<DP<double, std::vector<double>>> readFromFile(std::string fname, int
             if (!ss)                                        // if cannot read more from that line
                 break;
         }
-        data.emplace_back(x, y_col_val);
+        if (successLine)
+            data.emplace_back(x, y_col_val);
     }
     return data;
 }
