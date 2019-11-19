@@ -2,6 +2,11 @@
 //
 
 /*changelog
+# 0.7
+* bugfix: program didn't use the filename for filename_a from sorted ifnames_a_values
+* restructured code: comparison is moved to compareDislocConfs, renamed variables
+* added feature: if findToCompare, then time value for file a and b are printed to the output
+
 # 0.6
 bugfix: program wrote out not the filename_b it was working with
 
@@ -25,12 +30,13 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 0.6
+#define VERSION_conf_compare 0.7
 
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <utility>
 
 #include <boost/program_options.hpp> // to read in program call arguments
 #include <boost/program_options/options_description.hpp> // to add descriptions of the program call arguments
@@ -88,7 +94,7 @@ bool readInDislocs(std::string ifname, std::vector<disl>& dislocs)
     std::ifstream ifile(ifname);
     if (!ifile)
     {
-        std::cerr << "# Error: cannot open file " << ifname << ". This file is skipped." << std::endl;
+        std::cerr << "Error: cannot open file " << ifname << "." << std::endl;
         return false;
     }
 
@@ -100,13 +106,13 @@ bool readInDislocs(std::string ifname, std::vector<disl>& dislocs)
         double y, b;
         if (!(ifile >> y && ifile >> b))
         {
-            std::cerr << "Error in " << ifname << ". Cannot read in the y coordinate and Burger's vector for an x coordinate with value ~ " << x << ". This file is skipped." << std::endl;
+            std::cerr << "Error in " << ifname << ". Cannot read in the y coordinate and Burger's vector for an x coordinate with value ~ " << x << "." << std::endl;
             return false;
         }
 
-        if (fabs(b - rint(b)) > 1e-5)
+        if (std::fabs(b - rint(b)) > 1e-5)
         {
-            std::cerr << "Error in " << ifname << ". Burger's vector supposed to be an integer, -1 or 1, but value " << b << " is found in file. This file is skipped." << std::endl;
+            std::cerr << "Error in " << ifname << ". Burger's vector supposed to be an integer, -1 or 1, but value " << b << " is found in file." << std::endl;
             return false;
         }
 
@@ -116,7 +122,7 @@ bool readInDislocs(std::string ifname, std::vector<disl>& dislocs)
 
     if (sum_b)
     {
-        std::cerr << "Error in " << ifname << ". The sum of the Burger's vector supposed to be 0, but it is " << sum_b << ". This file is skipped." << std::endl;
+        std::cerr << "Error in " << ifname << ". The sum of the Burger's vector supposed to be 0, but it is " << sum_b << "." << std::endl;
         return false;
     }
 
@@ -133,8 +139,70 @@ void normalize(double& n)
         n -= 1;
 }
 
-// returns the index from the vector for which selectFrom[index] is closest to val
-size_t findNearestsIndex(double val, const std::vector<double>& selectFrom)
+// compares dislocation configurations in ifname_a and ifname_b, checks if y value difference is smaller than indTol, and put the result into max_diff (largest difference), max_ID (ID of the dislocation with max_diff), max_IDsy (it's y value), avg_fabs (average of the absolute value of the difference), avg_fabsSQ (average of the difference square). If sort, dislocations will be sorted before comparison
+bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTol, double& max_diff, size_t& max_ID, double& max_IDsy, double& avg_fabs, double& avg_fabsSQ, bool sort)
+{
+    std::vector<disl> dislocsA, dislocsB; // containers of the N number of dislocations
+
+    if (!readInDislocs(ifname_a, dislocsA))
+    {
+        std::cerr << "Error during reading in " << ifname_a << "." << std::endl;
+        return false;
+    }
+    if (!readInDislocs(ifname_b, dislocsB))
+    {
+        std::cerr << "Error during reading in " << ifname_b << "." << std::endl;
+        return false;
+    }
+    if (dislocsA.size() != dislocsB.size())
+    {
+        std::cerr << "Error: the number of dislocations are not equal." << std::endl;
+        return false;
+    }
+
+    size_t size = dislocsA.size();
+
+    if (sort)
+    {
+        std::sort(dislocsA.begin(), dislocsA.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
+        std::sort(dislocsB.begin(), dislocsB.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
+    }
+
+    double sum_fabs = 0;    // the sum of the absolute value of the normalized differences of the x position
+    double sum_fabsSQ = 0;  // the sum of the square of the normalized differences of the x position
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        double y_diff = std::fabs(std::get<1>(dislocsA[i]) - std::get<1>(dislocsB[i]));
+        normalize(y_diff);  // handling periodic boundary conditions
+        if (y_diff > indTol)
+        {
+            std::cerr << "Error: y values are different (" << std::get<1>(dislocsA[i]) << " != " << std::get<1>(dislocsB[i]) << ") for dislocation with id = " << i << " and x coordinate\n"
+                << std::get<0>(dislocsA[i]) << " in " << ifname_a << " and\n"
+                << std::get<0>(dislocsB[i]) << " in " << ifname_b << "." << std::endl;
+            return false;
+        }
+
+        double fabs_diff = std::fabs(std::get<0>(dislocsA[i]) - std::get<0>(dislocsB[i]));
+        normalize(fabs_diff);   // handling periodic boundary conditions
+        sum_fabs += fabs_diff;
+        sum_fabsSQ += fabs_diff * fabs_diff;
+
+        if (fabs_diff > max_diff)
+        {
+            max_diff = fabs_diff;
+            max_ID = i;
+        }
+    }
+
+    avg_fabs = sum_fabs / size;
+    avg_fabsSQ = sum_fabsSQ / size;
+
+    return true;
+}
+
+// returns the index and the value from the vector for which selectFrom[index] is closest to val
+std::pair<size_t, double> findNearest(double val, const std::vector<double>& selectFrom)
 {
     double larger = INFINITY;   // the smallest larger value in the list
     size_t largerID = 0;        // the position of larger in the list
@@ -155,9 +223,9 @@ size_t findNearestsIndex(double val, const std::vector<double>& selectFrom)
 
     }
     if (val - smaller < larger - val)
-        return smallerID;
+        return std::pair<size_t, double>(smallerID, smaller);
     else
-        return largerID;
+        return std::pair<size_t, double>(largerID, larger);
 }
 
 // a filename - value pair
@@ -178,12 +246,17 @@ public:
         return m_value;
     }
 
+    std::string fname() const
+    {
+        return m_fname;
+    }
+
     // determines the value from the fname
     double deduceValue() const
     {
         auto f_cpy = m_fname;
         f_cpy.erase(m_fname.size() - 6, 6);         // removes .dconf
-        
+
         size_t fnameS = f_cpy.find_last_of("/");    // fname without the directory, i.e, the base name, starts here
         if (fnameS != std::string::npos)
             f_cpy.erase(0, fnameS + 1);             // removes chars until base name
@@ -218,7 +291,7 @@ int main(int argc, char** argv)
     optionalOptions.add_options()
         ("output-filename,O", bpo::value<std::string>(), "The path where the result of the comparison(s) should be stored. If the value is not present, standard output will be used.")
         ("find-to-compare,f", "If set, input filename must point to file lists and files from the 1st list will be compared from a file from the 2nd list. Filenames will be treated as floating point values x and each file from the 1st list will compared with a file from the 2nd list that has the closest value to x.")
-        ("sort,s", bpo::value<std::string>()->default_value("y"), "The input dislocations will be sorted by Burger's vector and y direction, u means unsorted.")
+        ("sort,s", "The input dislocations need to be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
         ("individual-tolerance", bpo::value<double>()->default_value(1e-8), "The absolute value of the difference below which two coordinates considered to be the same.")
         ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.");
 
@@ -263,26 +336,25 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region processing input variables
-    auto ifnames_a = processInputFile(ifnames[0]);
-    auto ifnames_b = processInputFile(ifnames[1]);
-    std::vector<fname_value> ifnames_a_values;
-    std::vector<fname_value> ifnames_b_values;
-    std::vector<double> ib_values;
+    auto ifnames_a = processInputFile(ifnames[0]);  // contains all (1 or more of) the filenames for files that has to be compared to
+    auto ifnames_b = processInputFile(ifnames[1]);  // contains all (1 or more of) the filenames for files that can be compared with
+    std::vector<fname_value> ifnames_values_a;      // filenames and their corresponding time values for sorting
+    std::vector<fname_value> ifnames_values_b;      // filenames and their corresponding time values to pass to ib_values for selecting
+    std::vector<double> if_b_values;                  // contains time values for b files for selecting
 
     bool findToCompare = false;
     if (vm.count("find-to-compare"))
     {
         findToCompare = true;
         for (auto fname : ifnames_a)
-            ifnames_a_values.emplace_back(fname);
+            ifnames_values_a.emplace_back(fname);
         for (auto fname : ifnames_b)
-            ifnames_b_values.emplace_back(fname);
-        std::sort(ifnames_a_values.begin(), ifnames_a_values.end());
+            ifnames_values_b.emplace_back(fname);
+        std::sort(ifnames_values_a.begin(), ifnames_values_a.end());
 
-        for (auto val : ifnames_b_values)
-            ib_values.push_back(val.value());
+        for (auto val : ifnames_values_b)
+            if_b_values.push_back(val.value());
     }
-
 
     if (ifnames_a.size() != ifnames_b.size() && !findToCompare)
     {
@@ -308,74 +380,53 @@ int main(int argc, char** argv)
 
 #pragma endregion
 
+    std::cerr.precision(16);
+    std::cout.precision(16);
+
     std::cout << "# Program call: ";
     for (int i = 0; i < argc; ++i)
         std::cout << argv[i] << " ";
     std::cout << std::endl;
 
     if (fileListSize > 1)
-        std::cout << "# filename_a\tfilename_b\tlargest difference\tat ID\tat y\taverage difference\taverage difference square" << std::endl;
+    {
+        std::cout << "# ifname_a\tifname_b\tlargest difference\tat ID\tat y\taverage difference\taverage difference square";
+        if (findToCompare)
+            std::cout << "\ttime_a\ttime_b";
+        std::cout << std::endl;
+    }
 
     int successfulread = 0;
     for (unsigned int i = 0; i < fileListSize; ++i)
     {
-        std::vector<disl> dislocsA, dislocsB; // containers of the N number of dislocations
-
         std::string ifname_a = ifnames_a[i];
         std::string ifname_b = ifnames_b[i];
+
+        double ifname_a_value = 0;
+        double nearestB_value = 0;
         if (findToCompare)
-            ifname_b = ifnames_b[findNearestsIndex(ifnames_a_values[i].value(), ib_values)];
-
-        if (!readInDislocs(ifname_a, dislocsA) || !readInDislocs(ifname_b, dislocsB))
-            continue;
-        successfulread++;
-
-        std::cerr.precision(16);
-        std::cout.precision(16);
-
-        if (dislocsA.size() != dislocsB.size())
         {
-            std::cerr << "The number of dislocations in the two files are not equal. Program terminates.\n";
-            exit(-1);
-        }
-        size_t size = dislocsA.size();
-
-        if (!vm["sort"].as<std::string>().compare("y"))
-        {
-            std::sort(dislocsA.begin(), dislocsA.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
-            std::sort(dislocsB.begin(), dislocsB.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
+            auto next_ifname_values_a = ifnames_values_a[i];    // the upcoming ifname_a with its value
+            ifname_a = next_ifname_values_a.fname();            // The upcoming ifname_a in the ordered list
+            ifname_a_value = next_ifname_values_a.value();
+            auto nearest_b = findNearest(ifname_a_value, if_b_values);
+            size_t nearestIndex = nearest_b.first;      // the index for which the value from ib_values is closest to nextIfname_a.value()
+            nearestB_value = nearest_b.second;          // the value closest to nextIfname_a.value()
+            ifname_b = ifnames_b[nearestIndex];         // the best ifname_b
         }
 
-        double sum_fabs = 0;    // the sum of the absolute value of the normalized differences of the x position
-        double sum_fabsSQ = 0;  // the sum of the square of the normalized differences of the x position
         double max_diff = 0;    // the largest absolute-normalized-difference of the x position
         size_t max_ID = 0;      // the ID of the dislocation with the highest difference
+        double max_IDsy = 0;    // the y value of the dislocation with largest position difference
+        double avg_fabs = 0;    // the average of the absolute value of the normalized differences of the x position
+        double avg_fabsSQ = 0;  // the average of the square of the normalized differences of the x position
 
-        for (size_t i = 0; i < size; ++i)
+        if (!compareDislocConfs(ifname_a, ifname_b, indTol, max_diff, max_ID, max_IDsy, avg_fabs, avg_fabsSQ, vm.count("sort")))
         {
-            double y_diff = std::fabs(std::get<1>(dislocsA[i]) - std::get<1>(dislocsB[i]));
-            normalize(y_diff);  // handling periodic boundary conditions
-            if (y_diff > indTol)
-            {
-                std::cerr << "y values are different (" << std::get<1>(dislocsA[i]) << " != " << std::get<1>(dislocsB[i]) << ") for dislocation with id = " << i << " and x coordinate\n"
-                    << std::get<0>(dislocsA[i]) << " in " << ifnames[0] << " and\n"
-                    << std::get<0>(dislocsB[i]) << " in " << ifnames[1] << ". Program terminates.\n";
-                exit(-1);
-            }
-
-            double fabs_diff = std::fabs(std::get<0>(dislocsA[i]) - std::get<0>(dislocsB[i]));
-            normalize(fabs_diff);   // handling periodic boundary conditions
-            sum_fabs += fabs_diff;
-            sum_fabsSQ += fabs_diff * fabs_diff;
-
-            if (fabs_diff > max_diff)
-            {
-                max_diff = fabs_diff;
-                max_ID = i;
-            }
+            std::cerr << "Error: cannot compare files " << ifname_a << " and " << ifname_b << ". This pair is skipped." << std::endl;
+            continue;
         }
-        double avg_fabs = sum_fabs / size;
-        double avg_fabsSQ = sum_fabsSQ / size;
+        successfulread++;
 
         if (fileListSize == 1)
         {
@@ -384,7 +435,7 @@ int main(int argc, char** argv)
                 std::cout << "\tLargest x-coordinate difference is \n"
                     << "\t\t d = " << max_diff << " for dislocation with \n"
                     << "\t\tID = " << max_ID << " and y coordinate\n"
-                    << "\t\t y = " << std::get<1>(dislocsA[max_ID]) << "\n";
+                    << "\t\t y = " << max_IDsy << "\n";
             }
 
             if (max_diff < indTol)
@@ -394,7 +445,7 @@ int main(int argc, char** argv)
             {
                 std::cout << "\tAverage position difference:\n"
                     << "\t\t" << avg_fabs << "\n";
-                if (sum_fabs / size < vm["similarity-tolerance"].as<double>())
+                if (avg_fabs < vm["similarity-tolerance"].as<double>())
                     std::cout << "The configurations are similar.\n";
                 else
                     std::cout << "The configurations are not similar.\n";
@@ -409,9 +460,14 @@ int main(int argc, char** argv)
                 << ifname_b << "\t"
                 << max_diff << "\t"
                 << max_ID << "\t"
-                << std::get<1>(dislocsA[max_ID]) << "\t"
+                << max_IDsy << "\t"
                 << avg_fabs << "\t"
-                << avg_fabsSQ << "\n";
+                << avg_fabsSQ;
+            if (findToCompare)
+                std::cout
+                << "\t" << ifname_a_value
+                << "\t" << nearestB_value;
+            std::cout << "\n";
         }
     }
 
