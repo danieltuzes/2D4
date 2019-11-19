@@ -2,12 +2,15 @@
 //
 
 /*
+# 0.2
+If a line in the data file starts with a #, the line will be neglected
+
 # 0.1
 First version tracket file
 */
 
 #pragma region header namespaces, includes and defines
-#define VERSION_merge_data_func 0.1
+#define VERSION_merge_data_func 0.2
 
 #include <iostream>
 #include <fstream>
@@ -100,13 +103,13 @@ std::vector<DP<double, std::vector<double>>> readFromFile(std::string fname, int
 
     for (std::string line; std::getline(ifile, line);)
     {
-        if (line == "")
+        if (line == "" || line[0] == '#')
             continue;
 
         std::stringstream ss(line);
 
         double x = 0;                                       // the x value in that line
-        std::vector<double> y_col_val(y_cols.size(),0);     // the different type of values for y in that line
+        std::vector<double> y_col_val(y_cols.size(), 0);     // the different type of values for y in that line
 
         size_t lastYCol = 0;
         for (int i = 0; ; ++i)                              // iterating through the columns
@@ -205,7 +208,7 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region processing input variables
-    
+
     // handling output file: if present, cout will print to that file
 
     std::ofstream ofile;
@@ -255,7 +258,7 @@ int main(int argc, char** argv)
             std::cout << argv[i] << " ";
         std::cout << std::endl;
     }
-    
+
     for (const auto fname : ifnames)
     {
         ifile_datas.push_back(readFromFile(fname, x_col, y_cols));
@@ -266,7 +269,7 @@ int main(int argc, char** argv)
     std::sort(merged.begin(), merged.end());            // calls friend bool operator< (const DP<Tx, Ty>& lhs, const DP<Tx, Ty>& rhs)
     auto it = std::unique(merged.begin(), merged.end());// remove duplicated elements
     merged.resize(it - merged.begin());                 // shrink to the unique elements
-    std::vector<int> merged_c(merged.size(),0);         // counts how many values are added to the corresponding merged value
+    std::vector<int> merged_c(merged.size(), 0);         // counts how many values are added to the corresponding merged value
 
     for (const auto& ifile_data : ifile_datas)          // for each data file
     {
@@ -276,14 +279,14 @@ int main(int argc, char** argv)
             while (m_i < merged.size() && merged[m_i] < ifile_data[i])                  // skip the merged values till a datapoint is available
                 m_i++;
 
-            while (m_i < merged.size() && i < ifile_data.size()-1 && merged[m_i] <= ifile_data[i + 1])
+            while (m_i < merged.size() && i < ifile_data.size() - 1 && merged[m_i] <= ifile_data[i + 1])
             {
                 double deltax = ifile_data[i + 1].x() - ifile_data[i].x();              // the distance in the x values for the two points on the left and right side of the merged value
-                double weight_r = 1 - (ifile_data[i+1].x() - merged[m_i].x()) / deltax; // the weight of the right value from the linear interpolation
+                double weight_r = 1 - (ifile_data[i + 1].x() - merged[m_i].x()) / deltax; // the weight of the right value from the linear interpolation
                 double weight_l = 1 - (merged[m_i].x() - ifile_data[i].x()) / deltax;   // the weight of the left value from the linear interpolation
 
                 for (size_t j = 0; j < ifile_data[i].y().size(); ++j)                      // interpolate all the requested y values
-                    merged[m_i].y()[j] += weight_r * ifile_data[i+1].y()[j] + weight_l * ifile_data[i].y()[j];
+                    merged[m_i].y()[j] += weight_r * ifile_data[i + 1].y()[j] + weight_l * ifile_data[i].y()[j];
 
                 merged_c[m_i]++;                        // at averaging it will be needed to know with that it should be divided
                 m_i++;                                  // next merged item, please
