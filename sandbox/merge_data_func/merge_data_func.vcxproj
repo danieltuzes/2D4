@@ -20,9 +20,9 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{CEBFB1FF-38F5-4C99-930E-5184455C6F55}</ProjectGuid>
+    <ProjectGuid>{FE11BCAF-557E-4558-B891-915105E9B221}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>confcompare</RootNamespace>
+    <RootNamespace>mergedatafunc</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -151,7 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="conf_compare.cpp" />
+    <ClCompile Include="merge_data_func.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

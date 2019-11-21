@@ -21,7 +21,8 @@ The toolkit contains the following tools
 
     These programs help to identify or measure the effect of one specific change in the code. The following projects are available:
 
-   * *[ieee_hyperbolic](sandbox/ieee_hyperbolic/README.md)*: to decide whether the calculation of hyperbolic function using identities are faster
+   * [*ieee_hyperbolic*](https://github.com/danieltuzes/2D4/tree/master/sandbox/ieee_hyperbolic): to decide whether the calculation of hyperbolic function using identities are faster
+   * [*merge_data_func*](https://github.com/danieltuzes/2D4/tree/master/sandbox/ieee_hyperbolic): merges and averages function evaluated at different values.
 
 The rest of this file belongs to the simulation program 2D4_sim.
 

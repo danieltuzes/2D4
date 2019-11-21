@@ -1,104 +1,95 @@
-/*
- * SDDDST Simple Discrete Dislocation Dynamics Toolkit
- * Copyright (C) 2015-2019 Gábor Péterffy <peterffy95@gmail.com>, Dániel Tüzes <tuzes@metal.elte.hu> and their friends.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
- */
+//
+// project_parser.cpp : contains the function definitions for project_parser.h
 
 #include "constants.h"
 #include "project_parser.h"
 #include "stress_protocol.h"
+#include "suitesparse/SuiteSparse_config.h"
 
 #include <iostream>
+
+namespace bpo = boost::program_options;
+
 
 sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
     sD(nullptr)
 {
-    boost::program_options::options_description requiredOptions("Required Options"); // must be set from command line or file
-    boost::program_options::options_description optionalOptions("Optional Options"); // either has value or program runs without them
-    boost::program_options::options_description fieldOptions("Available dislocation fields"); // how the interaction force should be calculated: lookup table or calculation
-    boost::program_options::options_description externalStressProtocolOptions("External stress protocols (optional)"); // how the external stress should increase
+    bpo::options_description requiredOpt("Required options");           // must be set from command line
+    bpo::options_description optionalOpt("Group of optional options");  // either has value or program runs without them; can be set from command line
 
-    requiredOptions.add_options()
-        ("dislocation-configuration,I", boost::program_options::value<std::string>(), "plain text file path containing dislocation data in (x y b) triplets")
-        ("result-dislocation-configuration,O", boost::program_options::value<std::string>(), "path where the result configuration will be stored at the end of the simulation")
-        ;
+    // long list of grouped optional options
+    {
+        bpo::options_description IOOpt("Input-output options");         // input - output paths
+        bpo::options_description POpt("Precision options");             // precision, also affects program speed
+        bpo::options_description LOpt("Simulation limit options");      // limiting simulation by stopping it if a condition is met
+        bpo::options_description AOpt("Analysis options");              // in simulation calculation for further investigation
+        bpo::options_description SOpt("Ext. stress protocol options");  // how the external stress should increase
 
-    optionalOptions.add_options()
-        ("point-defect-configuration", boost::program_options::value<std::string>(), "plain text file path containing point defect data in (x y) pairs")
-        ("logfile-path,L", boost::program_options::value<std::string>(), "path for the plain text log file (it will be overwritten if it already exists)")
-        ("time-limit,t", boost::program_options::value<double>(), "the simulation stops if simulation time reached this limit")
-        ("step-count-limit,C", boost::program_options::value<unsigned int>(), "the simulation will stop after this many steps")
-        ("strain-increase-limit", boost::program_options::value<double>(), "the simulation stops if strain increase reaches this value")
-        ("avalanche-detection-limit", boost::program_options::value<unsigned int>(), "the simulation will stop after the threshold was reached with the given number of events from above")
-        ("avalanche-speed-threshold", boost::program_options::value<double>()->default_value(1e-3), "speed threshold for counting avalanches")
-        ("initial-stepsize", boost::program_options::value<double>()->default_value(1e-6), "first tried step size for the simulation")
-        ("cutoff-multiplier,u", boost::program_options::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
-        ("max-stepsize,M", boost::program_options::value<double>(), "the stepsize can not exceed this value")
-        ("calculate-strain,S", "turns on strain calculation for the simulation")
-        ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation")
-        ("position-precision,P", boost::program_options::value<double>()->default_value(2e-4), "minimum precision for the positions for the adaptive step size protocol")
-        ("save-sub-configurations,o", boost::program_options::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
-        ("sub-configuration-delay,N", boost::program_options::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
-        ("sub-configuration-delay-during-avalanche,n", boost::program_options::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
-        ;
+        requiredOpt.add_options()
+            ("dislocation-configuration,I", bpo::value<std::string>(), "plain text file path containing dislocation data in (x y b) triplets")
+            ("result-dislocation-configuration,O", bpo::value<std::string>(), "path where the result configuration will be stored at the end of the simulation")
+            ;
 
-    externalStressProtocolOptions.add_options()
-        ("const-external-stress,s", boost::program_options::value<double>()->default_value(0), "the constant in the external stress during the simulation")
-        ("fixed-rate-external-stress,r", boost::program_options::value<double>(), "the slope of external stress - time function (disabled by default)")
-        ("cyclic-external-stress,r", boost::program_options::value<double>(), "the time period of the cyclic load")
-        ("spring-constant", boost::program_options::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with the previous option together)")
-        ;
+        IOOpt.add_options()
+            ("logfile-path,L", bpo::value<std::string>(), "path for the plain text log file (it will be overwritten if it already exists)")
+            ("save-sub-configurations,o", bpo::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
+            ("sub-configuration-delay,N", bpo::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
+            ("sub-config-times,T", bpo::value<double>()->default_value(0), "subconfigs must be written out if simulation time is integer multiples of this value")
+            ("sub-configuration-delay-during-avalanche,n", bpo::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
+            ("point-defect-configuration", bpo::value<std::string>(), "plain text file path containing point defect data in (x y) pairs");
 
-    boost::program_options::options_description options;
+        POpt.add_options()
+            ("position-precision,P", bpo::value<double>()->default_value(1e-5,"1e-5"), "minimum precision for the positions for the adaptive step size protocol")
+            ("cutoff-multiplier,u", bpo::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
+            ("initial-stepsize", bpo::value<double>()->default_value(1e-6,"1e-6"), "first tried step size for the simulation")
+            ("max-stepsize,M", bpo::value<double>(), "the stepsize can not exceed this value")
+            ("dipole-precision,p", bpo::value<double>()->default_value(0.05,"0.05"), "minimum precision with respect to the nearest dislocation; use 0 to disable this feature");
 
-    options.add(requiredOptions).add(optionalOptions).add(externalStressProtocolOptions).add_options()
+        LOpt.add_options()
+            ("time-limit,t", bpo::value<double>(), "the simulation stops if simulation time reached this limit")
+            ("step-count-limit,C", bpo::value<unsigned int>(), "the simulation will stop after this many steps")
+            ("strain-increase-limit", bpo::value<double>(), "the simulation stops if strain increase reaches this value")
+            ("avalanche-detection-limit", bpo::value<unsigned int>(), "the simulation will stop after the threshold was reached with the given number of events from above");
+
+        AOpt.add_options()
+            ("calculate-strain,S", "turns on strain calculation for the simulation")
+            ("avalanche-speed-threshold", bpo::value<double>()->default_value(1e-3), "speed threshold for counting avalanches")
+            ("calculate-order-parameter,l", "turns on order parameter calculation during the simulation");
+
+        SOpt.add_options()
+            ("const-external-stress,s", bpo::value<double>()->default_value(0), "the constant in the external stress during the simulation")
+            ("fixed-rate-external-stress,r", bpo::value<double>(), "the slope of external stress - time function (disabled by default)")
+            ("cyclic-external-stress,i", bpo::value<double>(), "the time period of the cyclic load")
+            ("spring-constant", bpo::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with a fixed-rate-external-stress)");
+
+        optionalOpt.add(IOOpt).add(POpt).add(LOpt).add(AOpt).add(SOpt);
+    }
+    
+    bpo::options_description options("Possible program call options");
+
+    options.add(requiredOpt).add(optionalOpt).add_options()
         ("help", "shows this help")
         ("hide-copyright,c", "hides the copyright notice from the standard output");
 
-    boost::program_options::variables_map vm;
+    bpo::variables_map vm;
 
     try {
-        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, options), vm, true);
+        bpo::store(bpo::parse_command_line(argc, argv, options), vm, true);
     }
-    catch (boost::program_options::error & e)
+    catch (bpo::error & e)
     {
         std::cerr << e.what() << std::endl;
         exit(-1);
     }
 
     if (!vm.count("hide-copyright")) // if the user doesn't hide the bloaty copyright text
+    {
         printLicense(argc, argv);
+    }
 
     if (vm.count("help")) // if the user only interested in the help, there is no need to check the variables
     {
-        std::cout 
-            << "Detailed version and compiler info:\n"
-            << "VERSION_constants:                  " << VERSION_constants << "\n"
-            << "VERSION_dislocations:               " << VERSION_dislocations << "\n"
-            << "VERSION_field:                      " << VERSION_field << "\n"
-            << "VERSION_point_defect:               " << VERSION_point_defect << "\n"
-            << "VERSION_precision_handler:          " << VERSION_precision_handler << "\n"
-            << "VERSION_project_parser:             " << VERSION_project_parser << "\n"
-            << "VERSION_simulation:                 " << VERSION_simulation << "\n"
-            << "VERSION_simulation_data:            " << VERSION_simulation_data << "\n"
-            << "VERSION_stress_protocol:            " << VERSION_stress_protocol << "\n"
-            << "USE_IEEE_HYPERBOLIC                 " << USE_IEEE_HYPERBOLIC << "\n"
-            << "COMPILER_VERSION:                   " << XSTR(COMPILER_VERSION) << "\n"
-            << "MACHINE_INFO:                       " << XSTR(MACHINE_INFO) << "\n"
-            << "USR_COMP_OPTIONS:                   " << XSTR(USR_COMP_OPTIONS) << "\n"
+        std::cout
             << options << std::endl;
         exit(0);
     }
@@ -114,7 +105,7 @@ std::shared_ptr<sdddstCore::SimulationData> sdddstCore::ProjectParser::getSimula
 
 void sdddstCore::ProjectParser::printLicense(int argc, char** argv) // if used multiple times, should move outside this cpp
 {
-    double totalVersion = 
+    double totalVersion =
         VERSION_constants +
         VERSION_dislocations +
         VERSION_field +
@@ -124,16 +115,37 @@ void sdddstCore::ProjectParser::printLicense(int argc, char** argv) // if used m
         VERSION_simulation +
         VERSION_simulation_data +
         VERSION_stress_protocol;
-    std::cout << "This is 2D4_sim (version " << totalVersion << "),\n"
+    std::cout << "This is 2D4_sim (version " << totalVersion;
+#ifdef DEBUG_VERSION
+    std::cout << ", with DEBUG functions version " << DEBUG_VERSION;
+#endif
+    std::cout << "),\n"
         << "a 2D discrete dislocation dynamics simulation program toolset based on sdddst.\n"
         << "See README.md for copyright.\n"
-        << "Program is called as: \n";
+        << "Program call: \n";
     for (int i = 0; i < argc; ++i)
         std::cout << argv[i] << " ";
     std::cout << std::endl;
+
+    std::cout
+        << "Detailed version and compiler info:\n"
+        << "VERSION_constants:                  " << VERSION_constants << "\n"
+        << "VERSION_dislocations:               " << VERSION_dislocations << "\n"
+        << "VERSION_field:                      " << VERSION_field << "\n"
+        << "VERSION_point_defect:               " << VERSION_point_defect << "\n"
+        << "VERSION_precision_handler:          " << VERSION_precision_handler << "\n"
+        << "VERSION_project_parser:             " << VERSION_project_parser << "\n"
+        << "VERSION_simulation:                 " << VERSION_simulation << "\n"
+        << "VERSION_simulation_data:            " << VERSION_simulation_data << "\n"
+        << "VERSION_stress_protocol:            " << VERSION_stress_protocol << "\n"
+        << "USE_IEEE_HYPERBOLIC                 " << USE_IEEE_HYPERBOLIC << "\n"
+        << "SUITESPARSE_VERSION:                " << XSTR(SUITESPARSE_MAIN_VERSION) << "." << XSTR(SUITESPARSE_SUB_VERSION) << "." << XSTR(SUITESPARSE_SUBSUB_VERSION) << "\n"
+        << "COMPILER_VERSION:                   " << XSTR(COMPILER_VERSION) << "\n"
+        << "MACHINE_INFO:                       " << XSTR(MACHINE_INFO) << "\n"
+        << "USR_COMP_OPTIONS:                   " << XSTR(USR_COMP_OPTIONS) << std::endl;
 }
 
-void sdddstCore::ProjectParser::processInput(boost::program_options::variables_map & vm)
+void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
 {
     // Check for required options
     if (!vm.count("dislocation-configuration"))
@@ -160,17 +172,12 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         sD->timeLimit = vm["time-limit"].as<double>();
     }
 
-    if (vm.count("initial-stepsize"))
-        sD->stepSize = vm["initial-stepsize"].as<double>();
+    sD->stepSize = vm["initial-stepsize"].as<double>();
+    sD->prec = vm["position-precision"].as<double>();
+    sD->dipole_prec = vm["dipole-precision"].as<double>();
 
-    if (vm.count("position-precision"))
-        sD->prec = vm["position-precision"].as<double>();
-
-    if (vm.count("cutoff-multiplier"))
-    {
-        sD->cutOffMultiplier = vm["cutoff-multiplier"].as<double>();
-        sD->updateCutOff();
-    }
+    sD->cutOffMultiplier = vm["cutoff-multiplier"].as<double>();
+    sD->updateCutOff();
 
     if (vm.count("strain-increase-limit"))
     {
@@ -225,6 +232,7 @@ void sdddstCore::ProjectParser::processInput(boost::program_options::variables_m
         sD->isSaveSubConfigs = true;
         sD->subConfigPath = vm["save-sub-configurations"].as<std::string>();
         sD->subConfigDelay = vm["sub-configuration-delay"].as<unsigned int>();
+        sD->subConfigTimes = vm["sub-config-times"].as<double>();
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
     }
 

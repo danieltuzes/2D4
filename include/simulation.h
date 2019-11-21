@@ -2,6 +2,32 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.6
+stage IV checks if pH->getMaxErrorRatioSqr() < 1, as it was before, but now getMaxErrorRatioSqr() returns maxErrorToleranceRatioSq / dipolePrecisitySq
+
+# 1.5
+* remainder is removed and normalize does a loop
+* strain is calculated again in the right time: before normalization
+* memory for Ax and Ai (re)allocated only when necessary
+
+# 1.4
+* std::remainder is added when modifying x with Δx 
+* solveEQSys are relabelled
+
+# 1.3
+std::isfinite is useless with ffast-math; ranges are used instead of std::isfinite, it is implemented in debugging functions isFinite and solveEQSys too
+
+# 1.2
+solveEQSys contains label to make error messages easier to understand; calcGSolveAndUpdate also takes one therefore
+
+# 1.1
+ * bugfix: sD->subConfigDelay >= sD->subconfigDistanceCounter was checked but <= was expected
+ * if subConfigTimes modifies sD->stepSize, sD->subConfigDelay is increased to trigger file writeout next time
+ * checks for umfpack_di_solve's return value: if it says that the matrix is singular, nonfinite x values are zeroed out
+
+# 1.0
+subConfigTimes is implemented to print subconfigs at give times
+
 # 0.9
 * calcGSolveAndUpdate is implemented, it simplifies the code
 * unused functions are removed
@@ -52,7 +78,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.0
+#define VERSION_simulation 1.6
 
 #include "dislocation.h"
 #include "precision_handler.h"
@@ -117,7 +143,7 @@ namespace sdddstCore {
         @param endSpeed:            the estimated speeds at the end of the step
         @param initSpeed:           the speeds at the beginning of the step
         */
-        void calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed);
+        void calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed, std::string label);
 
 #pragma endregion
 
@@ -127,7 +153,7 @@ namespace sdddstCore {
         void calculateSparseFormForJacobian();
 
         // solves A * Δx = g for Δx
-        void solveEQSys();
+        void solveEQSys(std::string label);
 
         // return the jth line element that is in between si and ei indices
         double getElement(int j, int si, int ei) const;

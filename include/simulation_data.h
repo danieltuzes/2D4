@@ -2,6 +2,27 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 1.0
+* currentStorageSize is introduced to save the actual size of Ax and Ai
+* increaseCurrentStorageSize is introduced to reserve storage fro Ax and Ai
+* dipole_prec is introduced to control the sensitivity in precision with respect to the closest dislocation, called as dipole criterium
+
+# 0.9
+range investigation allows equal values and prints out the value if it turns out to be problematic
+
+# 0.8
+debugging tools are improved
+* isFinite doesn't print out all nonfinite variables, only the first
+* disl_order was false printed, it was disl_sorted in reality
+* disl_sorted was printed to file twice
+* isFinite is checked if the value is finite, not if itsn't finite
+
+# 0.7
+debugging tools are added
+
+# 0.6
+subConfigTimes is added
+
 # 0.5
 Eliminated ic and macros according to constants.h v0.5
 
@@ -22,7 +43,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 0.5
+#define VERSION_simulation_data 1.0
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -56,18 +77,24 @@ namespace sdddstCore {
          */
         SimulationData(const std::string& dislocationConfigurationPath, const std::string& pointDefectDataFilePath);
 
-        ///////////////////
-        /// UTILITIES
-        ///////////////////
+#pragma region utility functions
 
+        ////////////////////////////////////
         /// Data file handling utilities
+        ////////////////////////////////////
         void readDislocationDataFromFile(std::string dislocationDataFilePath);
+
+        // increases the reserved size of Ax and Ai by dc and increases currentStorageSize by dc
+        void increaseCurrentStorageSize(int lastUsedSize);
+
         void writeDislocationDataToFile(std::string dislocationDataFilePath) const;
 
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
         void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
+        ////////////////////////////////////
         /// Other utilities
+        ////////////////////////////////////
         void initSimulationVariables();
         void updateCutOff();
 
@@ -77,12 +104,38 @@ namespace sdddstCore {
         // returns true if Burgers' vector for the IDth dislocation is positive; false otherwise
         bool is_pos_b(unsigned int ID) const;
 
-        // prints out totalElementCounter number of elements from Ax and all elements from dVec to file fname + ".txt"; helps debugging
-        void printAxD(std::string fname, unsigned int totalElementCounter) const;
+#pragma endregion
 
-        ///////////////////
-        /// DATA FIELDS
-        ///////////////////
+#ifdef DEBUG_VERSION
+
+        // prints out the selected container to fname        
+        void printOut(std::string fname, const std::vector<double>& m_vector) const;
+
+        // prints out the selected container's x values to fname        
+        void printOut(std::string fname, const std::vector<DislwoB>& m_vector) const;
+
+        // prints out size number of elements from the selected array's values to fname        
+        void printOut(std::string fname, double* array, int size) const;
+
+        // prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
+        void printAll(std::string fname, unsigned int nz) const;
+
+        // checks if all values in the container are finite
+        bool isFinite(std::vector<double> m_vector, double lb, double ub);
+
+        // checks if all x coordinate values in the container are finite
+        bool isFinite(std::vector<DislwoB> disl, double lb, double ub);
+
+        // checks if the first nz number of elements in the array are finite
+        bool isFinite(double* m_array, size_t size, double lb, double ub);
+
+        // checks if all the containers and arrays up to nz number of elements contain only finite values and
+        // print out results to labeled filenames, label should match ^[\w,\s-]+
+        bool isAllFinite(size_t nz, std::string label);
+
+#endif
+
+#pragma region data fields
 
         // Valid dislocation position data -> state of the simulation at simTime; the sorted dislocations, Burger's vector is not needed
         std::vector<DislwoB> disl_sorted;
@@ -111,6 +164,35 @@ namespace sdddstCore {
         // Stores the d values for the integration scheme
         std::vector<double> dVec;
 
+        // The dislocation data after the big step
+        std::vector<DislwoB> bigStep_sorted;
+
+        // The dislocation data after the first small step
+        std::vector<DislwoB> firstSmall_sorted;
+
+        // The dislocation data after the second small step
+        std::vector<DislwoB> secondSmall_sorted;
+
+        // UMFPack specified sparse format stored Jacobian
+        int* Ap;        // index values i ∈ [Ap[j], Ap[j+1]) is used to determine the row values by Ai[i] for which A_{i,j} is non zero
+        int* Ai;        // from Ap[j] to Ap[j+1] it stores the row index for the non zero elements in A_{i,j}
+        double* Ax;     // The values of the sparse matrix, row-column order
+        double* x;      // for which the linear equations will be solved; Ax * Δx = g for Δx
+
+        // UMFPack required variables
+        double* null;
+        void* Symbolic, * Numeric;
+
+        // Diagonal indexes in the Jacobian
+        std::vector<int> indexes;
+
+#pragma endregion
+
+#pragma region variables
+
+        // The used interaction field
+        Field tau;
+
         // The value of the cut off multiplier read from input "cutoff-multiplier"
         double cutOffMultiplier;
 
@@ -123,8 +205,14 @@ namespace sdddstCore {
         // The value of the 1/(cutoff^2)
         double onePerCutOffSqr;
 
-        // Precisity of the simulation, set from position-precision
+        // the size of the dynamically allocated Ax and Ai; Ap is always dc + 1
+        unsigned currentStorageSize;
+
+        // absolute precisity of the simulation, set from position-precision
         double prec;
+
+        // precisity relative to the closest dislocation, set from dipole-precision
+        double dipole_prec;
 
         // Count of the point defects in the system
         unsigned int pc;
@@ -146,31 +234,6 @@ namespace sdddstCore {
 
         // Interaction strength between a point defect and a dislocation
         double A;
-
-        // The dislocation data after the big step
-        std::vector<DislwoB> bigStep_sorted;
-
-        // The dislocation data after the first small step
-        std::vector<DislwoB> firstSmall_sorted;
-
-        // The dislocation data after the second small step
-        std::vector<DislwoB> secondSmall_sorted;
-
-        // The used interaction field
-        Field tau;
-
-        // UMFPack specified sparse format stored Jacobian
-        int* Ap;        // index values i ∈ [Ap[j], Ap[j+1]) is used to determine the row values by Ai[i] for which A_{i,j} is non zero
-        int* Ai;        // from Ap[j] to Ap[j+1] it stores the row index for the non zero elements in A_{i,j}
-        double* Ax;     // The values of the sparse matrix, row-column order
-        double* x;      // for which the linear equations will be solved; Ax * Δx = g for Δx
-
-        // UMFPack required variables
-        double* null;
-        void* Symbolic, * Numeric;
-
-        // Diagonal indexes in the Jacobian
-        std::vector<int> indexes;
 
         // Number of the successfully finished steps
         size_t succesfulSteps;
@@ -250,6 +313,9 @@ namespace sdddstCore {
         // The number of elapsed steps since the last subconfig written
         unsigned int subconfigDistanceCounter;
 
+        // subconfigs must be written out at every simTime / subConfigTimes elment of N
+        double subConfigTimes;
+
         // What kind of stress state should be used
         StressProtocolStepType currentStressStateType;
 
@@ -257,6 +323,7 @@ namespace sdddstCore {
         double speedThresholdForCutoffChange;
 
         bool isSpeedThresholdForCutoffChange;
+#pragma endregion
 
     private:
     };

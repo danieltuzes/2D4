@@ -2,6 +2,9 @@
 // constants.h : contains some constant expressions from different places of the code. Included in simulation_data.cpp, project_parser.cpp, precision_handler.cpp and AnalyticField.h
 
 /*changelog
+# 0.6
+DEBUG_CODEPARTS is added to include debugging codeparts
+
 # 0.5
 DEFAULT_CUTOFF_MULTIPLIER and DEFAULT_CUTOFF are eliminated, bc they are read from input or has default boost::program_option value
 
@@ -22,6 +25,10 @@ first version with VERSION_constants
 #define SDDDST_CORE_CONSTANTS_H
 
 #define VERSION_constants 0.5
+
+// uncomment if you want to include and call debugging functions
+// modifications in debug functions change the affected file's version only, calls on those functions changes only DEBUG_VERSION number only
+// #define DEBUG_VERSION 0.2
 
 #define ANALYTIC_FIELD_N 4
 #define EPS 1e-12
