@@ -2,6 +2,10 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 0.9
+* heavisideCutoff is read from heaviside-cutoff
+* if (true) type of checks are eliminated
+
 # 0.8
 * Restructured program options
 * cyclic-external-stress had r short switch overlapping with fixed-rate-external-stress', now it has i
@@ -34,7 +38,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.8
+#define VERSION_project_parser 0.9
 
 // define macros for version tracking
 #define STR(x) #x

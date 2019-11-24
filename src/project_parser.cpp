@@ -39,11 +39,12 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
             ("point-defect-configuration", bpo::value<std::string>(), "plain text file path containing point defect data in (x y) pairs");
 
         POpt.add_options()
-            ("position-precision,P", bpo::value<double>()->default_value(1e-5,"1e-5"), "minimum precision for the positions for the adaptive step size protocol")
+            ("position-precision,P", bpo::value<double>()->default_value(1e-5, "1e-5"), "minimum precision for the positions for the adaptive step size protocol")
             ("cutoff-multiplier,u", bpo::value<double>()->default_value(1e20), "multiplier of the 1/sqrt(N) cutoff parameter")
-            ("initial-stepsize", bpo::value<double>()->default_value(1e-6,"1e-6"), "first tried step size for the simulation")
+            ("heaviside-cutoff,h", "The weight in the Jacobian is a heavyside step function of the distance with charasteristic value of cutoff-multiplier")
+            ("initial-stepsize", bpo::value<double>()->default_value(1e-6, "1e-6"), "first tried step size for the simulation")
             ("max-stepsize,M", bpo::value<double>(), "the stepsize can not exceed this value")
-            ("dipole-precision,p", bpo::value<double>()->default_value(0.05,"0.05"), "minimum precision with respect to the nearest dislocation; use 0 to disable this feature");
+            ("dipole-precision,p", bpo::value<double>()->default_value(0.05, "0.05"), "minimum precision with respect to the nearest dislocation; use 0 to disable this feature");
 
         LOpt.add_options()
             ("time-limit,t", bpo::value<double>(), "the simulation stops if simulation time reached this limit")
@@ -64,7 +65,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
 
         optionalOpt.add(IOOpt).add(POpt).add(LOpt).add(AOpt).add(SOpt);
     }
-    
+
     bpo::options_description options("Possible program call options");
 
     options.add(requiredOpt).add(optionalOpt).add_options()
@@ -175,8 +176,8 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
     sD->stepSize = vm["initial-stepsize"].as<double>();
     sD->prec = vm["position-precision"].as<double>();
     sD->dipole_prec = vm["dipole-precision"].as<double>();
-
     sD->cutOffMultiplier = vm["cutoff-multiplier"].as<double>();
+    sD->heavisideCutoff = vm.count("heaviside-cutoff");
     sD->updateCutOff();
 
     if (vm.count("strain-increase-limit"))
@@ -197,11 +198,9 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
         sD->KASQR *= double(sD->dc);
     }
 
-    if (vm.count("calculate-strain"))
-        sD->calculateStrainDuringSimulation = true;
+    sD->calculateStrainDuringSimulation = vm.count("calculate-strain");
 
-    if (vm.count("calculate-order-parameter"))
-        sD->orderParameterCalculationIsOn = true;
+    sD->orderParameterCalculationIsOn = vm.count("calculate-order-parameter");
 
     if (vm.count("logfile-path"))
     {

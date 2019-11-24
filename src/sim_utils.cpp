@@ -31,3 +31,12 @@ double get_wall_time()
 
     return time_in_ms / 1000.;
 }
+
+// condmat Eq. 18, the weight expressing the strongness of the implicit part
+double weight(double subSum)
+{
+    if (subSum > 0)
+        return std::pow(1 - 1 / (subSum + 1), 2);
+    else
+        return 0;
+}

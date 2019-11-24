@@ -2,6 +2,21 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.7
+* improved debug tools:
+    * they are moved to here from simulation_data (so that getElement can be used)
+    * printOut is a template
+    * Ax_nonSparse_to_file prints out Ax in a nonsparse way
+* bool interrupt() collects all the interrupt conditions
+* calcJacobianAndSpeedsAtTimes calculates faster bc
+    * subSum calculated in the same loop (1 loop is eliminated)
+    * exp2 is used instead of exp
+* calcJacobianAndSpeedsFromPrev calculates the stresses properly even when the force is not monotonous
+* logfile: contains stepSize too (no need to calculate), and cols are numbered
+* stepSize is a bit closer to the requested value if sub-config-times is defined
+* if heavisideCutoff, after cut-off, no values will be stored
+* weight is introduced to be able modify the implicit part's weight more easily
+
 # 1.6
 stage IV checks if pH->getMaxErrorRatioSqr() < 1, as it was before, but now getMaxErrorRatioSqr() returns maxErrorToleranceRatioSq / dipolePrecisitySq
 
@@ -78,7 +93,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.6
+#define VERSION_simulation 1.7
 
 #include "dislocation.h"
 #include "precision_handler.h"
@@ -133,7 +148,10 @@ namespace sdddstCore {
         int calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<DislwoB>& dislocs, std::vector<double>& forces, double simTime);
 
         // Calculates the new Jacobian J_{i,j}^k from the previous one by halfing the non-diagonal elements and also the weights
-        void calcJacobianAndSpeedsFromPrev();
+        // baseTime: the the time the Jacobian was in the correct state
+        // newTime:  the new time point, where the new configuration should be predicted
+        // oldTime:  the old time point, where the last prediction was made with the Jacobian
+        void calcJacobianAndSpeedsFromPrev(double baseTime, double newTime, double oldTime);
 
         /**
         @brief calcGSolveAndUpdate: calculates the new g vector, solves the linear equations and updates the dislocation positions
@@ -173,8 +191,48 @@ namespace sdddstCore {
 
         // calculates the Burgers' vector weighted sum of the displacements
         double calculateStrainIncrement(const std::vector<DislwoB>& old, const std::vector<DislwoB>& newD) const;
+
+        // returns if there is any reason to stop the simulation and prints out the reason
+        bool interrupt() const;
 #pragma endregion
+
+#ifdef DEBUG_VERSION
+
+        // prints out the selected container to fname        
+        template <typename T>
+        void printOut(std::string fname, const std::vector<T>& m_vector) const;
+
+        // prints out size number of elements from the selected array's values to fname        
+        template<typename T>
+        void printOut(std::string fname, T* array, int size) const;
+
+        // prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
+        void printAll(std::string fname, unsigned int nz) const;
+
+        // checks if all values in the container are finite
+        bool isFinite(std::vector<double> m_vector, double lb, double ub) const;
+
+        // checks if all x coordinate values in the container are finite
+        bool isFinite(std::vector<DislwoB> disl, double lb, double ub) const;
+
+        // checks if the first nz number of elements in the array are finite
+        bool isFinite(double* m_array, size_t size, double lb, double ub) const;
+
+        // checks if all the containers and arrays up to nz number of elements contain only finite values and
+        // print out results to labeled filenames, label should match ^[\w,\s-]+
+        bool isAllFinite(size_t nz, std::string label) const;
+        
+        void Ax_nonSparse_to_file(std::string fname) const;
+
+#endif
     };
+
+#ifdef DEBUG_VERSION
+    template void Simulation::printOut(std::string, double*, int) const;
+    template void Simulation::printOut(std::string, int*, int) const;
+    template void Simulation::printOut(std::string, const std::vector<double>&) const;
+    template void Simulation::printOut(std::string, const std::vector<DislwoB>&) const;
+#endif
 }
 
 #endif

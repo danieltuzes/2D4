@@ -25,6 +25,7 @@
     <ClCompile Include="src\fields\Field.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="include\dislocation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\constants.h">
