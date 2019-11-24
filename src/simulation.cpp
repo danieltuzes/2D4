@@ -49,23 +49,22 @@ void Simulation::run()
         double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
         double extStress = sD->externalStressProtocol->extStress(sD->simTime);
 
-        int i = 0;
         sD->standardOutputLog <<
-            "# simTime(" << ++i << ")\t"
-            "successfullSteps(" << ++i << ")\t"
-            "failedSteps(" << ++i << ")\t"
-            "maxErrorRatioSqr(" << ++i << ")\t"
-            "maxErrorRatioID(" << ++i << ")\t"
-            "sumAvgSp(" << ++i << ")\t"
-            "cutOff(" << ++i << ")\t"
-            "orderParameter(" << ++i << ")\t"
-            "externalStress(" << ++i << ")\t"
-            "timeStageI - III(" << ++i << ")\t"
-            "strain(" << ++i << ")\t"
-            "vSquare(" << ++i << ")\t"
-            "energy(" << ++i << ")\t"
-            "wallTimeElapsed(" << ++i << ")\t"
-            "stepSize(" << ++i << ")\t" << std::endl;
+            "# simTime(" << 1 << ")\t"
+            "successfullSteps(" << 2 << ")\t"
+            "failedSteps(" << 3 << ")\t"
+            "maxErrorRatioSqr(" << 4 << ")\t"
+            "maxErrorRatioID(" << 5 << ")\t"
+            "sumAvgSp(" << 6 << ")\t"
+            "cutOff(" << 7 << ")\t"
+            "orderParameter(" << 8 << ")\t"
+            "externalStress(" << 9 << ")\t"
+            "timeStageI - III(" << 10 << ")\t"
+            "strain(" << 11 << ")\t"
+            "vSquare(" << 12 << ")\t"
+            "energy(" << 13 << ")\t"
+            "wallTimeElapsed(" << 14 << ")\t"
+            "stepSize(" << 15 << ")\t" << std::endl;
         sD->standardOutputLog <<
             sD->simTime << "\t" <<
             sD->succesfulSteps << "\t" <<

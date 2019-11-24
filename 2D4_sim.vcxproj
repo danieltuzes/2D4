@@ -46,7 +46,7 @@
     <IncludePath>include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="include\dislocation.cpp" />
+    <ClCompile Include="src\dislocation.cpp" />
     <ClCompile Include="src\fields\Field.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\precision_handler.cpp" />
