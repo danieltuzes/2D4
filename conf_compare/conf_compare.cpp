@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 1.2
+deep comparison
+
 # 1.1
 bugfix: findNearest didn't return the correct closest val if it was the 0th and smaller, but 0
 
@@ -42,7 +45,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 1.1
+#define VERSION_conf_compare 1.2
 
 #include <iostream>
 #include <fstream>
@@ -151,8 +154,17 @@ void normalize(double& n)
         n -= 1;
 }
 
+double dist(const disl& a, const disl& b)
+{
+    double distx = std::get<0>(a) - std::get<0>(b);
+    double disty = std::get<1>(a) - std::get<1>(b);
+    normalize(distx);
+    normalize(disty);
+    return sqrt(distx * distx + disty * disty);
+}
+
 // compares dislocation configurations in ifname_a and ifname_b, checks if y value difference is smaller than indTol, and put the result into max_diff (largest difference), max_ID (ID of the dislocation with max_diff), max_IDsy (it's y value), avg_fabs (average of the absolute value of the difference), avg_fabsSQ (average of the difference square). If sort, dislocations will be sorted before comparison
-bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTol, double& max_diff, size_t& max_ID, double& max_IDsy, double& avg_fabs, double& avg_fabsSQ, bool sort)
+bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTol, double& max_diff, size_t& max_ID, double& max_IDsy, double& avg_fabs, double& avg_fabsSQ, bool sort, bool deep)
 {
     std::vector<disl> dislocsA, dislocsB; // containers of the N number of dislocations
 
@@ -210,6 +222,45 @@ bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTo
     avg_fabs = sum_fabs / size;
     avg_fabsSQ = sum_fabsSQ / size;
     max_IDsy = std::get<1>(dislocsA[max_ID]);
+
+    {
+        std::string ofname = ifname_a + "_VS_" + ifname_b;
+        std::ofstream of(ifname_a + "_VS_" + ifname_b);
+        if (!of)
+        {
+            std::cerr << "Cannot create file for deeper analysis " << ofname << std::endl;
+            return true;
+        }
+        of << "# distance\tdist to nearest disl in a\tits ID\tdist to nearest disl in b\tits ID\n";
+        for (size_t i = 0; i < size; ++i)
+        {
+            of << dist(dislocsA[i], dislocsB[i]) << "\t";
+            double smallestDistA = INFINITY;
+            double smallestDistB = INFINITY;
+            size_t IDA = size + 1;
+            size_t IDB = size + 1;
+            for (size_t j = 0; j < size; ++j)
+            {
+                if (j != i)
+                {
+                    double tmpA = dist(dislocsA[i], dislocsA[j]);
+                    double tmpB = dist(dislocsB[i], dislocsB[j]);
+                    if (tmpA < smallestDistA)
+                    {
+                        smallestDistA = tmpA;
+                        IDA = j;
+                    }
+                    if (tmpB < smallestDistB)
+                    {
+                        smallestDistB = tmpB;
+                        IDB = j;
+                    }
+                }
+            }
+            of << smallestDistA << "\t" << IDA << "\t" << smallestDistB << "\t" << IDB << "\n";
+        }
+    }
+
 
     return true;
 }
@@ -307,6 +358,7 @@ int main(int argc, char** argv)
         ("sort,s", "The input dislocations need to be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
         ("individual-tolerance", bpo::value<double>()->default_value(1e-8), "The absolute value of the difference below which two coordinates considered to be the same.")
         ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.");
+    ("deep,d", "Deeper analysis: all distance difference will be printed out, and the nearest dislocation is also shown.");
 
     bpo::options_description options; // the superior container of the options
 
@@ -440,7 +492,7 @@ int main(int argc, char** argv)
         double avg_fabs = 0;    // the average of the absolute value of the normalized differences of the x position
         double avg_fabsSQ = 0;  // the average of the square of the normalized differences of the x position
 
-        if (!compareDislocConfs(ifname_a, ifname_b, indTol, max_diff, max_ID, max_IDsy, avg_fabs, avg_fabsSQ, vm.count("sort")))
+        if (!compareDislocConfs(ifname_a, ifname_b, indTol, max_diff, max_ID, max_IDsy, avg_fabs, avg_fabsSQ, vm.count("sort"), vm.count("deep")))
         {
             std::cerr << "Error: cannot compare files " << ifname_a << " and " << ifname_b << ". This pair is skipped." << std::endl;
             continue;
