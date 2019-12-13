@@ -2,6 +2,11 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.8
+* stepSizeBeforeWriteout is implemented: after writeout, the new stepSize is loaded from the suggested stepSizeBeforeWriteout
+* subConfigTimesType == 'b' is implemented: exponential writeout frequency
+* weight expects a char variable for the weight function
+
 # 1.7
 * improved debug tools:
     * they are moved to here from simulation_data (so that getElement can be used)
@@ -26,7 +31,7 @@ stage IV checks if pH->getMaxErrorRatioSqr() < 1, as it was before, but now getM
 * memory for Ax and Ai (re)allocated only when necessary
 
 # 1.4
-* std::remainder is added when modifying x with Δx 
+* std::remainder is added when modifying x with Δx
 * solveEQSys are relabelled
 
 # 1.3
@@ -93,7 +98,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.7
+#define VERSION_simulation 1.8
 
 #include "dislocation.h"
 #include "precision_handler.h"
@@ -156,10 +161,10 @@ namespace sdddstCore {
         /**
         @brief calcGSolveAndUpdate: calculates the new g vector, solves the linear equations and updates the dislocation positions
         @param new_disloc:          the container of the target dislocation arrangement
-        @param old_config:          the actual dislocation configuration
+        @param old_config const:    the actual dislocation configuration
         @param stepSize:            the time size of the step
-        @param endSpeed:            the estimated speeds at the end of the step
-        @param initSpeed:           the speeds at the beginning of the step
+        @param endSpeed const:      the estimated speeds at the end of the step
+        @param initSpeedconst:      the speeds at the beginning of the step
         */
         void calcGSolveAndUpdate(std::vector<DislwoB>& new_disloc, const std::vector<DislwoB>& old_config, double stepSize, const std::vector<double>& endSpeed, const std::vector<double>& initSpeed, std::string label);
 
@@ -221,7 +226,7 @@ namespace sdddstCore {
         // checks if all the containers and arrays up to nz number of elements contain only finite values and
         // print out results to labeled filenames, label should match ^[\w,\s-]+
         bool isAllFinite(size_t nz, std::string label) const;
-        
+
         void Ax_nonSparse_to_file(std::string fname) const;
 
 #endif

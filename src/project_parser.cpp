@@ -34,7 +34,8 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
             ("logfile-path,L", bpo::value<std::string>(), "path for the plain text log file (it will be overwritten if it already exists)")
             ("save-sub-configurations,o", bpo::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
             ("sub-configuration-delay,N", bpo::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
-            ("sub-config-times,T", bpo::value<double>()->default_value(0), "subconfigs must be written out if simulation time is integer multiples of this value")
+            ("sub-config-times,T", bpo::value<double>()->default_value(0), "subconfigs must be written out at simulation times for all n pos integer (input value T) at\na) T*n \nb) initial-stepsize * T^n")
+            ("sub-config-times-type,b", bpo::value<char>()->default_value('b'), "subconfigs must be written out at simulation times for all n pos integer (input value a or b) at\na) T*n \nb) initial-stepsize * T^n")
             ("sub-configuration-delay-during-avalanche,n", bpo::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
             ("point-defect-configuration", bpo::value<std::string>(), "plain text file path containing point defect data in (x y) pairs");
 
@@ -44,6 +45,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
             ("heaviside-cutoff,h", "The weight in the Jacobian is a heavyside step function of the distance with charasteristic value of cutoff-multiplier")
             ("initial-stepsize", bpo::value<double>()->default_value(1e-6, "1e-6"), "first tried step size for the simulation")
             ("max-stepsize,M", bpo::value<double>(), "the stepsize can not exceed this value")
+            ("weight-function,w", bpo::value<char>()->default_value('c'), "Weights as the function of the A_ii\nc) coded first, 1/(1+1/s)^2\np) as in paper, 1/(1+1/s)\nm) mathematical hint: (1 - s + 1/(1+s) - 2*exp(-s) ) / (1 - s - 1/(1+s) )")
             ("dipole-precision,p", bpo::value<double>()->default_value(0.05, "0.05"), "minimum precision with respect to the nearest dislocation; use 0 to disable this feature");
 
         LOpt.add_options()
@@ -173,9 +175,16 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
         sD->timeLimit = vm["time-limit"].as<double>();
     }
 
-    sD->stepSize = vm["initial-stepsize"].as<double>();
+    sD->stepSize = vm["initial-stepsize"].as<double>();     // will be modified later
+    sD->initStepSize = vm["initial-stepsize"].as<double>(); // constant during the simulation
     sD->prec = vm["position-precision"].as<double>();
     sD->dipole_prec = vm["dipole-precision"].as<double>();
+    sD->weightFunc = vm["weight-function"].as<char>();
+    if (sD->weightFunc != 'c' && sD->weightFunc != 'p' && sD->weightFunc != 'm')
+    {
+        std::cerr << "Unsupported weight-function " << sD->weightFunc << ", supported values are c, p and m. Program terminates." << std::endl;
+        exit(-1);
+    }
     sD->cutOffMultiplier = vm["cutoff-multiplier"].as<double>();
     sD->heavisideCutoff = vm.count("heaviside-cutoff");
     sD->updateCutOff();
@@ -232,6 +241,7 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
         sD->subConfigPath = vm["save-sub-configurations"].as<std::string>();
         sD->subConfigDelay = vm["sub-configuration-delay"].as<unsigned int>();
         sD->subConfigTimes = vm["sub-config-times"].as<double>();
+        sD->subConfigTimesType = vm["sub-config-times-type"].as<char>();
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
     }
 

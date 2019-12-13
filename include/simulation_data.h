@@ -2,6 +2,12 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 1.2
+* weightFunc added to store which weight function to use for implicit-explicit weights. c: as coded first, p: as in paper, m: mathematically hinted
+* initStepSize stores the initial stepSize, bc it may be needed at writeout of the required times are initStepSize * T^n
+* stepSizeBeforeWriteout: if writeout triggered to meet the requirement for simTime, the stepSize is saved to this, so after the writeout the stepSize can be great again
+* subConfigTimesType: linear or exponential writeout times. a: linear, b: exponential
+
 # 1.1
 * bool heavisideCutoff is intorduced // The weight in the Jacobian is a Heaviside step function of the distance with charasteristic value of cutoff-multiplier
 * debugging tools are moved to simulation to use getElement
@@ -48,7 +54,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 1.1
+#define VERSION_simulation_data 1.2
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -193,6 +199,9 @@ namespace sdddstCore {
         // precisity relative to the closest dislocation, set from dipole-precision
         double dipole_prec;
 
+        // Weights as the function of the A_ii\nc) coded first, 1/(1+1/s)^2\np) as in paper, 1/(1+1/s)\nm) mathematical hint: (1 - s + 1/(1+s) - 2*exp(-s) ) / (1 - s - 1/(1+s) )
+        char weightFunc;
+
         // Count of the point defects in the system
         unsigned int pc;
 
@@ -204,6 +213,12 @@ namespace sdddstCore {
 
         // The current step size of the simulation
         double stepSize;
+
+        // initial stepSize, potentially needed at file writeout if the writout time type is b, i.e. exponential
+        double initStepSize;
+
+        // last suggested stepsize that has been overwritten at a time-triggered state writeout determined by subConfigTimes and subConfigTimesType
+        double stepSizeBeforeWriteout;
 
         // The current time in the simulation
         double simTime;
@@ -292,8 +307,11 @@ namespace sdddstCore {
         // The number of elapsed steps since the last subconfig written
         unsigned int subconfigDistanceCounter;
 
-        // subconfigs must be written out at every simTime / subConfigTimes elment of N
+        // subconfigs must be written out at simulation times for all n pos integer (input value T) at\na) T*n \nb) initial-stepsize * T^n
         double subConfigTimes;
+
+        // subconfigs must be written out at simulation times for all n pos integer (input value a or b) at\na) T*n \nb) initial-stepsize * T^n
+        char subConfigTimesType;
 
         // What kind of stress state should be used
         StressProtocolStepType currentStressStateType;

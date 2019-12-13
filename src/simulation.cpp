@@ -245,12 +245,35 @@ void Simulation::run()
             sD->failedSteps++;
 
         sD->stepSize = pH->getNewStepSize(sD->stepSize);
+
+        // if stepSize was limited last time, the proposed stepSize has been saved to stepSizeBeforeWriteout, so there is no need to start with a very small stepSize
+        if (sD->stepSizeBeforeWriteout != 0) 
+        {
+            if (pH->getMaxErrorRatioSqr() < 1)  // use the increased step size in case it was a successful step
+                sD->stepSize = std::max(sD->stepSize, sD->stepSizeBeforeWriteout);
+
+            sD->stepSizeBeforeWriteout = 0;     // otherwise, forget about the suggestion
+        }
+
         if (sD->isSaveSubConfigs && sD->subConfigTimes != 0)
         {
-            double remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
+            double remainder = 0; // the upcoming step size
+            if (sD->subConfigTimesType == 'a')
+                remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
+            else if (sD->subConfigTimesType == 'b')
+            {
+                double exponent = nextafter(log(sD->simTime / sD->initStepSize) / log(sD->subConfigTimes), INFINITY);
+                int nextExp = int(exponent) + 1;
+                double nextTime = sD->initStepSize * pow(sD->subConfigTimes, nextExp);
+                remainder = nextTime - sD->simTime;
+            }
+
             if (remainder < sD->stepSize)
-                sD->stepSize = nextafter(remainder, INFINITY);
-            sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
+            {
+                sD->stepSizeBeforeWriteout = sD->stepSize;      // after the write out, the next time step will be at least stepSizeBeforeWriteout, because stepSize can be decreased a lot in the next line
+                sD->stepSize = nextafter(remainder, INFINITY);  // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output 
+                sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
+            }
         }
 
         pH->reset();
@@ -483,7 +506,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             forces_A[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
 
             pH->updateTolerance(rSqr, i);
-        }
+            }
 #endif
         sD->Ap[i + 1] = totalElementCounter;
         if (&forces_A == &forces_B)
@@ -495,8 +518,8 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
         }
 
         sD->Ax[sD->indexes[i]] = subSum;
-        sD->dVec[i] = weight(subSum);
-    }
+        sD->dVec[i] = weight(subSum,sD->weightFunc);
+        }
 
     for (unsigned int i = 0; i < sD->dc; i++)
     {
@@ -509,7 +532,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
     calculateSparseFormForJacobian();
 
     return totalElementCounter;
-}
+    }
 
 /**
 @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
@@ -534,23 +557,24 @@ void Simulation::calcJacobianAndSpeedsFromPrev(double baseTime, double newTime, 
     // Calculating the Jacobian
     //////////////////////////////////////////////////////////////////
 
-    std::vector<double> new_weig(sD->dc);                                // the new weight values
-    std::vector<double> weig_fac(sD->dc);                                // for the new J_{i,j} elements
+    std::vector<double> new_weig(sD->dc);                               // the new weight values
+    std::vector<double> weig_fac(sD->dc);                               // the multiplying factor for the new J_{i,j} elements
 
     // calculates the new_w values from the old dVec values
 
-    double factor = (newTime - baseTime) / (oldTime - baseTime);
+    double factor = (newTime - baseTime) / (oldTime - baseTime);        // usually, it is a factor of 1/2, if 1 large step = 2 small steps
+    char T = sD->weightFunc;
     std::transform(
         sD->dVec.begin(), sD->dVec.end(),
         new_weig.begin(),
-        [factor](double old_weight)
+        [factor, T](double old_weight)
         {
             if (old_weight == 0)
                 return 0.;
             else
             {
-                double prevSum = sqrt(old_weight) / (1 - sqrt(old_weight));
-                return weight(prevSum * factor);
+                double prevSum = weightInv(old_weight, T);
+                return weight(prevSum * factor, T);
             }
         });
 
@@ -928,7 +952,7 @@ void Simulation::Ax_nonSparse_to_file(std::string fname) const
             of << getElement(i, j) << "\t";
         of << "\n";
     }
-}
+    }
 
 
 #endif

@@ -20,7 +20,10 @@ double absvalsq(const std::vector<double>& input);
 double get_wall_time();
 
 // condmat Eq. 18, the weight expressing the strongness of the implicit part
-double weight(double subSum);
+double weight(double subSum, char T);
+
+// condmat Eq. 18, expressing the subSum A_{i,i}^k from d_i^k
+double weightInv(double weight, char T);
 
 #pragma endregion
 

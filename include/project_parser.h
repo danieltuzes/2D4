@@ -2,6 +2,11 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 1.0
+* sub-config-times-type is added
+* weight-function is added
+* initStepSize takes the value of initial-stepsize
+
 # 0.9
 * heavisideCutoff is read from heaviside-cutoff
 * if (true) type of checks are eliminated
@@ -38,7 +43,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.9
+#define VERSION_project_parser 1.0
 
 // define macros for version tracking
 #define STR(x) #x

@@ -33,10 +33,43 @@ double get_wall_time()
 }
 
 // condmat Eq. 18, the weight expressing the strongness of the implicit part
-double weight(double subSum)
+double weight(double subSum, char T)
 {
-    if (subSum > 0)
-        return std::pow(1 - 1 / (subSum + 1), 2);
-    else
-        return 0;
+    if (subSum > 0)                                     // if you modify this function, you must also modify the weightInv too
+    {
+        if (T == 'c')                                   // original version used by Peterffy, different from the written in the arxiv paper
+            return std::pow(subSum / (subSum + 1), 2);
+
+        if (T == 'p')                                   // the version written in the paper, different from the original version used by Peterffy
+            return subSum / (subSum + 1);
+
+        if (T == 'm')                                   // mathematically hinted, the original function is (1 - subSum + 1 / (1 + subSum) - 2 * exp(-subSum)) / (1 - subSum - 1 / (1 + subSum)), but approximated
+        {
+            double c = 0.412073;                        // best fit on the exact mathematical with the approximation function via c
+            return 1 / (1 + 1.5 / (subSum + c * subSum * subSum));
+        }
+    }
+
+    return 0;
+}
+
+// returns the (old) subSum from the (old) weight
+double weightInv(double weight, char T)
+{
+    if (weight > 0)                                     // if you modify this function, you must also modify the weight too
+    {
+        if (T == 'c')
+            return sqrt(weight) / (1 - sqrt(weight));   // original version used by Peterffy, different from the written in the arxiv paper
+
+        if (T == 'p')
+            return weight / (1 - weight);               // the version written in the paper, different from the original version used by Peterffy
+
+        if (T == 'm')                                   // the original function is not invertable, instead, this function is inverted: 1 / (1 + 1.5 / (subSum + c * subSum^2)) using c = 0.412073, a fit on [0:5]
+        {
+            double c = 0.412073;
+            return (1 - weight - sqrt(1 - 2 * weight + 6 * c * weight + weight * weight - 6 * c * weight * weight)) / (2 * (-c + c * weight));
+        }
+    }
+
+    return 0;
 }
