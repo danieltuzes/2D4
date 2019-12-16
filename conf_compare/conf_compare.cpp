@@ -2,6 +2,10 @@
 //
 
 /*changelog
+# 1.3
+* deep, d switch was inactive
+* GCC warning elimination: const correctness + use of uninitialized variable
+
 # 1.2
 deep comparison
 
@@ -45,7 +49,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 1.2
+#define VERSION_conf_compare 1.3
 
 #include <iostream>
 #include <fstream>
@@ -300,7 +304,7 @@ public:
     fname_value(std::string fname) : m_fname(fname), m_value(deduceValue()) {};
 
     // for std::sort
-    bool operator<(const fname_value& rhs)
+    bool operator<(const fname_value& rhs) const
     {
         return m_value < rhs.m_value;
     }
@@ -357,8 +361,8 @@ int main(int argc, char** argv)
         ("find-to-compare,f", "If set, input filename must point to file lists and files from the 1st list will be compared from a file from the 2nd list. Filenames will be treated as floating point values x and each file from the 1st list will compared with a file from the 2nd list that has the closest value to x.")
         ("sort,s", "The input dislocations need to be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
         ("individual-tolerance", bpo::value<double>()->default_value(1e-8), "The absolute value of the difference below which two coordinates considered to be the same.")
-        ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.");
-    ("deep,d", "Deeper analysis: all distance difference will be printed out, and the nearest dislocation is also shown.");
+        ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.")
+        ("deep,d", "Deeper analysis: all distance difference will be printed out, and the nearest dislocation is also shown.");
 
     bpo::options_description options; // the superior container of the options
 
@@ -407,12 +411,11 @@ int main(int argc, char** argv)
     std::vector<fname_value> ifnames_values_b;      // filenames and their corresponding time values to pass to ib_values for selecting, sorted
     std::vector<double> if_b_values;                // contains time values for b files for selecting; sorted
 
-    bool findToCompare = false;
-    double maxVal;                                  // the largest time value to make comparison if findToCompare
+    bool findToCompare = vm.count("find-to-compare");
+    double maxVal = 0;                              // the largest time value to make comparison if findToCompare
 
-    if (vm.count("find-to-compare"))
+    if (findToCompare)
     {
-        findToCompare = true;
         for (auto fname : ifnames_a)
             ifnames_values_a.emplace_back(fname);
         for (auto fname : ifnames_b)
