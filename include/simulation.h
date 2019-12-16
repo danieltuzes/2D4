@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 1.9
+Bugfix: if the first step was unsuccessful and logarithmic config writeout was requested, the program stepped into a state with 0 stepSize
+
 # 1.8
 * stepSizeBeforeWriteout is implemented: after writeout, the new stepSize is loaded from the suggested stepSizeBeforeWriteout
 * subConfigTimesType == 'b' is implemented: exponential writeout frequency
@@ -98,7 +101,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.8
+#define VERSION_simulation 1.9
 
 #include "dislocation.h"
 #include "precision_handler.h"

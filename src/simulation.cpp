@@ -247,7 +247,7 @@ void Simulation::run()
         sD->stepSize = pH->getNewStepSize(sD->stepSize);
 
         // if stepSize was limited last time, the proposed stepSize has been saved to stepSizeBeforeWriteout, so there is no need to start with a very small stepSize
-        if (sD->stepSizeBeforeWriteout != 0) 
+        if (sD->stepSizeBeforeWriteout != 0)
         {
             if (pH->getMaxErrorRatioSqr() < 1)  // use the increased step size in case it was a successful step
                 sD->stepSize = std::max(sD->stepSize, sD->stepSizeBeforeWriteout);
@@ -263,7 +263,7 @@ void Simulation::run()
             else if (sD->subConfigTimesType == 'b')
             {
                 double exponent = nextafter(log(sD->simTime / sD->initStepSize) / log(sD->subConfigTimes), INFINITY);
-                int nextExp = int(exponent) + 1;
+                int nextExp = std::max(int(exponent) + 1, 1);
                 double nextTime = sD->initStepSize * pow(sD->subConfigTimes, nextExp);
                 remainder = nextTime - sD->simTime;
             }
@@ -506,7 +506,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             forces_A[i] -= 2 * sD->A * X(dx) * X(dy) * ((1 - expXY) / rSqr - sD->KASQR * expXY) / rSqr * sD->b(i);
 
             pH->updateTolerance(rSqr, i);
-            }
+        }
 #endif
         sD->Ap[i + 1] = totalElementCounter;
         if (&forces_A == &forces_B)
@@ -518,8 +518,8 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
         }
 
         sD->Ax[sD->indexes[i]] = subSum;
-        sD->dVec[i] = weight(subSum,sD->weightFunc);
-        }
+        sD->dVec[i] = weight(subSum, sD->weightFunc);
+    }
 
     for (unsigned int i = 0; i < sD->dc; i++)
     {
@@ -532,7 +532,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
     calculateSparseFormForJacobian();
 
     return totalElementCounter;
-    }
+}
 
 /**
 @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
@@ -952,7 +952,7 @@ void Simulation::Ax_nonSparse_to_file(std::string fname) const
             of << getElement(i, j) << "\t";
         of << "\n";
     }
-    }
+}
 
 
 #endif
