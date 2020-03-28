@@ -2,6 +2,9 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 2.0
+Bugfix: if first writout simulation time was too small, an error occured (i guess this was the problem)
+
 # 1.9
 Bugfix: if the first step was unsuccessful and logarithmic config writeout was requested, the program stepped into a state with 0 stepSize
 

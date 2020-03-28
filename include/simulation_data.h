@@ -103,6 +103,9 @@ namespace sdddstCore {
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
         void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
+        // returns the next time the dislocation configuration must be written out
+        double getNextWriteOutTime() const;
+
         ////////////////////////////////////
         /// Other utilities
         ////////////////////////////////////
@@ -306,6 +309,9 @@ namespace sdddstCore {
 
         // The number of elapsed steps since the last subconfig written
         unsigned int subconfigDistanceCounter;
+
+        // the next requested config writeout time
+        double nextWriteOutTime;
 
         // subconfigs must be written out at simulation times for all n pos integer (input value T) at\na) T*n \nb) initial-stepsize * T^n
         double subConfigTimes;

@@ -228,9 +228,11 @@ void Simulation::run()
             if (sD->isSaveSubConfigs)
             {
                 if ((!sD->inAvalanche && sD->subConfigDelay <= sD->subconfigDistanceCounter) ||
-                    (sD->inAvalanche && sD->subConfigDelayDuringAvalanche <= sD->subconfigDistanceCounter))
+                    (sD->inAvalanche && sD->subConfigDelayDuringAvalanche <= sD->subconfigDistanceCounter) || 
+                    sD->nextWriteOutTime <= sD->simTime)
                 {
                     sD->subconfigDistanceCounter = 0;
+                    sD->nextWriteOutTime = sD->getNextWriteOutTime();
                     std::stringstream ss;
                     ss << std::setprecision(9);
                     ss << sD->simTime;
@@ -239,7 +241,6 @@ void Simulation::run()
                 else
                     sD->subconfigDistanceCounter++;
             }
-
         }
         else
             sD->failedSteps++;
@@ -255,27 +256,13 @@ void Simulation::run()
             sD->stepSizeBeforeWriteout = 0;     // otherwise, forget about the suggestion
         }
 
-        if (sD->isSaveSubConfigs && sD->subConfigTimes != 0)
+        double remainder = sD->nextWriteOutTime - sD->simTime;
+        if (remainder < sD->stepSize)
         {
-            double remainder = 0; // the upcoming step size
-            if (sD->subConfigTimesType == 'a')
-                remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
-            else if (sD->subConfigTimesType == 'b')
-            {
-                double exponent = nextafter(log(sD->simTime / sD->initStepSize) / log(sD->subConfigTimes), INFINITY);
-                int nextExp = std::max(int(exponent) + 1, 1);
-                double nextTime = sD->initStepSize * pow(sD->subConfigTimes, nextExp);
-                remainder = nextTime - sD->simTime;
-            }
-
-            if (remainder < sD->stepSize)
-            {
-                sD->stepSizeBeforeWriteout = sD->stepSize;      // after the write out, the next time step will be at least stepSizeBeforeWriteout, because stepSize can be decreased a lot in the next line
-                sD->stepSize = nextafter(remainder, INFINITY);  // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output 
-                sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
-            }
+            sD->stepSizeBeforeWriteout = sD->stepSize;      // after the write out, the next time step will be at least stepSizeBeforeWriteout, because stepSize can be decreased a lot in the next line
+            sD->stepSize = nextafter(remainder, INFINITY);  // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output
         }
-
+        
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)

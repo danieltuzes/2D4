@@ -60,8 +60,9 @@ SimulationData::SimulationData(const std::string& startDislocationConfigurationP
     subConfigDelay(0),
     subConfigDelayDuringAvalanche(0),
     subconfigDistanceCounter(0),
+    nextWriteOutTime(INFINITY),
     subConfigTimes(0),
-    subConfigTimesType('a'),
+    subConfigTimesType('0'),
     currentStressStateType(StressProtocolStepType::Original),
     speedThresholdForCutoffChange(0),
     isSpeedThresholdForCutoffChange(false)
@@ -131,7 +132,7 @@ void SimulationData::readDislocationDataFromFile(std::string dislocationDataFile
     bigStep_sorted.resize(dc);
     firstSmall_sorted.resize(dc);
     secondSmall_sorted.resize(dc);
-    
+
     currentStorageSize = dc;
     Ap = (int*)calloc(size_t(dc) + 1, sizeof(int));
     Ai = (int*)calloc(dc, sizeof(int));
@@ -225,6 +226,23 @@ void SimulationData::writePointDefectDataToFile(std::string pointDefectDataFileP
     out << std::scientific << std::setprecision(16);
     for (auto& i : points)
         out << i.x << " " << i.y << "\n";
+}
+
+double SimulationData::getNextWriteOutTime() const
+{
+    if (subConfigTimes == 0)
+        return INFINITY;
+
+    if (subConfigTimesType == 'a')
+        return  (size_t(simTime / subConfigTimes) + 1) * subConfigTimes;
+    if (subConfigTimesType == 'b')
+    {
+        double exponent = nextafter(log(simTime / initStepSize) / log(subConfigTimes), INFINITY);
+        int nextExp = std::max(int(exponent) + 1, 1);
+        return initStepSize * pow(subConfigTimes, nextExp);
+    }
+
+    return INFINITY;
 }
 
 void SimulationData::initSimulationVariables()

@@ -243,6 +243,8 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
         sD->subConfigTimes = vm["sub-config-times"].as<double>();
         sD->subConfigTimesType = vm["sub-config-times-type"].as<char>();
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
+
+        sD->nextWriteOutTime = sD->getNextWriteOutTime();
     }
 
     sD->endDislocationConfigurationPath = vm["result-dislocation-configuration"].as<std::string>();
