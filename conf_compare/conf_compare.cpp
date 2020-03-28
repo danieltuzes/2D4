@@ -226,7 +226,8 @@ bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTo
     avg_fabs = sum_fabs / size;
     avg_fabsSQ = sum_fabsSQ / size;
     max_IDsy = std::get<1>(dislocsA[max_ID]);
-
+    
+    if (deep)
     {
         std::string ofname = ifname_a + "_VS_" + ifname_b;
         std::ofstream of(ifname_a + "_VS_" + ifname_b);
@@ -264,7 +265,6 @@ bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTo
             of << smallestDistA << "\t" << IDA << "\t" << smallestDistB << "\t" << IDB << "\n";
         }
     }
-
 
     return true;
 }
@@ -333,7 +333,7 @@ public:
         if (tvalS != std::string::npos)
             f_cpy.erase(0, tvalS + 1);              // removes chars until base name
 
-        double val = std::stod(f_cpy);          // interpret the filename as double
+        double val = std::stod(f_cpy);              // interpret the filename as double
         return val;
     }
 private:
@@ -351,15 +351,15 @@ int main(int argc, char** argv)
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
 
     requiredOptions.add_options()
-        ("input-files", bpo::value<std::vector<std::string>>(&ifnames), "The input files to compare. No switchs are needed, they are the 1st and 2nd positional arguments. Files must end either with dconf for singular comparison or ini containing list of files.");
+        ("input-files", bpo::value<std::vector<std::string>>(&ifnames), "The input files to compare. No switchs are needed, they are the 1st and 2nd positional arguments. Files must end either with .dconf for singular comparison, or .ini containing list of files.");
 
     bpo::positional_options_description positionalOptions;
     positionalOptions.add("input-files", 2);
 
     optionalOptions.add_options()
         ("output-filename,O", bpo::value<std::string>(), "The path where the result of the comparison(s) should be stored. If the value is not present, standard output will be used.")
-        ("find-to-compare,f", "If set, input filename must point to file lists and files from the 1st list will be compared from a file from the 2nd list. Filenames will be treated as floating point values x and each file from the 1st list will compared with a file from the 2nd list that has the closest value to x.")
-        ("sort,s", "The input dislocations need to be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
+        ("find-to-compare,f", "If set, input filenames must point to file lists and files from the 1st list are compared with a file from the 2nd list selected based on a rule. Filenames from the first list are treated as floating point values x and each file from the 1st list is compared with a file from the 2nd list that has the closest value to x. The .dconf ending and some beginning characters (containing folders) until an underscore are removed from the filename before evaluating them as a float point value.")
+        ("sort,s", "The input dislocations will be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
         ("individual-tolerance", bpo::value<double>()->default_value(1e-8), "The absolute value of the difference below which two coordinates considered to be the same.")
         ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.")
         ("deep,d", "Deeper analysis: all distance difference will be printed out, and the nearest dislocation is also shown.");
