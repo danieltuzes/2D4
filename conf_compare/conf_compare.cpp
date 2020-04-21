@@ -2,6 +2,11 @@
 //
 
 /*changelog
+# 1.4
+* ifname_a_value is also printed out
+* maxVal is eliminated, it was a bit useless
+* some terminal output are changed for clarity
+
 # 1.3
 * deep, d switch was inactive
 * GCC warning elimination: const correctness + use of uninitialized variable
@@ -49,7 +54,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 1.3
+#define VERSION_conf_compare 1.4
 
 #include <iostream>
 #include <fstream>
@@ -63,7 +68,7 @@ First release
 namespace bpo = boost::program_options;
 using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
 
-// evaluate ifname and return a vector<strin> with one or more filenames
+// evaluate ifname and return a vector<string> with one or more filenames
 std::vector<std::string> processInputFile(std::string ifname)
 {
     std::vector<std::string> ifnames;
@@ -82,20 +87,20 @@ std::vector<std::string> processInputFile(std::string ifname)
                 ifnames.push_back(tmp);
             else
             {
-                std::cerr << ifname << " contains invalid dislocation configuration filename " << tmp << ". Program termiantes." << std::endl;
+                std::cerr << ifname << " contains invalid dislocation configuration filename " << tmp << ". Program terminates." << std::endl;
                 exit(2);
             }
         }
         std::cout << ifname << " as input path contained " << ifnames.size() << " number of files to read." << std::endl;
         if (ifnames.size() == 0)
         {
-            std::cerr << "Not enough input files. Program terminates." << std::endl;
+            std::cerr << ifname << " has 0 input filenames. " << ". Program terminates." << std::endl;
             exit(1);
         }
     }
     else if (ifname.size() >= 6 && ifname.compare(ifname.size() - 6, 6, ".dconf") == 0)
     {
-        std::cout << ifname << " will be used to read dislocation configuration" << std::endl;
+        std::cout << ifname << " will be used to read dislocation configurations" << std::endl;
         ifnames.push_back(ifname); // ifnames contains exactly 1 file that can be opened or
     }
     else
@@ -412,7 +417,7 @@ int main(int argc, char** argv)
     std::vector<double> if_b_values;                // contains time values for b files for selecting; sorted
 
     bool findToCompare = vm.count("find-to-compare");
-    double maxVal = 0;                              // the largest time value to make comparison if findToCompare
+    //double maxVal = 0;                              // the largest time value to make comparison if findToCompare
 
     if (findToCompare)
     {
@@ -422,7 +427,7 @@ int main(int argc, char** argv)
             ifnames_values_b.emplace_back(fname);
         std::sort(ifnames_values_a.begin(), ifnames_values_a.end());
         std::sort(ifnames_values_b.begin(), ifnames_values_b.end());
-        maxVal = std::min(ifnames_values_a.back().value(), ifnames_values_b.back().value());
+        //maxVal = std::min(ifnames_values_a.back().value(), ifnames_values_b.back().value());
 
         for (auto val : ifnames_values_b)
             if_b_values.push_back(val.value());
@@ -462,7 +467,7 @@ int main(int argc, char** argv)
 
     if (fileListSize > 1)
     {
-        std::cout << "# ifname_a\tifname_b\tlargest difference\tat ID\tat y\taverage difference\taverage difference square";
+        std::cout << "# ifname_a\tifname_b\tifname_a_value\tlargest difference\tat ID\tat y\taverage difference\taverage difference square";
         if (findToCompare)
             std::cout << "\ttime_a\ttime_b";
         std::cout << std::endl;
@@ -485,8 +490,8 @@ int main(int argc, char** argv)
             size_t nearestIndex = nearest_b.first;              // the index for which the value from ib_values is closest to nextIfname_a.value()
             nearestB_value = nearest_b.second;                  // the value closest to nextIfname_a.value()
             ifname_b = ifnames_values_b[nearestIndex].fname();  // the best ifname_b
-            if (ifname_a_value > maxVal)                        // exit if there is no reason to continue comparison
-                break;
+            //if (ifname_a_value > maxVal)                        // exit if there is no reason to continue comparison, because B doesn't have any further
+                //break;
         }
 
         double max_diff = 0;    // the largest absolute-normalized-difference of the x position
@@ -532,6 +537,7 @@ int main(int argc, char** argv)
             std::cout
                 << ifname_a << "\t"
                 << ifname_b << "\t"
+                << ifname_a_value << "\t"
                 << max_diff << "\t"
                 << max_ID << "\t"
                 << max_IDsy << "\t"
