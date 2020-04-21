@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 1.5
+# sorry, ifname_a_value was useless
+
 # 1.4
 * ifname_a_value is also printed out
 * maxVal is eliminated, it was a bit useless
@@ -54,7 +57,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 1.4
+#define VERSION_conf_compare 1.5
 
 #include <iostream>
 #include <fstream>
@@ -467,7 +470,7 @@ int main(int argc, char** argv)
 
     if (fileListSize > 1)
     {
-        std::cout << "# ifname_a\tifname_b\tifname_a_value\tlargest difference\tat ID\tat y\taverage difference\taverage difference square";
+        std::cout << "# ifname_a\tifname_b\tlargest difference\tat ID\tat y\taverage difference\taverage difference square";
         if (findToCompare)
             std::cout << "\ttime_a\ttime_b";
         std::cout << std::endl;
@@ -537,7 +540,6 @@ int main(int argc, char** argv)
             std::cout
                 << ifname_a << "\t"
                 << ifname_b << "\t"
-                << ifname_a_value << "\t"
                 << max_diff << "\t"
                 << max_ID << "\t"
                 << max_IDsy << "\t"
