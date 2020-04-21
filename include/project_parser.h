@@ -2,6 +2,9 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 1.1
+date and time always exist now, sometimes without the required values, and is printed out
+
 # 1.0
 * sub-config-times-type is added
 * weight-function is added
@@ -62,6 +65,13 @@ Ther first version tracked file
 #define MACHINE_INFO unknown machine
 #define USR_COMP_OPTIONS unknown options
 #endif
+#endif
+
+#if !defined(__DATE__)
+#define __DATE__ "__DATE__ isn't supported"
+#endif
+#if !defined(__TIME__)
+#define __TIME__ "__TIME__ isn't supported"
 #endif
 
 #include "simulation_data.h"

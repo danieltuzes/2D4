@@ -2,12 +2,11 @@
 A 2D discrete dislocation dynamics simulation program toolset.
 
 ## Short description
-This toolkit contains tools to simulate 2D single slip edge dislocation systems under periodic boundary conditions. The integrator is based on an implicit numerical scheme which makes it possible to keep the 
-O(*N*<sup>2</sup>) complexity which arise from the pair interactions while no dislocation annihilation is required and the runtime is greatly decreased.
+This toolkit contains tools to simulate 2D single slip edge dislocation systems under periodic boundary conditions. The integrator is based on an implicit numerical scheme which makes it possible to keep the O(*N*<sup>2</sup>) complexity which arise from the pair interactions while no dislocation annihilation is required and the runtime is greatly decreased.
 
-2D4 is highly modular, it can be easily modified and extended based on the use case where it is needed.
+To decrease the runtime, a matrix inversion on a matrix containing up to *N*<sup>2</sup> number of elements needs to be performed leading to a O(*N*<sup>3</sup>) complexity. By neglecting the gradient of the distant dislocation-pairs, the number of elemnts can be decreased to be proportional with *N* so that the overall complexity of the simulation remains O(*N*<sup>2</sup>). In case of not applying such simplification, the contant factor for the O(*N*<sup>3</sup>) can be still kept low so that the main leading term in runtime for typical system sizes (below 16'000 dislocations) is characterized by the O(*N*<sup>3</sup>) term.
 
-The detailed publication of the numerical scheme and the implementation with the achived results will be soon available.
+The details of the numerical scheme and the implementation with the achived results [are published](https://iopscience.iop.org/article/10.1088/1361-651X/ab76b2/meta) and a [free arxiv version is also available](https://arxiv.org/abs/1909.05706).
 
 ### Tools
 The toolkit contains the following tools
@@ -15,8 +14,8 @@ The toolkit contains the following tools
 2. [**Dislocation system generator** *init_config_gen*](https://github.com/danieltuzes/2D4/init_config_gen) to create the initial configuration of uncorrelated dislocations.
 3. **Evaluation programs**
 
-   1. [*xpattern*](https://github.com/danieltuzes/2D4/tree/master/xpattern) performs analysis on the simulations obatined looking for patterns
-   2. [*conf_compare*](https://github.com/danieltuzes/2D4/tree/master/conf_compare) compares simulations and tell if they are the same or not, where the largest deviation is and what the average deviation is.
+   1. [*xpattern*](xpattern) performs analysis on the simulations obatined looking for patterns
+   2. [*conf_compare*](conf_compare) compares simulations and tell if they are the same or not, where the largest deviation is and what the average deviation is.
 4. Sandbox programs
 
     These programs help to identify or measure the effect of one specific change in the code. The following projects are available:
@@ -24,9 +23,9 @@ The toolkit contains the following tools
    * [*ieee_hyperbolic*](https://github.com/danieltuzes/2D4/tree/master/sandbox/ieee_hyperbolic): to decide whether the calculation of hyperbolic function using identities are faster
    * [*merge_data_func*](https://github.com/danieltuzes/2D4/tree/master/sandbox/ieee_hyperbolic): merges and averages function evaluated at different values.
 
-The rest of this file belongs to the simulation program 2D4_sim.
+The rest of this file belongs to the description of the simulation program 2D4_sim.
 
-## Build & run
+## Build & run 2D4_sim
 This solution uses several external libraries, such as **umfpack**, **boost**, **FFTW** and furthermore, to keep the code simple, some additional include libraries must be set up for your compiler. A convenient Linux-gcc-cmake built procedure (scenario A) is provided along with a Windows-VS-vcpkg built procedure (scenario B).
 
 ### Scenario A
