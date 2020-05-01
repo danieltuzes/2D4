@@ -106,6 +106,7 @@ namespace sdddstCore {
         // returns the next time the dislocation configuration must be written out
         double getNextWriteOutTime() const;
 
+
         ////////////////////////////////////
         /// Other utilities
         ////////////////////////////////////
@@ -119,7 +120,6 @@ namespace sdddstCore {
         bool is_pos_b(unsigned int ID) const;
 
 #pragma endregion
-
 #pragma region data fields
 
         // Valid dislocation position data -> state of the simulation at simTime; the sorted dislocations, Burger's vector is not needed

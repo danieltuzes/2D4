@@ -81,6 +81,7 @@ void Simulation::run()
             energy << "\t" <<
             0 << "\t" <<
             sD->stepSize << std::endl;
+
     }
 #pragma endregion
 
@@ -98,6 +99,7 @@ void Simulation::run()
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated; btw, really? itt looks like speed and initSpeed differs only bc of the time dependence of the external force value
+
             solveEQSys("stage I, 1.");
 
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -115,6 +117,7 @@ void Simulation::run()
 #pragma region step stage II: first small step
         {
             calcJacobianAndSpeedsFromPrev(t_0__, t_1p2, t_1__);  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
+
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
@@ -205,6 +208,7 @@ void Simulation::run()
                     << get_wall_time() - startTime << "\t"
                     << sD->stepSize << std::endl;
 
+
                 lastLogTime = get_wall_time();
             }
 
@@ -247,7 +251,7 @@ void Simulation::run()
 
 
         sD->stepSize = pH->getNewStepSize(sD->stepSize);
-
+      
         // if stepSize was limited last time, the proposed stepSize has been saved to stepSizeBeforeWriteout, so there is no need to start with a very small stepSize
         if (sD->stepSizeBeforeWriteout != 0)
         {
@@ -263,7 +267,7 @@ void Simulation::run()
             sD->stepSizeBeforeWriteout = sD->stepSize;      // after the write out, the next time step will be at least stepSizeBeforeWriteout, because stepSize can be decreased a lot in the next line
             sD->stepSize = remainder;                       // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output
         }
-        
+
         pH->reset();
 
         if (sD->isMaxStepSizeLimit && sD->maxStepSizeLimit < sD->stepSize)
@@ -520,7 +524,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
     calculateSparseFormForJacobian();
 
     return totalElementCounter;
-}
+    }
 
 /**
 @brief calcJacobian:    like calcJacobianAndSpeedsAtTimes: calculates the Jacobian matrix containing the field derivatives multiplied with stepsize; modifies Ai, Ax, Ap, indexes, dVec; also calculates the force but at only 1 time point
@@ -564,6 +568,7 @@ void Simulation::calcJacobianAndSpeedsFromPrev(double baseTime, double newTime, 
                 double prevSum = weightInv(old_weight, T);
                 return weight(prevSum * factor, T);
             }
+
         });
 
     // calcualtes the weight factors needed to calculate J_{i,j}^k

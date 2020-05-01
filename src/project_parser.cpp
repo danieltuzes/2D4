@@ -147,6 +147,7 @@ void sdddstCore::ProjectParser::printLicense(int argc, char** argv) // if used m
         << "MACHINE_INFO:                       " << XSTR(MACHINE_INFO) << "\n"
         << "USR_COMP_OPTIONS:                   " << XSTR(USR_COMP_OPTIONS) << "\n"
         << "DATE and TIME:                      " << __DATE__ << "; " << __TIME__ << std::endl;
+
 }
 
 void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
@@ -248,7 +249,6 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
             std::cerr << "Error: T<1 but subconfigs are asked to be printed out at initial-stepsize * T^n. Please use T>1 or `sub-config-times-type -a` to print out subconfigs at times T*n.\nProgram terminates." << std::endl;
             exit(-2);
         }
-
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
 
         sD->nextWriteOutTime = sD->getNextWriteOutTime();

@@ -2,6 +2,7 @@
 //
 
 /*changelog
+
 # 1.5
 # sorry, ifname_a_value was useless
 
@@ -424,6 +425,7 @@ int main(int argc, char** argv)
 
     if (findToCompare)
     {
+
         for (auto fname : ifnames_a)
             ifnames_values_a.emplace_back(fname);
         for (auto fname : ifnames_b)
@@ -431,6 +433,7 @@ int main(int argc, char** argv)
         std::sort(ifnames_values_a.begin(), ifnames_values_a.end());
         std::sort(ifnames_values_b.begin(), ifnames_values_b.end());
         //maxVal = std::min(ifnames_values_a.back().value(), ifnames_values_b.back().value());
+
 
         for (auto val : ifnames_values_b)
             if_b_values.push_back(val.value());
@@ -495,6 +498,7 @@ int main(int argc, char** argv)
             ifname_b = ifnames_values_b[nearestIndex].fname();  // the best ifname_b
             //if (ifname_a_value > maxVal)                        // exit if there is no reason to continue comparison, because B doesn't have any further
                 //break;
+
         }
 
         double max_diff = 0;    // the largest absolute-normalized-difference of the x position
@@ -504,6 +508,7 @@ int main(int argc, char** argv)
         double avg_fabsSQ = 0;  // the average of the square of the normalized differences of the x position
 
         if (!compareDislocConfs(ifname_a, ifname_b, indTol, max_diff, max_ID, max_IDsy, avg_fabs, avg_fabsSQ, vm.count("sort"), vm.count("deep")))
+
         {
             std::cerr << "Error: cannot compare files " << ifname_a << " and " << ifname_b << ". This pair is skipped." << std::endl;
             continue;
