@@ -2,6 +2,9 @@
 // constants.h : contains some constant expressions from different places of the code. Included in simulation_data.cpp, project_parser.cpp, precision_handler.cpp and AnalyticField.h
 
 /*changelog
+# 0.7
+PI2LN2INV is introduced to speed up field calculation by using exp2 instead of exp
+
 # 0.6
 DEBUG_CODEPARTS is added to include debugging codeparts
 
@@ -24,7 +27,11 @@ first version with VERSION_constants
 #ifndef SDDDST_CORE_CONSTANTS_H
 #define SDDDST_CORE_CONSTANTS_H
 
-#define VERSION_constants 0.5
+#define VERSION_constants 0.7
+
+// uncomment if you want to include and call debugging functions
+// modifications in debug functions change the affected file's version only, calls on those functions changes only DEBUG_VERSION number only
+// #define DEBUG_VERSION 0.2
 
 // uncomment if you want to include and call debugging functions
 // modifications in debug functions change the affected file's version only, calls on those functions changes only DEBUG_VERSION number only
@@ -34,6 +41,8 @@ first version with VERSION_constants
 #define EPS 1e-12
 #define DEFAULT_KASQR (1.65 * 1.65 * 1e6 / 256)
 #define DEFAULT_A (1e-4 * 16)
+#define LN2INV 1.4426950408889634073599246810018921374266459541530      // 1 / ln(2)
+#define PI2LN2INV 9.0647202836543876192553658914333336203437229354476   // 2*Pi / ln(2)
 
 #define USE_IEEE_HYPERBOLIC 0
 #if (ANALYTIC_FIELD_N != 4)     // USE_IEEE_HYPERBOLIC must be true, bc the non IEEE version is implemented only for 4 images

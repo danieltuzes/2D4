@@ -2,6 +2,19 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 1.1
+date and time always exist now, sometimes without the required values, and is printed out
+Stops and gives error if (sD->subConfigTimesType == 'b' && sD->subConfigTimes < 1)
+
+# 1.0
+* sub-config-times-type is added
+* weight-function is added
+* initStepSize takes the value of initial-stepsize
+
+# 0.9
+* heavisideCutoff is read from heaviside-cutoff
+* if (true) type of checks are eliminated
+
 # 0.8
 * Restructured program options
 * cyclic-external-stress had r short switch overlapping with fixed-rate-external-stress', now it has i
@@ -34,7 +47,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 0.8
+#define VERSION_project_parser 1.1
 
 // define macros for version tracking
 #define STR(x) #x
@@ -53,6 +66,13 @@ Ther first version tracked file
 #define MACHINE_INFO unknown machine
 #define USR_COMP_OPTIONS unknown options
 #endif
+#endif
+
+#if !defined(__DATE__)
+#define __DATE__ "__DATE__ isn't supported"
+#endif
+#if !defined(__TIME__)
+#define __TIME__ "__TIME__ isn't supported"
 #endif
 
 #include "simulation_data.h"

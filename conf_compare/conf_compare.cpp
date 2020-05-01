@@ -2,6 +2,22 @@
 //
 
 /*changelog
+
+# 1.5
+# sorry, ifname_a_value was useless
+
+# 1.4
+* ifname_a_value is also printed out
+* maxVal is eliminated, it was a bit useless
+* some terminal output are changed for clarity
+
+# 1.3
+* deep, d switch was inactive
+* GCC warning elimination: const correctness + use of uninitialized variable
+
+# 1.2
+deep comparison
+
 # 1.1
 bugfix: findNearest didn't return the correct closest val if it was the 0th and smaller, but 0
 
@@ -42,7 +58,7 @@ First release
 
 #pragma region header with functions
 
-#define VERSION_conf_compare 1.1
+#define VERSION_conf_compare 1.5
 
 #include <iostream>
 #include <fstream>
@@ -56,7 +72,7 @@ First release
 namespace bpo = boost::program_options;
 using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
 
-// evaluate ifname and return a vector<strin> with one or more filenames
+// evaluate ifname and return a vector<string> with one or more filenames
 std::vector<std::string> processInputFile(std::string ifname)
 {
     std::vector<std::string> ifnames;
@@ -75,20 +91,20 @@ std::vector<std::string> processInputFile(std::string ifname)
                 ifnames.push_back(tmp);
             else
             {
-                std::cerr << ifname << " contains invalid dislocation configuration filename " << tmp << ". Program termiantes." << std::endl;
+                std::cerr << ifname << " contains invalid dislocation configuration filename " << tmp << ". Program terminates." << std::endl;
                 exit(2);
             }
         }
         std::cout << ifname << " as input path contained " << ifnames.size() << " number of files to read." << std::endl;
         if (ifnames.size() == 0)
         {
-            std::cerr << "Not enough input files. Program terminates." << std::endl;
+            std::cerr << ifname << " has 0 input filenames. " << ". Program terminates." << std::endl;
             exit(1);
         }
     }
     else if (ifname.size() >= 6 && ifname.compare(ifname.size() - 6, 6, ".dconf") == 0)
     {
-        std::cout << ifname << " will be used to read dislocation configuration" << std::endl;
+        std::cout << ifname << " will be used to read dislocation configurations" << std::endl;
         ifnames.push_back(ifname); // ifnames contains exactly 1 file that can be opened or
     }
     else
@@ -151,8 +167,17 @@ void normalize(double& n)
         n -= 1;
 }
 
+double dist(const disl& a, const disl& b)
+{
+    double distx = std::get<0>(a) - std::get<0>(b);
+    double disty = std::get<1>(a) - std::get<1>(b);
+    normalize(distx);
+    normalize(disty);
+    return sqrt(distx * distx + disty * disty);
+}
+
 // compares dislocation configurations in ifname_a and ifname_b, checks if y value difference is smaller than indTol, and put the result into max_diff (largest difference), max_ID (ID of the dislocation with max_diff), max_IDsy (it's y value), avg_fabs (average of the absolute value of the difference), avg_fabsSQ (average of the difference square). If sort, dislocations will be sorted before comparison
-bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTol, double& max_diff, size_t& max_ID, double& max_IDsy, double& avg_fabs, double& avg_fabsSQ, bool sort)
+bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTol, double& max_diff, size_t& max_ID, double& max_IDsy, double& avg_fabs, double& avg_fabsSQ, bool sort, bool deep)
 {
     std::vector<disl> dislocsA, dislocsB; // containers of the N number of dislocations
 
@@ -210,6 +235,45 @@ bool compareDislocConfs(std::string ifname_a, std::string ifname_b, double indTo
     avg_fabs = sum_fabs / size;
     avg_fabsSQ = sum_fabsSQ / size;
     max_IDsy = std::get<1>(dislocsA[max_ID]);
+    
+    if (deep)
+    {
+        std::string ofname = ifname_a + "_VS_" + ifname_b;
+        std::ofstream of(ifname_a + "_VS_" + ifname_b);
+        if (!of)
+        {
+            std::cerr << "Cannot create file for deeper analysis " << ofname << std::endl;
+            return true;
+        }
+        of << "# distance\tdist to nearest disl in a\tits ID\tdist to nearest disl in b\tits ID\n";
+        for (size_t i = 0; i < size; ++i)
+        {
+            of << dist(dislocsA[i], dislocsB[i]) << "\t";
+            double smallestDistA = INFINITY;
+            double smallestDistB = INFINITY;
+            size_t IDA = size + 1;
+            size_t IDB = size + 1;
+            for (size_t j = 0; j < size; ++j)
+            {
+                if (j != i)
+                {
+                    double tmpA = dist(dislocsA[i], dislocsA[j]);
+                    double tmpB = dist(dislocsB[i], dislocsB[j]);
+                    if (tmpA < smallestDistA)
+                    {
+                        smallestDistA = tmpA;
+                        IDA = j;
+                    }
+                    if (tmpB < smallestDistB)
+                    {
+                        smallestDistB = tmpB;
+                        IDB = j;
+                    }
+                }
+            }
+            of << smallestDistA << "\t" << IDA << "\t" << smallestDistB << "\t" << IDB << "\n";
+        }
+    }
 
     return true;
 }
@@ -249,7 +313,7 @@ public:
     fname_value(std::string fname) : m_fname(fname), m_value(deduceValue()) {};
 
     // for std::sort
-    bool operator<(const fname_value& rhs)
+    bool operator<(const fname_value& rhs) const
     {
         return m_value < rhs.m_value;
     }
@@ -278,7 +342,7 @@ public:
         if (tvalS != std::string::npos)
             f_cpy.erase(0, tvalS + 1);              // removes chars until base name
 
-        double val = std::stod(f_cpy);          // interpret the filename as double
+        double val = std::stod(f_cpy);              // interpret the filename as double
         return val;
     }
 private:
@@ -296,17 +360,18 @@ int main(int argc, char** argv)
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
 
     requiredOptions.add_options()
-        ("input-files", bpo::value<std::vector<std::string>>(&ifnames), "The input files to compare. No switchs are needed, they are the 1st and 2nd positional arguments. Files must end either with dconf for singular comparison or ini containing list of files.");
+        ("input-files", bpo::value<std::vector<std::string>>(&ifnames), "The input files to compare. No switchs are needed, they are the 1st and 2nd positional arguments. Files must end either with .dconf for singular comparison, or .ini containing list of files.");
 
     bpo::positional_options_description positionalOptions;
     positionalOptions.add("input-files", 2);
 
     optionalOptions.add_options()
         ("output-filename,O", bpo::value<std::string>(), "The path where the result of the comparison(s) should be stored. If the value is not present, standard output will be used.")
-        ("find-to-compare,f", "If set, input filename must point to file lists and files from the 1st list will be compared from a file from the 2nd list. Filenames will be treated as floating point values x and each file from the 1st list will compared with a file from the 2nd list that has the closest value to x.")
-        ("sort,s", "The input dislocations need to be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
+        ("find-to-compare,f", "If set, input filenames must point to file lists and files from the 1st list are compared with a file from the 2nd list selected based on a rule. Filenames from the first list are treated as floating point values x and each file from the 1st list is compared with a file from the 2nd list that has the closest value to x. The .dconf ending and some beginning characters (containing folders) until an underscore are removed from the filename before evaluating them as a float point value.")
+        ("sort,s", "The input dislocations will be sorted by Burger's vector and y direction. If switch is not used, disloations must be in the same order in both files.")
         ("individual-tolerance", bpo::value<double>()->default_value(1e-8), "The absolute value of the difference below which two coordinates considered to be the same.")
-        ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.");
+        ("similarity-tolerance", bpo::value<double>()->default_value(1e-6), "The average absolute value of the differences below which two realisation are similar.")
+        ("deep,d", "Deeper analysis: all distance difference will be printed out, and the nearest dislocation is also shown.");
 
     bpo::options_description options; // the superior container of the options
 
@@ -355,19 +420,20 @@ int main(int argc, char** argv)
     std::vector<fname_value> ifnames_values_b;      // filenames and their corresponding time values to pass to ib_values for selecting, sorted
     std::vector<double> if_b_values;                // contains time values for b files for selecting; sorted
 
-    bool findToCompare = false;
-    double maxVal;                                  // the largest time value to make comparison if findToCompare
+    bool findToCompare = vm.count("find-to-compare");
+    //double maxVal = 0;                              // the largest time value to make comparison if findToCompare
 
-    if (vm.count("find-to-compare"))
+    if (findToCompare)
     {
-        findToCompare = true;
+
         for (auto fname : ifnames_a)
             ifnames_values_a.emplace_back(fname);
         for (auto fname : ifnames_b)
             ifnames_values_b.emplace_back(fname);
         std::sort(ifnames_values_a.begin(), ifnames_values_a.end());
         std::sort(ifnames_values_b.begin(), ifnames_values_b.end());
-        maxVal = std::min(ifnames_values_a.back().value(), ifnames_values_b.back().value());
+        //maxVal = std::min(ifnames_values_a.back().value(), ifnames_values_b.back().value());
+
 
         for (auto val : ifnames_values_b)
             if_b_values.push_back(val.value());
@@ -430,8 +496,9 @@ int main(int argc, char** argv)
             size_t nearestIndex = nearest_b.first;              // the index for which the value from ib_values is closest to nextIfname_a.value()
             nearestB_value = nearest_b.second;                  // the value closest to nextIfname_a.value()
             ifname_b = ifnames_values_b[nearestIndex].fname();  // the best ifname_b
-            if (ifname_a_value > maxVal)                        // exit if there is no reason to continue comparison
-                break;
+            //if (ifname_a_value > maxVal)                        // exit if there is no reason to continue comparison, because B doesn't have any further
+                //break;
+
         }
 
         double max_diff = 0;    // the largest absolute-normalized-difference of the x position
@@ -440,7 +507,8 @@ int main(int argc, char** argv)
         double avg_fabs = 0;    // the average of the absolute value of the normalized differences of the x position
         double avg_fabsSQ = 0;  // the average of the square of the normalized differences of the x position
 
-        if (!compareDislocConfs(ifname_a, ifname_b, indTol, max_diff, max_ID, max_IDsy, avg_fabs, avg_fabsSQ, vm.count("sort")))
+        if (!compareDislocConfs(ifname_a, ifname_b, indTol, max_diff, max_ID, max_IDsy, avg_fabs, avg_fabsSQ, vm.count("sort"), vm.count("deep")))
+
         {
             std::cerr << "Error: cannot compare files " << ifname_a << " and " << ifname_b << ". This pair is skipped." << std::endl;
             continue;

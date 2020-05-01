@@ -1,12 +1,21 @@
-
+//
 // dislocation.h : contains function definitions, included in stress_protocol.h, simulation_data.h, simulation.h
+
+/*
+# 0.2
+std::ofstream& sdddstCore::operator<<(std::ofstream& o, const DislwoB& disl) is added
+
+# 0.1
+First version tracked file
+*/
 
 #ifndef SDDDST_CORE_DISLOCATION_H
 #define SDDDST_CORE_DISLOCATION_H
 
-#define VERSION_dislocations 0.1
+#define VERSION_dislocations 0.2
 
 #include <string>
+#include <fstream>
 
 namespace sdddstCore
 {
@@ -20,6 +29,8 @@ namespace sdddstCore
         double x;
         double y;
         // Burgers vector will be deduced from the index of the dislocation
+
+        friend std::ofstream& operator<<(std::ofstream& o, const DislwoB& disl);
     };
 
     // dislocation with ID, ID is in increasing from 0

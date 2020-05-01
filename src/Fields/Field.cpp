@@ -332,7 +332,7 @@ double Field::xy_diff_x(double dx, double dy, double exp2pix, double cos2piy) co
 // returns the field at point dx, dy without knowing their hyperbolic and trigonometric function values
 double Field::xy(double dx, double dy) const
 {
-    double exp2pix = exp(M_PI * 2 * dx);
+    double exp2pix = exp2(PI2LN2INV * dx);
     double cos2piy = cos(M_PI * 2 * dy);
     return xy(dx, dy, exp2pix, cos2piy);
 }

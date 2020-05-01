@@ -49,31 +49,43 @@ void Simulation::run()
         double vsquare = std::accumulate(sD->initSpeed.begin(), sD->initSpeed.end(), 0., [](double a, double b) {return a + b * b; });
         double extStress = sD->externalStressProtocol->extStress(sD->simTime);
 
-        sD->standardOutputLog
-            << "# simtime\tsuccessfullsteps\tfailedsteps\tmaxErrorRatioSqr\tmaxErrorRatioID\tsumAvgSp\tcutOff\torder parameter\texternal stress\tstageI - III time\tstrain\tvsquare\tenergy\twall_time_elapsed" << std::endl
-            << sD->simTime << "\t"
-            << sD->succesfulSteps << "\t"
-            << sD->failedSteps << "\t"
-            << 0 << "\t"
-            << 0 << "\t"
-            << sumAvgSp << "\t"
-            << sD->cutOff << "\t"
-            << "-" << "\t"
-            << extStress << "\t"
-            << "-" << "\t"
-            << sD->totalAccumulatedStrainIncrease << "\t"
-            << vsquare << "\t"
-            << energy << "\t"
-            << 0 << std::endl;
+        sD->standardOutputLog <<
+            "# simTime(" << 1 << ")\t"
+            "successfullSteps(" << 2 << ")\t"
+            "failedSteps(" << 3 << ")\t"
+            "maxErrorRatioSqr(" << 4 << ")\t"
+            "maxErrorRatioID(" << 5 << ")\t"
+            "sumAvgSp(" << 6 << ")\t"
+            "cutOff(" << 7 << ")\t"
+            "orderParameter(" << 8 << ")\t"
+            "externalStress(" << 9 << ")\t"
+            "timeStageI - III(" << 10 << ")\t"
+            "strain(" << 11 << ")\t"
+            "vSquare(" << 12 << ")\t"
+            "energy(" << 13 << ")\t"
+            "wallTimeElapsed(" << 14 << ")\t"
+            "stepSize(" << 15 << ")\t" << std::endl;
+        sD->standardOutputLog <<
+            sD->simTime << "\t" <<
+            sD->succesfulSteps << "\t" <<
+            sD->failedSteps << "\t" <<
+            0 << "\t" <<
+            0 << "\t" <<
+            sumAvgSp << "\t" <<
+            sD->cutOff << "\t" <<
+            "-" << "\t" <<
+            extStress << "\t" <<
+            "-" << "\t" <<
+            sD->totalAccumulatedStrainIncrease << "\t" <<
+            vsquare << "\t" <<
+            energy << "\t" <<
+            0 << "\t" <<
+            sD->stepSize << std::endl;
+
     }
 #pragma endregion
 
-    while (
-        ((sD->isTimeLimit && sD->simTime < sD->timeLimit) || !sD->isTimeLimit) &&
-        ((sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease < sD->totalAccumulatedStrainIncreaseLimit) || !sD->isStrainIncreaseLimit) &&
-        ((sD->isStepCountLimit && sD->succesfulSteps < sD->stepCountLimit) || !sD->isStepCountLimit) &&
-        ((sD->countAvalanches && sD->avalancheCount < sD->avalancheTriggerLimit) || !sD->countAvalanches)
-        )
+    while (!interrupt())
     {
 #pragma region step stage I: one large step
         double t_0__ = sD->simTime;                     // simTime at the beginning of a large step
@@ -86,7 +98,8 @@ void Simulation::run()
             calcJacobianAndSpeedsAtTimes(sD->stepSize, sD->disl_sorted, sD->initSpeed, sD->speed, t_0__, t_1__);
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
+                sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated; btw, really? itt looks like speed and initSpeed differs only bc of the time dependence of the external force value
+
             solveEQSys("stage I, 1.");
 
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -103,7 +116,8 @@ void Simulation::run()
 
 #pragma region step stage II: first small step
         {
-            calcJacobianAndSpeedsFromPrev();  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
+            calcJacobianAndSpeedsFromPrev(t_0__, t_1p2, t_1__);  //## calculates Jacobian and speed from disl_sorted = config[1], speed is at time t_1p2 = sD->simTime + sD->stepSize / 2 !!
+
 
             for (unsigned int i = 0; i < sD->dc; i++)
                 sD->g[i] = -sD->stepSize / 2 * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;
@@ -191,7 +205,9 @@ void Simulation::run()
 
                 sD->standardOutputLog << vsquare_end << "\t"
                     << energy << "\t"
-                    << get_wall_time() - startTime << std::endl;
+                    << get_wall_time() - startTime << "\t"
+                    << sD->stepSize << std::endl;
+
 
                 lastLogTime = get_wall_time();
             }
@@ -216,9 +232,11 @@ void Simulation::run()
             if (sD->isSaveSubConfigs)
             {
                 if ((!sD->inAvalanche && sD->subConfigDelay <= sD->subconfigDistanceCounter) ||
-                    (sD->inAvalanche && sD->subConfigDelayDuringAvalanche <= sD->subconfigDistanceCounter))
+                    (sD->inAvalanche && sD->subConfigDelayDuringAvalanche <= sD->subconfigDistanceCounter) || 
+                    sD->nextWriteOutTime <= sD->simTime)
                 {
                     sD->subconfigDistanceCounter = 0;
+                    sD->nextWriteOutTime = sD->getNextWriteOutTime();
                     std::stringstream ss;
                     ss << std::setprecision(9);
                     ss << sD->simTime;
@@ -227,18 +245,27 @@ void Simulation::run()
                 else
                     sD->subconfigDistanceCounter++;
             }
-
         }
         else
             sD->failedSteps++;
 
+
         sD->stepSize = pH->getNewStepSize(sD->stepSize);
-        if (sD->isSaveSubConfigs && sD->subConfigTimes != 0)
+      
+        // if stepSize was limited last time, the proposed stepSize has been saved to stepSizeBeforeWriteout, so there is no need to start with a very small stepSize
+        if (sD->stepSizeBeforeWriteout != 0)
         {
-            double remainder = sD->subConfigTimes - fmod(sD->simTime, sD->subConfigTimes);
-            if (remainder < sD->stepSize)
-                sD->stepSize = nextafter(sD->simTime + remainder, INFINITY) - sD->simTime;
-            sD->subconfigDistanceCounter = sD->subConfigDelay + sD->subConfigDelayDuringAvalanche; // writeDislocationDataToFile will be triggered next time
+            if (pH->getMaxErrorRatioSqr() < 1)  // use the increased step size in case it was a successful step
+                sD->stepSize = std::max(sD->stepSize, sD->stepSizeBeforeWriteout);
+
+            sD->stepSizeBeforeWriteout = 0;     // otherwise, forget about the suggestion
+        }
+
+        double remainder = nextafter(sD->nextWriteOutTime,INFINITY) - sD->simTime;
+        if (remainder < sD->stepSize)
+        {
+            sD->stepSizeBeforeWriteout = sD->stepSize;      // after the write out, the next time step will be at least stepSizeBeforeWriteout, because stepSize can be decreased a lot in the next line
+            sD->stepSize = remainder;                       // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output
         }
 
         pH->reset();
@@ -255,7 +282,8 @@ void Simulation::run()
 
 #pragma region Functions directly called from run
 
-// calculates the forces (therefore, the speed too) between all d-d and d-p (d: dislocation, p: fixed point defect) if dislocations are at dis and the force will be calculated from simTime
+// calculates the forces (therefore, the speeds too) between all d-d and d-p (d: dislocation, p: fixed point defect)
+// dislocations are at dis and the force will be calculated from simTime
 void Simulation::calculateSpeedsAtTime(const std::vector<DislwoB>& dis, std::vector<double>& forces, double simTime) const
 {
     std::fill(forces.begin(), forces.end(), 0);
@@ -329,6 +357,7 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
         if (sD->currentStorageSize - totalElementCounter < sD->dc) // if free memory is less than sD->dc
             sD->increaseCurrentStorageSize(totalElementCounter);
 
+        double subSum = 0;
         // Previously calculated part
         for (unsigned int j = 0; j < i; j++)
         {
@@ -337,11 +366,15 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             {
                 sD->Ai[totalElementCounter] = j;
                 sD->Ax[totalElementCounter] = v;
+
+                subSum -= v;
+
                 totalElementCounter++;
             }
         }
         // Add the diagonal element (it will be calculated later and the point defects now)
         sD->Ai[totalElementCounter] = i;
+        sD->indexes[i] = totalElementCounter;
 
         double tmp = 0;
 #ifdef USE_POINT_DEFECTS
@@ -420,23 +453,32 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             pH->updateTolerance(distSq, i);
             pH->updateTolerance(distSq, j);
 
-            double exp2pix = exp(2 * M_PI * dx);
+            double exp2pix = exp2(PI2LN2INV * dx);
             double cos2piy = cos(2 * M_PI * dy);
 
             double force = sD->tau.xy(dx, dy, exp2pix, cos2piy) * sD->b(i) * sD->b(j); // The sign of Burgers vectors can be deduced from i and j
-            forces_A[i] += force;
-            forces_A[j] -= force;
 
-            if (std::fabs(sqrt(distSq) - sD->cutOff) < 6 * sD->cutOff) // itt a 6-os szorzót simán ki kéne hagyni, meg a következő 3 sort is úgy, ahogy van, TODO
+            double cutOffRangeSq = 49; // the weight in the Jacobian decreases after the distance reaches cutOff, and at cutOffRange * cutOff, wight is 0
+            if (sD->heavisideCutoff)
+                cutOffRangeSq = 1;
+
+            if (distSq < cutOffRangeSq * sD->cutOffSqr)
             {
-                double multiplier = 1;
-                if (distSq > sD->cutOffSqr)
-                    multiplier = exp(-pow(sqrt(distSq) - sD->cutOff, 2) * sD->onePerCutOffSqr);
+                double v = stepsize * sD->b(j) * sD->b(i) * sD->tau.xy_diff_x(dx, dy, exp2pix, cos2piy);
+
+                if (!sD->heavisideCutoff && distSq > sD->cutOffSqr)
+                    v *= exp(-pow(sqrt(distSq) - sD->cutOff, 2) * sD->onePerCutOffSqr);
 
                 sD->Ai[totalElementCounter] = j;
-                sD->Ax[totalElementCounter] = stepsize * sD->b(j) * sD->b(i) * sD->tau.xy_diff_x(dx, dy, exp2pix, cos2piy) * multiplier;
+                sD->Ax[totalElementCounter] = v;
+
+                subSum -= v;
+
                 totalElementCounter++;
             }
+
+            forces_A[i] += force;
+            forces_A[j] -= force;
 
         }
 #ifdef USE_POINT_DEFECTS
@@ -466,33 +508,17 @@ int Simulation::calcJacobianAndSpeedsAtTimes(double stepsize, const std::vector<
             forces_B[i] = forces_A[i] + extStress_B * sD->b(i);
             forces_A[i] += extStress_A * sD->b(i);
         }
-        }
 
-    for (unsigned int j = 0; j < sD->dc; j++)
-    {
-        double subSum = 0;
-        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
-        {
-            if (sD->Ai[i] == int(j))
-                sD->indexes[j] = i;
-
-            subSum -= sD->Ax[i];
-        }
-
-        sD->Ax[sD->indexes[j]] = subSum;
-
-        if (subSum > 0)
-            sD->dVec[j] = std::pow(1 - 1 / (subSum + 1), 2);
-        else
-            sD->dVec[j] = 0;
+        sD->Ax[sD->indexes[i]] = subSum;
+        sD->dVec[i] = weight(subSum, sD->weightFunc);
     }
 
-    for (unsigned int j = 0; j < sD->dc; j++)
+    for (unsigned int i = 0; i < sD->dc; i++)
     {
-        for (int i = sD->Ap[j]; i < sD->Ap[j + 1]; i++)
-            sD->Ax[i] *= (1 + sD->dVec[sD->Ai[i]]) / 2;
+        for (int j = sD->Ap[i]; j < sD->Ap[i + 1]; j++)
+            sD->Ax[j] *= (1 + sD->dVec[sD->Ai[j]]) / 2;
 
-        sD->Ax[sD->indexes[j]] += 1;
+        sD->Ax[sD->indexes[i]] += 1;
     }
 
     calculateSparseFormForJacobian();
@@ -514,22 +540,35 @@ int Simulation::calcJacobianAndSpeedsAtTime(double stepsize, const std::vector<D
 }
 
 // Calculates the new Jacobian J_{i,j}^k from the one in the memory by halfing the non-diagonal elements and also the weights; recalculates speed too bc of the different external stress values
-void Simulation::calcJacobianAndSpeedsFromPrev()
+// baseTime: the the time the Jacobian was in the correct state
+// newTime:  the new time point, where the new configuration should be predicted
+// oldTime:  the old time point, where the last prediction was made with the Jacobian
+void Simulation::calcJacobianAndSpeedsFromPrev(double baseTime, double newTime, double oldTime)
 {
     //////////////////////////////////////////////////////////////////
     // Calculating the Jacobian
     //////////////////////////////////////////////////////////////////
 
-    std::vector<double> new_weig(sD->dc);                                // the new weight values
-    std::vector<double> weig_fac(sD->dc);                                // for the new J_{i,j} elements
+    std::vector<double> new_weig(sD->dc);                               // the new weight values
+    std::vector<double> weig_fac(sD->dc);                               // the multiplying factor for the new J_{i,j} elements
 
     // calculates the new_w values from the old dVec values
+
+    double factor = (newTime - baseTime) / (oldTime - baseTime);        // usually, it is a factor of 1/2, if 1 large step = 2 small steps
+    char T = sD->weightFunc;
     std::transform(
         sD->dVec.begin(), sD->dVec.end(),
         new_weig.begin(),
-        [](double old_weight)
+        [factor, T](double old_weight)
         {
-            return old_weight == 0 ? 0 : old_weight / pow(2 - sqrt(old_weight), 2);
+            if (old_weight == 0)
+                return 0.;
+            else
+            {
+                double prevSum = weightInv(old_weight, T);
+                return weight(prevSum * factor, T);
+            }
+
         });
 
     // calcualtes the weight factors needed to calculate J_{i,j}^k
@@ -560,8 +599,8 @@ void Simulation::calcJacobianAndSpeedsFromPrev()
     //////////////////////////////////////////////////////////////////
     // Calculating the new speeds
     //////////////////////////////////////////////////////////////////
-    double extStress_old = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize);
-    double extStress_new = sD->externalStressProtocol->extStress(sD->simTime + sD->stepSize / 2);
+    double extStress_old = sD->externalStressProtocol->extStress(oldTime);
+    double extStress_new = sD->externalStressProtocol->extStress(newTime);
     double extStress_dif = extStress_new - extStress_old;
 
     for (unsigned int i = 0; i < sD->dc; ++i)
@@ -680,4 +719,233 @@ double Simulation::calculateStrainIncrement(const std::vector<DislwoB>& old, con
     return ret;
 }
 
+bool Simulation::interrupt() const
+{
+    if (sD->isTimeLimit && sD->simTime > sD->timeLimit)
+    {
+        std::cout << "time-limit (" << sD->timeLimit << ") has been reached, "
+            "simTime = " << sD->simTime << "\n";
+        return true;
+    }
+    if (sD->isStrainIncreaseLimit && sD->totalAccumulatedStrainIncrease > sD->totalAccumulatedStrainIncreaseLimit)
+    {
+        std::cout << "strain-increase-limit (" << sD->totalAccumulatedStrainIncreaseLimit << ") has been reached, "
+            "strain = " << sD->totalAccumulatedStrainIncrease << "\n";
+        return true;
+    }
+    if (sD->isStepCountLimit && sD->succesfulSteps > sD->stepCountLimit)
+    {
+        std::cout << "step-count-limit (" << sD->stepCountLimit << ") has been reached, "
+            "succesfulSteps = " << sD->succesfulSteps << "\n";
+        return true;
+    }
+    if (sD->countAvalanches && sD->avalancheCount > sD->avalancheTriggerLimit)
+    {
+        std::cout << "avalanche-detection-limit (" << sD->avalancheTriggerLimit << ") has been reached, "
+            "avalancheCount = " << sD->avalancheCount << "\n";
+        return true;
+    }
+
+    return false;
+}
+
 #pragma endregion
+
+#ifdef DEBUG_VERSION
+
+// prints out the selected container's x values to fname 
+template <typename T>
+void Simulation::printOut(std::string fname, const std::vector<T>& m_vector) const
+{
+    std::ofstream of(fname, std::ios_base::app);
+    if (!of)
+        std::cerr << "Cannot create or append to file " << fname << std::endl;
+    else
+    {
+        for (size_t i = 0; i < m_vector.size(); ++i)
+            of << m_vector[i] << "\n";
+        std::cout << fname << " is created for debugging." << std::endl;
+    }
+}
+
+// prints out size number of elements from the selected array's values to fname
+template <typename T>
+void Simulation::printOut(std::string fname, T* array, int size) const
+{
+    std::ofstream of(fname, std::ios_base::app);
+    if (!of)
+        std::cerr << "Cannot create or append to file " << fname << std::endl;
+    else
+    {
+        for (int i = 0; i < size; ++i)
+            of << array[i] << "\n";
+        std::cout << fname << " is created for debugging." << std::endl;
+    }
+}
+
+// prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
+void Simulation::printAll(std::string fname, unsigned int nz) const
+{
+    printOut("speed" + fname, sD->speed);
+    printOut("speed2" + fname, sD->speed2);
+    printOut("initSpeed" + fname, sD->initSpeed);
+    printOut("initSpeed2" + fname, sD->initSpeed2);
+    printOut("disl_sorted" + fname, sD->disl_sorted);
+    printOut("firstSmall_sorted" + fname, sD->firstSmall_sorted);
+    printOut("secondSmall_sorted" + fname, sD->secondSmall_sorted);
+    printOut("bigStep_sorted" + fname, sD->bigStep_sorted);
+    printOut("dVec" + fname, sD->dVec);
+    printOut("indexes" + fname, sD->indexes);
+    printOut("g" + fname, sD->g);
+    printOut("Ax" + fname, sD->Ax, nz);
+    printOut("Ai" + fname, sD->Ai, nz);
+    printOut("Ap" + fname, sD->Ap, sD->dc + 1);
+    printOut("x" + fname, sD->x, sD->dc);
+    Ax_nonSparse_to_file(fname);
+
+}
+
+// checks if all values in the container are finite
+bool Simulation::isFinite(std::vector<double> m_vector, double lb, double ub) const
+{
+    for (size_t i = 0; i < m_vector.size(); ++i)
+    {
+        if (!((lb <= m_vector[i]) && (m_vector[i] <= ub)))
+        {
+            std::cerr << "value at [" << i << "] is " << m_vector[i] << " is unexpected\n";
+            return false;
+        }
+    }
+    return true;
+}
+
+// checks if all x coordinate values in the container are finite
+bool Simulation::isFinite(std::vector<DislwoB> m_vector, double lb, double ub) const
+{
+    for (size_t i = 0; i < m_vector.size(); ++i)
+    {
+        if (!((lb <= m_vector[i].x) && (m_vector[i].x <= ub)))
+        {
+            std::cerr << "value at [" << i << "] is " << m_vector[i].x << " is unexpected\n";
+            return false;
+        }
+    }
+    return true;
+}
+
+// checks if the first nz number of elements in the array are finite
+bool Simulation::isFinite(double* m_array, size_t nz, double lb, double ub) const
+{
+    std::vector<double> m_vector(m_array, m_array + nz);
+    return isFinite(m_vector, lb, ub);
+}
+
+// checks if all the containers and arrays up to nz number of elements contain only finite values and
+// print out results to labeled filenames, label should match ^[\w,\s-]+
+bool Simulation::isAllFinite(size_t nz, std::string label) const
+{
+    if (sD->simTime < 8.433e-04)
+        return true;
+
+    bool allfinite = true;
+    if (!isFinite(sD->speed, -1E18, 1E18))
+    {
+        std::cerr << "speed can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->speed2, -1E18, 1E18))
+    {
+        std::cerr << "speed2 can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->initSpeed, -1E18, 1E18))
+    {
+        std::cerr << "initSpeed can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->initSpeed2, -1E18, 1E18))
+    {
+        std::cerr << "initSpeed2 can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->disl_sorted, -1, 1))
+    {
+        std::cerr << "disl_sorted can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->firstSmall_sorted, -1, 1))
+    {
+        std::cerr << "firstSmall_sorted can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->secondSmall_sorted, -1, 1))
+    {
+        std::cerr << "secondSmall_sorted can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->bigStep_sorted, -1, 1))
+    {
+        std::cerr << "bigStep_sorted can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->dVec, 0, 1))
+    {
+        std::cerr << "dVec can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->g, -1E18, 1E18))
+    {
+        std::cerr << "g can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->Ax, nz, -(int)(sD->dc), sD->dc))
+    {
+        std::cerr << "Ax can lead to nonfinite result\n";
+        allfinite = false;
+    }
+    if (!isFinite(sD->x, sD->dc, -1, 1))
+    {
+        std::cerr << "x can lead to nonfinite result\n";
+        allfinite = false;
+    }
+
+    if (!allfinite)
+    {
+        std::cerr
+            << "The error was found at label "
+            << label << "\t"
+            << sD->succesfulSteps << "\t"
+            << sD->failedSteps << "\t"
+            << sD->stepSize << "\t"
+            << sD->simTime << "\n"
+            << "Debugging files will be creatred."
+            << std::endl;
+
+        std::stringstream ss;
+        ss << label << "_" << sD->succesfulSteps << "_" << sD->failedSteps << ".txt";
+        printAll(ss.str(), nz);
+        std::cerr << std::endl;
+    }
+    return allfinite;
+}
+
+void Simulation::Ax_nonSparse_to_file(std::string fname) const
+{
+    std::ofstream of("Ax_nonSparse" + fname, std::ios_base::app);
+    if (!of)
+    {
+        std::cerr << "Cannot create or append to file " << fname << std::endl;
+        return;
+    }
+
+    std::vector<std::vector<double>> ret(sD->dc, std::vector<double>(sD->dc, 0));
+    for (size_t i = 0; i < sD->dc; ++i)
+    {
+        for (size_t j = 0; j < sD->dc; ++j)
+            of << getElement(i, j) << "\t";
+        of << "\n";
+    }
+}
+
+
+#endif

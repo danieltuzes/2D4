@@ -2,6 +2,17 @@
 // simulation_data.h : contains the function declaration for simulation_data.cpp, project_parser.h, simulation.h
 
 /*
+# 1.2
+* weightFunc added to store which weight function to use for implicit-explicit weights. c: as coded first, p: as in paper, m: mathematically hinted
+* initStepSize stores the initial stepSize, bc it may be needed at writeout of the required times are initStepSize * T^n
+* stepSizeBeforeWriteout: if writeout triggered to meet the requirement for simTime, the stepSize is saved to this, so after the writeout the stepSize can be great again
+* subConfigTimesType: linear or exponential writeout times. a: linear, b: exponential
+
+# 1.1
+* bool heavisideCutoff is intorduced // The weight in the Jacobian is a Heaviside step function of the distance with charasteristic value of cutoff-multiplier
+* debugging tools are moved to simulation to use getElement
+* updateCutOff doesn't modify the multiplier if heavisideCutoff
+
 # 1.0
 * currentStorageSize is introduced to save the actual size of Ax and Ai
 * increaseCurrentStorageSize is introduced to reserve storage fro Ax and Ai
@@ -43,7 +54,7 @@ The first version tracked file
 #ifndef SDDDST_CORE_SIMULATION_DATA_H
 #define SDDDST_CORE_SIMULATION_DATA_H
 
-#define VERSION_simulation_data 1.0
+#define VERSION_simulation_data 1.2
 
 #include "dislocation.h"
 #include "point_defect.h"
@@ -92,6 +103,10 @@ namespace sdddstCore {
         void readPointDefectDataFromFile(std::string pointDefectDataFilePath);
         void writePointDefectDataToFile(std::string pointDefectDataFilePath) const;
 
+        // returns the next time the dislocation configuration must be written out
+        double getNextWriteOutTime() const;
+
+
         ////////////////////////////////////
         /// Other utilities
         ////////////////////////////////////
@@ -105,36 +120,6 @@ namespace sdddstCore {
         bool is_pos_b(unsigned int ID) const;
 
 #pragma endregion
-
-#ifdef DEBUG_VERSION
-
-        // prints out the selected container to fname        
-        void printOut(std::string fname, const std::vector<double>& m_vector) const;
-
-        // prints out the selected container's x values to fname        
-        void printOut(std::string fname, const std::vector<DislwoB>& m_vector) const;
-
-        // prints out size number of elements from the selected array's values to fname        
-        void printOut(std::string fname, double* array, int size) const;
-
-        // prints out the whole container for vectors and nz number of elements from dynamically allocated arrays to file container name + fname
-        void printAll(std::string fname, unsigned int nz) const;
-
-        // checks if all values in the container are finite
-        bool isFinite(std::vector<double> m_vector, double lb, double ub);
-
-        // checks if all x coordinate values in the container are finite
-        bool isFinite(std::vector<DislwoB> disl, double lb, double ub);
-
-        // checks if the first nz number of elements in the array are finite
-        bool isFinite(double* m_array, size_t size, double lb, double ub);
-
-        // checks if all the containers and arrays up to nz number of elements contain only finite values and
-        // print out results to labeled filenames, label should match ^[\w,\s-]+
-        bool isAllFinite(size_t nz, std::string label);
-
-#endif
-
 #pragma region data fields
 
         // Valid dislocation position data -> state of the simulation at simTime; the sorted dislocations, Burger's vector is not needed
@@ -205,6 +190,9 @@ namespace sdddstCore {
         // The value of the 1/(cutoff^2)
         double onePerCutOffSqr;
 
+        // The weight in the Jacobian is a Heaviside step function of the distance with charasteristic value of cutoff-multiplier
+        bool heavisideCutoff;
+
         // the size of the dynamically allocated Ax and Ai; Ap is always dc + 1
         unsigned currentStorageSize;
 
@@ -213,6 +201,9 @@ namespace sdddstCore {
 
         // precisity relative to the closest dislocation, set from dipole-precision
         double dipole_prec;
+
+        // Weights as the function of the A_ii\nc) coded first, 1/(1+1/s)^2\np) as in paper, 1/(1+1/s)\nm) mathematical hint: (1 - s + 1/(1+s) - 2*exp(-s) ) / (1 - s - 1/(1+s) )
+        char weightFunc;
 
         // Count of the point defects in the system
         unsigned int pc;
@@ -225,6 +216,12 @@ namespace sdddstCore {
 
         // The current step size of the simulation
         double stepSize;
+
+        // initial stepSize, potentially needed at file writeout if the writout time type is b, i.e. exponential
+        double initStepSize;
+
+        // last suggested stepsize that has been overwritten at a time-triggered state writeout determined by subConfigTimes and subConfigTimesType
+        double stepSizeBeforeWriteout;
 
         // The current time in the simulation
         double simTime;
@@ -313,8 +310,14 @@ namespace sdddstCore {
         // The number of elapsed steps since the last subconfig written
         unsigned int subconfigDistanceCounter;
 
-        // subconfigs must be written out at every simTime / subConfigTimes elment of N
+        // the next requested config writeout time
+        double nextWriteOutTime;
+
+        // subconfigs must be written out at simulation times for all n pos integer (input value T) at\na) T*n \nb) initial-stepsize * T^n
         double subConfigTimes;
+
+        // subconfigs must be written out at simulation times for all n pos integer (input value a or b) at\na) T*n \nb) initial-stepsize * T^n
+        char subConfigTimesType;
 
         // What kind of stress state should be used
         StressProtocolStepType currentStressStateType;
@@ -327,7 +330,6 @@ namespace sdddstCore {
 
     private:
     };
-
 }
 
 #endif

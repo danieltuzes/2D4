@@ -1,7 +1,10 @@
 // 
 // Field.h : contains function declaration for Field.cpp, also included in AnalyticField.h
 
-/* 
+/*
+# 0.8
+xy uses exp2
+
 # 0.7
 functions xy and xy_diff_x takes additional arguments for precalculated hyperbolic and trigonometric function values, helps only if !USE_IEEE_HYPERBOLIC
 
@@ -16,7 +19,7 @@ First version tracked version of the file
 #ifndef SDDDST_CORE_FIELD_H
 #define SDDDST_CORE_FIELD_H
 
-#define VERSION_field 0.7
+#define VERSION_field 0.8
 
 #include "constants.h"
 #include <cmath>

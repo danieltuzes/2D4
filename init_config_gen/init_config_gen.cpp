@@ -1,8 +1,12 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen 2.1
+#define VERSION_init_config_gen 2.2
 /*changelog
+# 2.2
+* random number engine supports 64 bit randomness eliminating too many too close dislocations
+* too close dislocations can be eliminated
+
 # 2.1
 Static code analysis suggested to change n to int to avoid size_t (8byte) > int (4byte) concersion
 
@@ -31,7 +35,7 @@ Static code analysis suggested to change n to int to avoid size_t (8byte) > int 
 #include <algorithm>
 #include <tuple>
 #include <utility>
-
+#include <iomanip>
 
 namespace bpo = boost::program_options;
 namespace br = boost::random;
@@ -39,11 +43,35 @@ namespace br = boost::random;
 using pair = std::pair<double, double>;
 double interpolate_y(pair, pair, double);
 
+using disl = std::tuple<double, double, int>;       // a dislocation is a (double, double, int) tuple for (posx,posy,type)
+size_t closest_yID(const disl& cmp, const std::vector<disl>& list)  // the dislocation that is the closest to the selected cmp one
+{
+    double smallest = INFINITY;
+    size_t ID = list.size() + 1;
+    for (size_t i = 0; i < list.size(); ++i)
+    {
+        double tmp = std::get<1>(list[i]) - std::get<1>(cmp);
+
+        while (tmp >= 0.5)
+            tmp -= 1;
+        while (tmp < -0.5)
+            tmp += 1;
+
+        if (fabs(tmp) < smallest)
+        {
+            smallest = fabs(tmp);
+            ID = i;
+        }
+    }
+    return ID;
+}
+
 #pragma endregion
 
 int main(int argc, char** argv)
 {
 #pragma region reading in variables
+
     bpo::options_description requiredOptions("Required options"); // must be set from command line or file
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
 
@@ -53,6 +81,8 @@ int main(int argc, char** argv)
     optionalOptions.add_options()
         ("seed-start,S", bpo::value<int>()->default_value(1000), "An integer used as an initial seed value for the random number generator.")
         ("seed-end,E", bpo::value<int>(), "An integer used as the last seed value for the random number generator, seed-end > seed_start must hold. If set, seed-end - seed-start number of initial configurations will be created.")
+        ("shortest-distance,l", bpo::value<double>()->default_value(0), "The allowed smallest distance in y. If the distance is smaller, either a new position is generated or the configuration will be marked. If used, suggested value is 8e-9.")
+        ("mark,m", bpo::value<std::string>(), "If set, configuration where shortest-distance criterion doesn't meet will be marked with the given argument in the file name. Otherwise, the renitent newer dislocation's y value will be regenerated.")
         ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the probability density function will be\n1 + A * sin(x * n * 2 pi) with A = pattern-strength for rho_+ and\n1 - A * sin(x * w * 2 pi) for rho_-. A must be in [-1:1].")
         ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5).")
         ("pattern-type,T", bpo::value<std::string>()->default_value("s"), "The pattern type in the density distribution.")
@@ -145,7 +175,7 @@ int main(int argc, char** argv)
 
 #pragma endregion
 
-#pragma region output path, filenames and sorting
+#pragma region output path, filenames, sorting and restriction
 
     std::string of(vm["output-fnameprefix"].as<std::string>()); // the output filename prefix (potentially inculding foldername)
     std::cout << "output-fnameprefix =\t" << of << std::endl;
@@ -168,10 +198,12 @@ int main(int argc, char** argv)
 
     std::cout << "sorted =\t" << sorted << std::endl;
 
-    bool bare = false; // shall the output name contain the number of dislocations?
-    if (vm.count("bare") != 0)
-        bare = true;
+    bool bare = vm.count("bare"); // shall the output name contain the number of dislocations?
     std::cout << "bare=\t" << bare << std::endl;
+
+    bool mark = vm.count("mark");   // to mark the output file or to regenerate the problematic dislocation
+
+    double shortestDist = vm["shortest-distance"].as<double>();// The allowed smallest distance in y. If the distance is smaller, either a new position is generated or the configuration will be marked.
 
 #pragma endregion
 
@@ -203,24 +235,12 @@ int main(int argc, char** argv)
 #pragma region generate and write out configuration
     for (int seed_val = seed_start; seed_val < seed_end; ++seed_val) // generate configurations with seeds in the range of [seed-start; seed-end]; seed-end has been set at label: seed-end set
     {
-        std::string ofname = of + std::to_string(seed_val);
-        if (!bare)
-            ofname += "_" + std::to_string(N);
-        ofname += ".dconf"; // output filename; the file is inside a folder
-
-        std::ofstream ofile(ofname); // the filestream
-        if (!ofile) // evaluates to false if file cannot be opened
-        {
-            std::cerr << "Cannot write " << ofname << ". Program terminates." << std::endl;
-            exit(-1);
-        }
         std::cout << "Generating configuration with seed value " << seed_val << "." << std::endl;
-        ofile.precision(std::numeric_limits<double>::max_digits10); // print out every digits
 
-        br::mt19937 engine(seed_val); // Mersenne twister is a good and expensive random number generator
-        br::uniform_real_distribution<> distr(-0.5, 0.5); // uniform distribution on [-0.5; 0.5)
-        using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
-        std::vector<disl> dislocs; // container of the N number of dislocations
+        br::mt19937_64 engine(seed_val);                    // Mersenne twister is a good and expensive random number generator
+        br::uniform_real_distribution<> distr(-0.5, 0.5);   // uniform distribution on [-0.5; 0.5)
+        std::vector<disl> dislocs;                          // container of the N number of dislocations
+        bool marked = false;                                // tells if there is (was) a dislocation with smaller y distance than shortest-distance
 
         //std::ofstream deb_conf_ofile("debug_conf.txt");
         for (int n = 0; n < N; ++n) // generate the N number of dislocations
@@ -240,13 +260,67 @@ int main(int argc, char** argv)
                 //deb_conf_ofile << x << "\t" << lb->first << "\t" << lb->second << "\t" << ub->first << "\t" << ub->second << "\t" << interpolate_y(*lb, *ub, x) << "\n";
                 x = interpolate_y(*lb, *ub, x);
             }
-            dislocs.push_back(disl(x, distr(engine), (n % 2) * 2 - 1)); // x, y coordinates, and the Burger's vector
+            double y = distr(engine);       // the suggested y value for the dislocation
+            int burgersv = (n % 2) * 2 - 1; // the Burgers vector of the dislocation
+            
+            // generate a proper y value
+            for (int seed2 = seed_end + 1; shortestDist != 0 && n > 0; seed2++)
+            {
+                if (seed2 != seed_end + 1)  // if this is not the first time here
+                {
+                    br::mt19937_64 engine2(seed2);
+                    y = distr(engine2);     // y value must be regenerated
+                }
+                disl tmp(x, y, burgersv);    // the nominated new dislocation
+                size_t closestYID = closest_yID(tmp, dislocs);
+                disl closestY = dislocs[closestYID];
+
+                double ydist = std::get<1>(closestY) - y;
+                while (ydist >= 0.5)
+                    ydist -= 1;
+                while (ydist < -0.5)
+                    ydist += 1;
+                if (fabs(ydist) < shortestDist)
+                {
+                    std::cout << std::setprecision(25)
+                        << "Dislocations were closer than accepted for ID = " << closestYID << " and " << n << ". The positions and types are:\n"
+                        << "\t(" << std::get<0>(closestY) << "), (" << std::get<1>(closestY) << ")\t" << std::get<2>(closestY) << "\n"
+                        << "\t(" << x << "), (" << y << ")" << "\t" << burgersv << "\n"
+                        << "dist = " << ydist  << "\n"
+                        << "Limit was " << shortestDist << "\n";
+                    marked = true;
+                    if (!mark)
+                    {
+                        std::cout << "This y value will be regenerated from a temporary random engine.\n";
+                        continue;
+                    }
+                    else
+                        std::cout << "This simulation will be marked with a * in the output filename.\n";
+                }
+                break;
+            }
+            dislocs.push_back(disl(x, y, burgersv)); // add the dislocation to the list
         }
 
         if (sorted == 'y') // first the negative, in increasing y value than positive with increasing y value
             std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<1>(a) + std::get<2>(a)) > (std::get<1>(b) + std::get<2>(b)); });
         if (sorted == 'x') // first the negative, in increasing x value than positive with increasing x value
             std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<0>(a) + std::get<2>(a)) > (std::get<0>(b) + std::get<2>(b)); });
+
+        std::string ofname = of + std::to_string(seed_val);
+        if (!bare)
+            ofname += "_" + std::to_string(N);
+        if (mark && marked)
+            ofname += vm["mark"].as<std::string>();
+        ofname += ".dconf"; // output filename; the file is inside a folder
+
+        std::ofstream ofile(ofname); // the filestream
+        if (!ofile) // evaluates to false if file cannot be opened
+        {
+            std::cerr << "Cannot write " << ofname << ". Program terminates." << std::endl;
+            exit(-1);
+        }
+        ofile.precision(std::numeric_limits<double>::max_digits10); // print out every digits
 
         for_each(dislocs.begin(), dislocs.end(), [&ofile](const disl& a) {ofile << std::get<0>(a) << "\t" << std::get<1>(a) << "\t" << std::get<2>(a) << "\n"; }); // print out to ofile
     }

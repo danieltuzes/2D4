@@ -46,6 +46,8 @@ By keeping a fair `half-width` × `sub-sampling` × `resolution` = 4 value and m
 
 ### Wigner-Seitz positive and negative
 
+This method is an implementation of the Dirichlet-Voronoi diagrams.
+
 The positive and negative dislocations form different sets when their density is being evaluated. In `resolution` × `resolution` number of points the space is analyzed and the dislocation is identified to which that point the closest is. Grouping the points together which are closest to the same dislocation defines a cell, the so-called (discrete) Wigner-Seitz cell of the dislocation. The area of the cell is proportional to the number of points in the cell. The density is then 1 / area.
 
 With the *positive and negative* method, the Wigner-Seitz partitioning is applied only on the set of positive dislocations first, and then on the negative dislocations giving the dislocation density for positive and negative dislocations. The total and signed density are calculated as the sum and difference of the two. Note that ρ<sub>+</sub> and ρ<sub>-</sub> can never be 0.
@@ -59,6 +61,8 @@ The total and signed dislocation density is calculated and does not use Wigner-S
 These maps can be averaged on a mesh with 8×8 number of cells to get a similar picture like before. The most important feature of this method is that not only empty zooming happens after reaching the average dislocation spacing with the resoulution, but useful information can be obtained until the area of the smallest cell is properly resolved. This means one can get the most information of their simulation and to show any pattern formation the least number of simulations are required.
 
 ### Wigner-Seitz total and signed
+This method is another implementation of the Dirichlet-Voronoi diagrams.
+
 In contrast to the *positive and negative* case, here, densities are calculated using all the dislocations at once. That means that Wigner-Seitz cells are identified first, and the total dislocation density of the cell is calculated as 1 / area, the signed dislocation density is dislocation sign / area. ρ<sub>+</sub> is either equal to ρ<sub>t</sub> or 0 and same applies to ρ<sub>-</sub>. Furthermore, |κ| = ρ holds (pointwise) and none of them can be 0.
 
 In the picture below, the ρ<sub>t</sub> and κ are presented. These are the primary quantities calculated using the Wiger-Seitz partitioning.
