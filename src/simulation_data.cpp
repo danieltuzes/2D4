@@ -179,7 +179,7 @@ void SimulationData::writeDislocationDataToFile(std::string dislocationDataFileP
     std::ofstream ofile(dislocationDataFilePath);
     if (!ofile)
     {
-        std::cerr << "Warning: the program was unable to create the file " << dislocationDataFilePath << ".\n";
+        std::cerr << "Warning: the program was unable to create the file " << dislocationDataFilePath << std::endl;
         return;
     }
 

@@ -97,7 +97,7 @@ void Simulation::run()
             calcJacobianAndSpeedsAtTimes(sD->stepSize, sD->disl_sorted, sD->initSpeed, sD->speed, t_0__, t_1__);
 
             for (unsigned int i = 0; i < sD->dc; i++)
-                sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated
+                sD->g[i] = -sD->stepSize * ((1 + sD->dVec[i]) * sD->speed[i] + (1 - sD->dVec[i]) * sD->initSpeed[i]) / 2;  // initSpeed has been previously already calculated; btw, really? itt looks like speed and initSpeed differs only bc of the time dependence of the external force value
             solveEQSys("stage I, 1.");
 
             for (unsigned int i = 0; i < sD->dc; i++)
@@ -245,6 +245,7 @@ void Simulation::run()
         else
             sD->failedSteps++;
 
+
         sD->stepSize = pH->getNewStepSize(sD->stepSize);
 
         // if stepSize was limited last time, the proposed stepSize has been saved to stepSizeBeforeWriteout, so there is no need to start with a very small stepSize
@@ -256,11 +257,11 @@ void Simulation::run()
             sD->stepSizeBeforeWriteout = 0;     // otherwise, forget about the suggestion
         }
 
-        double remainder = sD->nextWriteOutTime - sD->simTime;
+        double remainder = nextafter(sD->nextWriteOutTime,INFINITY) - sD->simTime;
         if (remainder < sD->stepSize)
         {
             sD->stepSizeBeforeWriteout = sD->stepSize;      // after the write out, the next time step will be at least stepSizeBeforeWriteout, because stepSize can be decreased a lot in the next line
-            sD->stepSize = nextafter(remainder, INFINITY);  // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output
+            sD->stepSize = remainder;                       // the new stepSize can be unnecessarily small for the precision, but is a requirement for further analysis of the output
         }
         
         pH->reset();

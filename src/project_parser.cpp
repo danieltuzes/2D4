@@ -243,6 +243,12 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
         sD->subConfigDelay = vm["sub-configuration-delay"].as<unsigned int>();
         sD->subConfigTimes = vm["sub-config-times"].as<double>();
         sD->subConfigTimesType = vm["sub-config-times-type"].as<char>();
+        if (sD->subConfigTimesType == 'b' && sD->subConfigTimes < 1)
+        {
+            std::cerr << "Error: T<1 but subconfigs are asked to be printed out at initial-stepsize * T^n. Please use T>1 or `sub-config-times-type -a` to print out subconfigs at times T*n.\nProgram terminates." << std::endl;
+            exit(-2);
+        }
+
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
 
         sD->nextWriteOutTime = sD->getNextWriteOutTime();

@@ -4,6 +4,7 @@
 /*
 # 2.0
 Bugfix: if first writout simulation time was too small, an error occured (i guess this was the problem)
+Bugfix: remainder = nextafter(sD->nextWriteOutTime,INFINITY) - sD->simTime; to avoid the 3*1/3 != 1 float-precision phenomenon - version number updated only here
 
 # 1.9
 Bugfix: if the first step was unsuccessful and logarithmic config writeout was requested, the program stepped into a state with 0 stepSize
@@ -104,7 +105,7 @@ First version tracked source
 #ifndef SDDDST_CORE_SIMULATION_H
 #define SDDDST_CORE_SIMULATION_H
 
-#define VERSION_simulation 1.9
+#define VERSION_simulation 2.0
 
 #include "dislocation.h"
 #include "precision_handler.h"
