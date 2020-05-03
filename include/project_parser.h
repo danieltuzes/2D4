@@ -2,9 +2,16 @@
 // project_parser.h : contains the function declarations for project_parser.cpp
 
 /*
+# 1.2
+* sub-config-times has no default value anymore
+* sub-config-times-type is a by def, linear printout
+* amplitude-rate implemented
+* logfile-overwrite added: no more accidental overwrites if log file exists
+* doesn't check T value if not set
+
 # 1.1
-date and time always exist now, sometimes without the required values, and is printed out
-Stops and gives error if (sD->subConfigTimesType == 'b' && sD->subConfigTimes < 1)
+* date and time always exist now, sometimes without the required values, and is printed out
+* Stops and gives error if (sD->subConfigTimesType == 'b' && sD->subConfigTimes < 1)
 
 # 1.0
 * sub-config-times-type is added
@@ -47,7 +54,7 @@ Ther first version tracked file
 #ifndef SDDDST_CORE_PROJECT_PARSER_H
 #define SDDDST_CORE_PROJECT_PARSER_H
 
-#define VERSION_project_parser 1.1
+#define VERSION_project_parser 1.2
 
 // define macros for version tracking
 #define STR(x) #x

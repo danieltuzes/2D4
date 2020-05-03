@@ -32,10 +32,11 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
 
         IOOpt.add_options() // input - output paths
             ("logfile-path,L", bpo::value<std::string>(), "path for the plain text log file (it will be overwritten if it already exists)")
+            ("logfile-overwrite,W", "If set, program overwrites previous logfile, otherwise, stops, if exists.")
             ("save-sub-configurations,o", bpo::value<std::string>(), "saves the current configuration after every N successful step to the given destination")
             ("sub-configuration-delay,N", bpo::value<unsigned int>()->default_value(5), "number of successful steps between the sub configurations written out")
-            ("sub-config-times,T", bpo::value<double>()->default_value(0), "subconfigs must be written out at simulation times for all n pos integer (input value T) at\na) T*n \nb) initial-stepsize * T^n")
-            ("sub-config-times-type,b", bpo::value<char>()->default_value('b'), "subconfigs must be written out at simulation times for all n pos integer (input value a or b) at\na) T*n \nb) initial-stepsize * T^n")
+            ("sub-config-times,T", bpo::value<double>(), "subconfigs must be written out at simulation times for all n pos integer (input value T) at\na) T*n \nb) initial-stepsize * T^n")
+            ("sub-config-times-type,b", bpo::value<char>()->default_value('a'), "subconfigs must be written out at simulation times for all n pos integer (input value a or b) at\na) T*n \nb) initial-stepsize * T^n")
             ("sub-configuration-delay-during-avalanche,n", bpo::value<unsigned int>()->default_value(1), "number of successful steps between the sub configurations written out during avalanche if avalanche detection is on")
             ("point-defect-configuration", bpo::value<std::string>(), "plain text file path containing point defect data in (x y) pairs");
 
@@ -63,6 +64,7 @@ sdddstCore::ProjectParser::ProjectParser(int argc, char** argv) :
             ("const-external-stress,s", bpo::value<double>()->default_value(0), "the constant in the external stress during the simulation")
             ("fixed-rate-external-stress,r", bpo::value<double>(), "the slope of external stress - time function (disabled by default)")
             ("cyclic-external-stress,i", bpo::value<double>(), "the time period of the cyclic load")
+            ("amplitude-rate,A", bpo::value<double>(), "the time rate of the time period; if not set, time period will be constant")
             ("spring-constant", bpo::value<double>(), "simple model of an experiment where a spring is used, the arg should be the spring constant (it is valid only with a fixed-rate-external-stress)");
 
         optionalOpt.add(IOOpt).add(POpt).add(LOpt).add(AOpt).add(SOpt);
@@ -216,6 +218,15 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
     if (vm.count("logfile-path"))
     {
         std::string oLogFname = vm["logfile-path"].as<std::string>();
+        if (!vm.count("logfile-overwrite"))
+        {
+            std::ifstream lfi(oLogFname);
+            if (lfi)
+            {
+                std::cerr << "Error: " << oLogFname << " exists. Program terminates.\n";
+                exit(-1);
+            }
+        }
         sD->standardOutputLog.open(oLogFname);
         if (!sD->standardOutputLog)
         {
@@ -242,15 +253,25 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
         sD->isSaveSubConfigs = true;
         sD->subConfigPath = vm["save-sub-configurations"].as<std::string>();
         sD->subConfigDelay = vm["sub-configuration-delay"].as<unsigned int>();
-        sD->subConfigTimes = vm["sub-config-times"].as<double>();
         sD->subConfigTimesType = vm["sub-config-times-type"].as<char>();
-        if (sD->subConfigTimesType == 'b' && sD->subConfigTimes < 1)
+        if (vm.count("sub-config-times"))
         {
-            std::cerr << "Error: T<1 but subconfigs are asked to be printed out at initial-stepsize * T^n. Please use T>1 or `sub-config-times-type -a` to print out subconfigs at times T*n.\nProgram terminates." << std::endl;
-            exit(-2);
+            sD->subConfigTimes = vm["sub-config-times"].as<double>();
+            if (sD->subConfigTimesType == 'a' && sD->subConfigTimes <= 0)
+            {
+                std::cerr << "Error: T<=0 but subconfigs are asked to be printed out at T*n. Please use T>0 or `sub-config-times-type -b` with T>1 to print out subconfigs at initial-stepsize * T^n.\nProgram terminates." << std::endl;
+                exit(-2);
+            }
+            if (sD->subConfigTimesType == 'b' && sD->subConfigTimes < 1)
+            {
+                std::cerr << "Error: T<1 but subconfigs are asked to be printed out at initial-stepsize * T^n. Please use T>1 or `sub-config-times-type -a` with T>0 to print out subconfigs at T*n.\nProgram terminates." << std::endl;
+                exit(-2);
+            }
         }
+        else
+            sD->subConfigTimes = 0;
+        
         sD->subConfigDelayDuringAvalanche = vm["sub-configuration-delay-during-avalanche"].as<unsigned int>();
-
         sD->nextWriteOutTime = sD->getNextWriteOutTime();
     }
 
@@ -264,7 +285,32 @@ void sdddstCore::ProjectParser::processInput(bpo::variables_map& vm)
     }
 
     double ext_stress = vm["const-external-stress"].as<double>();
-    if (vm.count("cyclic-external-stress"))
+    if (vm.count("amplitude-rate"))
+    {
+        double ar = vm["amplitude-rate"].as<double>();  // apmlitude-rate
+        if (!vm.count("cyclic-external-stress"))
+        {
+            std::cerr << "Error: if apmlitude-rate is set then cyclic-external-stress must be also set. Program terminates.\n";
+            exit(-1);
+        }
+        else
+        {
+            double ces = vm["cyclic-external-stress"].as<double>();  // cyclic-external-stress
+            if (vm.count("fixed-rate-external-stress"))
+            {
+                double fres = vm["fixed-rate-external-stress"].as<double>();  // fixed-rate-external-stress
+
+                sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new IncreasingCyclicLoadProtocol(ext_stress, fres, ces, ar));
+
+            }
+            else
+            {
+                std::cerr << "Error: if cyclic-external-stress is set then fixed-rate-external-stress must be also set. Program terminates.\n";
+                exit(-1);
+            }
+        }
+    }
+    else if (vm.count("cyclic-external-stress"))
     {
         if (vm.count("fixed-rate-external-stress"))
             sD->externalStressProtocol = std::unique_ptr<StressProtocol>(new CyclicLoadProtocol(ext_stress, vm["fixed-rate-external-stress"].as<double>(), vm["cyclic-external-stress"].as<double>()));

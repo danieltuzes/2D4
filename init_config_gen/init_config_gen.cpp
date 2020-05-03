@@ -1,8 +1,11 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen 2.2
+#define VERSION_init_config_gen 2.3
 /*changelog
+# 2.3
+parameter bare and gcc warning are eliminated
+
 # 2.2
 * random number engine supports 64 bit randomness eliminating too many too close dislocations
 * too close dislocations can be eliminated
@@ -88,7 +91,6 @@ int main(int argc, char** argv)
         ("pattern-type,T", bpo::value<std::string>()->default_value("s"), "The pattern type in the density distribution.")
         ("sorted,s", bpo::value<std::string>()->default_value("y"), "Defines the order of the dislocations in the output file.\n   * x: decreasing Burger's vector, and  decreasing x coordinate\n   * y:  decreasing Burger's vector, and  decreasing y coordinate\n   * u: sign is alternating and x and y coordinates are uncorrelated.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "In which folder should the initial conditions be stored. Symbol ./ means here.")
-        ("bare,B", "If set, filenames will not contain the value of the parameter N.")
         ;
 
     bpo::options_description options; // the superior container of the options
@@ -198,9 +200,6 @@ int main(int argc, char** argv)
 
     std::cout << "sorted =\t" << sorted << std::endl;
 
-    bool bare = vm.count("bare"); // shall the output name contain the number of dislocations?
-    std::cout << "bare=\t" << bare << std::endl;
-
     bool mark = vm.count("mark");   // to mark the output file or to regenerate the problematic dislocation
 
     double shortestDist = vm["shortest-distance"].as<double>();// The allowed smallest distance in y. If the distance is smaller, either a new position is generated or the configuration will be marked.
@@ -243,7 +242,7 @@ int main(int argc, char** argv)
         bool marked = false;                                // tells if there is (was) a dislocation with smaller y distance than shortest-distance
 
         //std::ofstream deb_conf_ofile("debug_conf.txt");
-        for (int n = 0; n < N; ++n) // generate the N number of dislocations
+        for (size_t n = 0; n < N; ++n) // generate the N number of dislocations
         {
             double x = distr(engine);
             if (A != 0)
@@ -295,7 +294,7 @@ int main(int argc, char** argv)
                         continue;
                     }
                     else
-                        std::cout << "This simulation will be marked with a * in the output filename.\n";
+                        std::cout << "This simulation will be marked with a " << vm["mark"].as<std::string>() << " in the output filename.\n";
                 }
                 break;
             }
@@ -308,8 +307,6 @@ int main(int argc, char** argv)
             std::sort(dislocs.begin(), dislocs.end(), [](const disl& a, const disl& b) {return (std::get<0>(a) + std::get<2>(a)) > (std::get<0>(b) + std::get<2>(b)); });
 
         std::string ofname = of + std::to_string(seed_val);
-        if (!bare)
-            ofname += "_" + std::to_string(N);
         if (mark && marked)
             ofname += vm["mark"].as<std::string>();
         ofname += ".dconf"; // output filename; the file is inside a folder
