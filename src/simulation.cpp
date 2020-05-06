@@ -64,7 +64,9 @@ void Simulation::run()
             "vSquare(" << 12 << ")\t"
             "energy(" << 13 << ")\t"
             "wallTimeElapsed(" << 14 << ")\t"
-            "stepSize(" << 15 << ")\t" << std::endl;
+            "stepSize(" << 15 << ")\t" << 
+            "sumAbsDispl" << 16 << std::endl;
+
         sD->standardOutputLog <<
             sD->simTime << "\t" <<
             sD->succesfulSteps << "\t" <<
@@ -80,7 +82,8 @@ void Simulation::run()
             vsquare << "\t" <<
             energy << "\t" <<
             0 << "\t" <<
-            sD->stepSize << std::endl;
+            sD->stepSize << "\t" <<
+            0 << std::endl;
 
     }
 #pragma endregion
@@ -170,9 +173,7 @@ void Simulation::run()
                 sD->totalAccumulatedStrainIncrease += calculateStrainIncrement(sD->firstSmall_sorted, sD->secondSmall_sorted);
             }
 
-            sD->disl_sorted.swap(sD->secondSmall_sorted);
-            for (auto& disl : sD->disl_sorted)
-                normalize(disl.x);
+            sD->disl_sorted.swap(sD->secondSmall_sorted); // normalize eliminated
 
             double sumAvgSp = std::accumulate(sD->initSpeed2.begin(), sD->initSpeed2.end(), 0., [](double a, double b) {return a + fabs(b); }) / sD->dc; // for logfile and cutoff modification
 
@@ -180,6 +181,10 @@ void Simulation::run()
             {
                 double vsquare_end = absvalsq(sD->speed2);  // best approximation for speeds at the end of the 2nd small step
                 energy += (absvalsq(sD->initSpeed) + 2 * absvalsq(sD->initSpeed2) + vsquare_end) * sD->stepSize / 4;
+                
+                double sumAbsDispl = 0; // the absolute value of the displacement, summed up
+                for (size_t i = 0; i < sD->dc; ++i)
+                    sumAbsDispl += abs(sD->disl_sorted[i].x - sD->secondSmall_sorted[i].x);
 
                 sD->standardOutputLog << sD->simTime << "\t"
                     << sD->succesfulSteps << "\t"
@@ -206,7 +211,8 @@ void Simulation::run()
                 sD->standardOutputLog << vsquare_end << "\t"
                     << energy << "\t"
                     << get_wall_time() - startTime << "\t"
-                    << sD->stepSize << std::endl;
+                    << sD->stepSize << "\t"
+                    << sumAbsDispl << std::endl;
 
 
                 lastLogTime = get_wall_time();

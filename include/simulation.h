@@ -2,6 +2,10 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 2.1
+* sumAbsDispl is introduced to check if there is any difference between two small and one large step
+* normalization of sD->disl_sorted is removed, fingers crossed!
+
 # 2.0
 Bugfix: if first writout simulation time was too small, an error occured (i guess this was the problem)
 Bugfix: remainder = nextafter(sD->nextWriteOutTime,INFINITY) - sD->simTime; to avoid the 3*1/3 != 1 float-precision phenomenon - version number updated only here
