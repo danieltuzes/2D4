@@ -2,6 +2,10 @@
 // simulation.h : contains the function declarations for simulation.cpp
 
 /*
+# 2.2
+* abs was used instead of fabs, gcc prototype: int abs(int);
+* sumAbsDispl header was badly printed
+
 # 2.1
 * sumAbsDispl is introduced to check if there is any difference between two small and one large step
 * normalization of sD->disl_sorted is removed, fingers crossed!

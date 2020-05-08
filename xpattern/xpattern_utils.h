@@ -3,8 +3,13 @@
 
 #pragma once
 
-#define VERSION_xpattern_utils 1.1
+#define VERSION_xpattern_utils 1.2
 /* changelog
+# 1.2
+* normalize is introduced
+* disl reading in normalizes x coordinate
+* dist uses normalie
+
 # 1.1
 * new sandbox methods to test analytical 1D Fourier transformation algorithm to test how well a Dirac-delta sum can be transformed
 * new: c2r_map is implemented so that complex maps can be printed out for gnuplot
@@ -35,6 +40,9 @@
 #pragma endregion
 
 namespace bpo = boost::program_options;
+
+// transfer a coordinate or distance into the range of [-0.5; 1.5]
+void normalize(double& n);
 
 // a dislocation is a (double, double, int) tuple for (posx,posy,type)
 using disl = std::tuple<double, double, int>;

@@ -72,6 +72,16 @@ First release
 namespace bpo = boost::program_options;
 using disl = std::tuple<double, double, int>; // a dislocation is a (double, double, int) tuple for (posx,posy,type)
 
+// transform the difference into the range [-0.5:0.5)
+void normalize(double& n)
+{
+    while (n < -0.5)
+        n += 1;
+
+    while (n >= 0.5)
+        n -= 1;
+}
+
 // evaluate ifname and return a vector<string> with one or more filenames
 std::vector<std::string> processInputFile(std::string ifname)
 {
@@ -143,7 +153,7 @@ bool readInDislocs(std::string ifname, std::vector<disl>& dislocs)
             std::cerr << "Error in " << ifname << ". Burger's vector supposed to be an integer, -1 or 1, but value " << b << " is found in file." << std::endl;
             return false;
         }
-
+        normalize(x);
         dislocs.emplace_back(x, y, static_cast<int>(b));
         sum_b += b;
     }
@@ -155,16 +165,6 @@ bool readInDislocs(std::string ifname, std::vector<disl>& dislocs)
     }
 
     return true;
-}
-
-// transform the difference into the range [-0.5:0.5)
-void normalize(double& n)
-{
-    while (n < -0.5)
-        n += 1;
-
-    while (n >= 0.5)
-        n -= 1;
 }
 
 double dist(const disl& a, const disl& b)

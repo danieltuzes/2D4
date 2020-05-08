@@ -65,7 +65,7 @@ void Simulation::run()
             "energy(" << 13 << ")\t"
             "wallTimeElapsed(" << 14 << ")\t"
             "stepSize(" << 15 << ")\t" << 
-            "sumAbsDispl" << 16 << std::endl;
+            "sumAbsDispl(" << 16 << ")" << std::endl;
 
         sD->standardOutputLog <<
             sD->simTime << "\t" <<
@@ -184,7 +184,7 @@ void Simulation::run()
                 
                 double sumAbsDispl = 0; // the absolute value of the displacement, summed up
                 for (size_t i = 0; i < sD->dc; ++i)
-                    sumAbsDispl += abs(sD->disl_sorted[i].x - sD->secondSmall_sorted[i].x);
+                    sumAbsDispl += fabs(sD->disl_sorted[i].x - sD->secondSmall_sorted[i].x);
 
                 sD->standardOutputLog << sD->simTime << "\t"
                     << sD->succesfulSteps << "\t"

@@ -24,6 +24,7 @@ std::istream& operator >> (std::istream& in, disl& d)
         in >> posx;
     else
         return in;
+    normalize(posx);
 
     if (in)
         in >> posy;
@@ -47,11 +48,20 @@ std::ostream& operator << (std::ostream& o, const disl& d)
     return o;
 }
 
+void normalize(double& n)
+{
+    while (n < -0.5) // bad predictions can lead to values like n=-10'000 or so and using hyperbolic functions on them is problematic
+        n += 1;
+
+    while (n >= 0.5) // in rare cases, if is not enough, and in most cases, this is faster than fprem1: https://stackoverflow.com/questions/58803438/best-way-calculating-remainder-on-floating-points
+        n -= 1;
+}
+
 double dist(double coord1, double coord2)
 {
-    double diff = std::abs(coord1 - coord2); // distance wo periodic bc
-    double diff_a = 1 - diff; // alternative distance
-    return diff < diff_a ? diff : diff_a;
+    double diff = coord2 - coord1; // distance wo periodic bc
+    normalize(diff);
+    return abs(diff);
 }
 
 double distsq(const pair& a, const pair& b)

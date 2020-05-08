@@ -16,6 +16,7 @@ odcfname(maptype) = sprintf("density_%s.tmp",maptype)
 ocfname(maptype) = sprintf("contour_%s.tmp",maptype)
 opfname(maptype,methode) = ifname(maptype,methode) . ".png"
 
+normalize(x) = x > 0.5 ? normalize(x-1) : x < -0.5 ? normalize(x+1) : x
 
 do for [methode in methodes] {
 # egy kis statisztika a felbontás, a diszlokációszám és a helyes κ térkép cbrange megállapításához
@@ -95,11 +96,11 @@ set palette defined ( 0 0 0 0, 1 1 1 1 ) negative
 
 if (print_contour && methode eq "wsts") {
 print "contour"
-p [-0.5:0.5][-0.5:0.5] odcfname("rho_t") w image, ocfname("rho_t") w l lt -1 lw 1, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
+p [-0.5:0.5][-0.5:0.5] odcfname("rho_t") w image, ocfname("rho_t") w l lt -1 lw 1, ifn_pf u (normalize($1)):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
 }
 else {
 print "nocontour"
-p [-0.5:0.5][-0.5:0.5] odcfname("rho_t") w image, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
+p [-0.5:0.5][-0.5:0.5] odcfname("rho_t") w image, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u (normalize($1)):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
 }
 print "total (ρₜ) done"
 
@@ -109,11 +110,11 @@ load "diverging_bent_extra_map.pal"
 set cbrange [-cb_kappa:cb_kappa]
 if (print_contour && methode eq "wsts") {
 print "contour"
-p [-0.5:0.5][-0.5:0.5] odcfname("kappa") w image, ocfname("kappa") w l lt -1 lw 1, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
+p [-0.5:0.5][-0.5:0.5] odcfname("kappa") w image, ocfname("kappa") w l lt -1 lw 1, ifn_pf u (normalize($1)):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u (normalize($1)):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
 }
 else {
 print "nocontour"
-p [-0.5:0.5][-0.5:0.5] odcfname("kappa") w image, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
+p [-0.5:0.5][-0.5:0.5] odcfname("kappa") w image, ifn_pf u (normalize($1)):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e', "" u (normalize($1)):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
 }
 unset multiplot
 
@@ -127,11 +128,11 @@ set title "positive (ρ₊)\nInput filename: " . ifname("rho_p",methode) noenhan
 set cbrange [-cb_rho_pn:cb_rho_pn]
 if (print_contour && (methode eq "wsts" || methode eq "wspn")) {
 print "contour"
-p [-0.5:0.5][-0.5:0.5] odcfname("rho_p") w image, ocfname("rho_p") w l lt -1 lw 1, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e'
+p [-0.5:0.5][-0.5:0.5] odcfname("rho_p") w image, ocfname("rho_p") w l lt -1 lw 1, ifn_pf u (normalize($1)):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e'
 }
 else {
 print "nocontour"
-p [-0.5:0.5][-0.5:0.5] odcfname("rho_p") w image, ifn_pf u ($1):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e'
+p [-0.5:0.5][-0.5:0.5] odcfname("rho_p") w image, ifn_pf u (normalize($1)):($3>0.0?$2:1/0) with points pt "┻" tc rgb '#c1000e'
 }
 print "positive (ρ₊) done"
 
@@ -139,11 +140,11 @@ set title "negative (ρ₋)\nInput filename: " . ifname("rho_n",methode) noenhan
 set palette negative
 if (print_contour && (methode eq "wsts" || methode eq "wspn")) {
 print "contour"
-p [-0.5:0.5][-0.5:0.5] odcfname("rho_n") w image, ocfname("rho_n") w l lt -1 lw 1, ifn_pf u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
+p [-0.5:0.5][-0.5:0.5] odcfname("rho_n") w image, ocfname("rho_n") w l lt -1 lw 1, ifn_pf u (normalize($1)):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
 }
 else {
 print "nocontour"
-p [-0.5:0.5][-0.5:0.5] odcfname("rho_n") w image, ifn_pf u ($1):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
+p [-0.5:0.5][-0.5:0.5] odcfname("rho_n") w image, ifn_pf u (normalize($1)):($3<0.0?$2:1/0) with points pt "┳" tc rgb '#005893'
 }
 unset multiplot
 }

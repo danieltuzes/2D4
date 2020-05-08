@@ -35,6 +35,7 @@ int main(int argc, char** argv)
         ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
         ("create-maps", "If set, the program will create the 2D density maps for rho_t and kappa.")
+        // ("create-k-maps", "If set, the program will create the 2D Fourier maps for non df methods too.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "With what output filename prefix should the initial conditions be stored. Symbol ./ or empty string means here.")
         ("debug-level,d", bpo::value<int>()->default_value(0), "Debugging information to show.")
         ;
@@ -201,7 +202,7 @@ int main(int argc, char** argv)
 #pragma endregion
 
 #pragma region define vectors F_absValSqs
-    std::vector<std::vector<double>> F_absValSqs; // the abs square of the different Fourier-transformed data; rho_t, kappa, rho_p, rho_n
+    std::vector<std::vector<double>> F_avAbsValSqs; // the abs square of the different Fourier-transformed data averaged through y; rho_t, kappa, rho_p, rho_n
     std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };  // rho_t, kappa, rho_p, rho_n
     std::string ofname_extra = methodnameabbrev + "_r" + std::to_string(res); // method name and resolution
 
@@ -213,7 +214,7 @@ int main(int argc, char** argv)
 
     for (size_t i = 0; i < 4; ++i)
     {
-        F_absValSqs.push_back(std::vector<double>(res / 2 + 1));
+        F_avAbsValSqs.push_back(std::vector<double>(res / 2 + 1));
 
         o_kf[i].open(o_k_fn[i]);
         if (!o_kf[i])
@@ -242,10 +243,10 @@ int main(int argc, char** argv)
         {
             for (size_t i = 0; i < 4; ++i)
             {
-                if (um != method::df)
-                    maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
+                if (um == method::df)
+                    cmaps.push_back(std::vector<std::vector<std::complex<double>>>(res, std::vector<std::complex<double>>(res))); 
                 else
-                    cmaps.push_back(std::vector<std::vector<std::complex<double>>>(res, std::vector<std::complex<double>>(res)));
+                    maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
             }
         }
 
@@ -289,7 +290,7 @@ int main(int argc, char** argv)
 
             for (size_t i = 0; i < 4; ++i)
                 for (size_t linenum = 0; linenum < res; ++linenum)
-                    addFourierAbsValSq1D(F_absValSqs[i], maps[i][linenum]);
+                    addFourierAbsValSq1D(F_avAbsValSqs[i], maps[i][linenum]);
         }
 
         if (um == method::gs) // Gauss-smoothing case
@@ -329,7 +330,7 @@ int main(int argc, char** argv)
                     maps[1][y][x] = maps[2][y][x] - maps[3][y][x];
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    addFourierAbsValSq1D(F_absValSqs[i], maps[i][y]);
+                    addFourierAbsValSq1D(F_avAbsValSqs[i], maps[i][y]);
             }
         }
 
@@ -351,7 +352,7 @@ int main(int argc, char** argv)
                     linedensities[1][x] = linedensities[2][x] - linedensities[3][x];
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    addFourierAbsValSq1D(F_absValSqs[i], linedensities[i]);
+                    addFourierAbsValSq1D(F_avAbsValSqs[i], linedensities[i]);
 
                 if (create_maps) // copy linedensity to the map
                 {
@@ -379,7 +380,7 @@ int main(int argc, char** argv)
                     linedensities[3][x] = (linedensities[0][x] - linedensities[1][x]) / 2;
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    addFourierAbsValSq1D(F_absValSqs[i], linedensities[i]);
+                    addFourierAbsValSq1D(F_avAbsValSqs[i], linedensities[i]);
 
                 if (create_maps) // copy linedensity to the map
                 {
@@ -420,7 +421,7 @@ int main(int argc, char** argv)
             for (size_t i = 0; i < 4; ++i)
                 for (size_t kx = 0; kx < res / 2 + 1; ++kx)
                     for (size_t ky = 0; ky < res / 2 + 1; ++ky)
-                        F_absValSqs[i][kx] += std::norm(cmaps[i][ky][kx]);
+                        F_avAbsValSqs[i][kx] += std::norm(cmaps[i][ky][kx]);
         }
 
         if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
@@ -465,7 +466,7 @@ int main(int argc, char** argv)
     }
 
     for (size_t i = 0; i < 4; ++i)
-        for (const auto& val : F_absValSqs[i])
+        for (const auto& val : F_avAbsValSqs[i])
             o_kf[i] << val << "\n";
 
     std::cout << "Done. Program terminates." << std::endl;
