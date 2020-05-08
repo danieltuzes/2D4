@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 0.2
+abs was mistakenly used isntead of fabs, again, really?
+
 # 0.1
 * first version working with the initial idea, seems working
 
@@ -23,10 +26,10 @@ namespace bpo = boost::program_options;
 
 double periodic_dist(double a, double b)
 {
-    if (abs(a - b) < 0.5)
-        return abs(a - b);
+    if (fabs(a - b) < 0.5)
+        return fabs(a - b);
     else
-        return 1 - abs(a - b);
+        return 1 - fabs(a - b);
 }
 
 int main(int argc, char** argv)
