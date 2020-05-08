@@ -2,6 +2,9 @@
 //
 
 /*changelog
+# 0.3
+normalize is used to measure distance
+
 # 0.2
 abs was mistakenly used isntead of fabs, again, really?
 
@@ -22,14 +25,15 @@ abs was mistakenly used isntead of fabs, again, really?
 #include <boost/program_options/options_description.hpp> // to add descriptions of the program call arguments
 namespace bpo = boost::program_options;
 
-#define VERSION_localization 0.1
+#define VERSION_localization 0.3
 
-double periodic_dist(double a, double b)
+void normalize(double& n)
 {
-    if (fabs(a - b) < 0.5)
-        return fabs(a - b);
-    else
-        return 1 - fabs(a - b);
+    while (n < -0.5) // bad predictions can lead to values like n=-10'000 or so and using hyperbolic functions on them is problematic
+        n += 1;
+
+    while (n >= 0.5) // in rare cases, if is not enough, and in most cases, this is faster than fprem1: https://stackoverflow.com/questions/58803438/best-way-calculating-remainder-on-floating-points
+        n -= 1;
 }
 
 int main(int argc, char** argv)
@@ -102,12 +106,13 @@ int main(int argc, char** argv)
         double alpha = atan2(Y, X);                 // the center of mass, origin, x axis angle
 
         double P = (alpha + M_PI / 2) / (2 * M_PI); // the center of mass projected to the unit circle
+        normalize(P);
         double d;                                   // the sum of the distances from the plane P to all dislocations
-        d = std::accumulate(x_vals.begin(), x_vals.end(), 0., [P](double sum, double x) {return sum + periodic_dist(P, x); }) / x_vals.size();
+        d = std::accumulate(x_vals.begin(), x_vals.end(), 0., [P](double sum, double x) {double dist = P - x; normalize(dist); return sum + fabs(dist); }) / x_vals.size();
 
         double eta = 1 - 4 * d;
 
-        std::cout << ifname << "\t" << P << "\t" << eta << "\n";
+        std::cout << ifname << "\t" << P << "\t" << eta << "\t" << d << "\n";
     }
     return 0;
 }
