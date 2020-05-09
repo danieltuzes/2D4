@@ -2,8 +2,16 @@
 //
 
 /*changelog
+# 1
+both methods are implemented, the two different ways to measure localization
+
+# 0.4
+* utf8 encoding
+* d was printed out mistakenly
+
 # 0.3
-normalize is used to measure distance
+* normalize is used to measure distance
+* x_0 = P is normalized
 
 # 0.2
 abs was mistakenly used isntead of fabs, again, really?
@@ -25,7 +33,7 @@ abs was mistakenly used isntead of fabs, again, really?
 #include <boost/program_options/options_description.hpp> // to add descriptions of the program call arguments
 namespace bpo = boost::program_options;
 
-#define VERSION_localization 0.3
+#define VERSION_localization 1
 
 void normalize(double& n)
 {
@@ -62,7 +70,7 @@ int main(int argc, char** argv)
         if (vm.count("help")) // if the user is curious 
         {
             std::cout << "localization (version " << VERSION_localization << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
-                << "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
+                << "Copyright (C) DÃ¡niel TÃ¼zes <tuzes@metal.elte.hu>\n";
             std::cout << options << std::endl;
             exit(0);
         }
@@ -83,7 +91,7 @@ int main(int argc, char** argv)
 
 #pragma endregion
 
-    std::cout << "# filename\tx_0\teta" << std::endl;
+    std::cout << "# filename\tCoM\tr\tP\teta" << std::endl;
 
     for (auto ifname : ifnames)
     {
@@ -102,17 +110,39 @@ int main(int argc, char** argv)
         X = std::accumulate(x_vals.begin(), x_vals.end(), 0., [](double sum, double x) {return sum + sin(2 * M_PI * x); }) / x_vals.size();
         Y = std::accumulate(x_vals.begin(), x_vals.end(), 0., [](double sum, double x) {return sum - cos(2 * M_PI * x); }) / x_vals.size();
 
-        //double a = sqrt(X * X + Y * Y);           // the distance of the center of mass from the unit circle's circumference, also a type of measure for localization
         double alpha = atan2(Y, X);                 // the center of mass, origin, x axis angle
 
-        double P = (alpha + M_PI / 2) / (2 * M_PI); // the center of mass projected to the unit circle
-        normalize(P);
-        double d;                                   // the sum of the distances from the plane P to all dislocations
-        d = std::accumulate(x_vals.begin(), x_vals.end(), 0., [P](double sum, double x) {double dist = P - x; normalize(dist); return sum + fabs(dist); }) / x_vals.size();
+        double CoM = alpha / (2 * M_PI) + 1. / 4;   // the center of mass projected to the unit circle
+        normalize(CoM);
+        double r = sqrt(X * X + Y * Y);             // the distance from the origin, a kind of measure of localisation
 
-        double eta = 1 - 4 * d;
+        double d = 1;                               // the sum of the distances from the plane P to all dislocations
+        double P = 0;                               // the selected plane for which d is minimal
+        double freq = 1 / (1000. + x_vals.size());  // the frequency of the measuring points
+        for (double Pnom = -0.5; Pnom < 0.5; Pnom += 1 / (1000. + x_vals.size()))
+        {
+            double dnom = std::accumulate(x_vals.begin(), x_vals.end(), 0., [Pnom](double sum, double x) {double dist = Pnom - x; normalize(dist); return sum + fabs(dist); }) / x_vals.size();;
+            if (dnom < d)
+            {
+                d = dnom;
+                P = Pnom;
+            }
+        }
 
-        std::cout << ifname << "\t" << P << "\t" << eta << "\t" << d << "\n";
+        // fine search
+        for (double Pnom = P - freq; Pnom < P + freq; Pnom += freq / 1000)
+        {
+            double dnom = std::accumulate(x_vals.begin(), x_vals.end(), 0., [Pnom](double sum, double x) {double dist = Pnom - x; normalize(dist); return sum + fabs(dist); }) / x_vals.size();;
+            if (dnom < d)
+            {
+                d = dnom;
+                P = Pnom;
+            }
+        }
+
+        double eta = 1 - 4 * d;                     // another measure of localization
+
+        std::cout << ifname << "\t" << CoM << "\t" << r << "\t" << P << "\t" << eta << "\n";
     }
     return 0;
 }
