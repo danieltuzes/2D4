@@ -1,8 +1,11 @@
 //
 // xpattern.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xpattern 1.3
+#define VERSION_xpattern 1.4
 /*changelog
+# 1.4
+Prints out the whole averaged 2D Fourier map if method is df
+
 # 1.3
 method is now a scoped enum using class
 
@@ -35,7 +38,6 @@ int main(int argc, char** argv)
         ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
         ("create-maps", "If set, the program will create the 2D density maps for rho_t and kappa.")
-        // ("create-k-maps", "If set, the program will create the 2D Fourier maps for non df methods too.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "With what output filename prefix should the initial conditions be stored. Symbol ./ or empty string means here.")
         ("debug-level,d", bpo::value<int>()->default_value(0), "Debugging information to show.")
         ;
@@ -80,15 +82,15 @@ int main(int argc, char** argv)
         std::cerr << "input-fname is missing! Program terminates.\n";
         exit(-1);
     }
-    std::string ifname = vm["input-fname"].as<std::string>();
+    std::string iAfname = vm["input-fname"].as<std::string>();  // the input filename from command line argument
     std::vector<std::string> ifnames;
 
-    if (ifname.size() >= 4 && ifname.compare(ifname.size() - 4, 4, ".ini") == 0)
+    if (iAfname.size() >= 4 && iAfname.compare(iAfname.size() - 4, 4, ".ini") == 0)
     {
-        std::ifstream ifile(ifname);
+        std::ifstream ifile(iAfname);
         if (!ifile)
         {
-            std::cerr << "The program couldn't open " << ifname << " for reading. Program terminates." << std::endl;
+            std::cerr << "The program couldn't open " << iAfname << " for reading. Program terminates." << std::endl;
             return 0;
         }
 
@@ -98,25 +100,25 @@ int main(int argc, char** argv)
                 ifnames.push_back(tmp);
             else
             {
-                std::cerr << ifname << " contains invalid dislocation configuration filename " << tmp << ". Program termiantes." << std::endl;
+                std::cerr << iAfname << " contains invalid dislocation configuration filename " << tmp << ". Program termiantes." << std::endl;
                 exit(2);
             }
         }
-        std::cout << ifname << " as input path contained " << ifnames.size() << " number of files to read." << std::endl;
+        std::cout << iAfname << " as input path contained " << ifnames.size() << " number of files to read." << std::endl;
         if (ifnames.size() == 0)
         {
             std::cerr << "Not enough input files. Program terminates." << std::endl;
             exit(1);
         }
     }
-    else if (ifname.size() >= 6 && ifname.compare(ifname.size() - 6, 6, ".dconf") == 0)
+    else if (iAfname.size() >= 6 && iAfname.compare(iAfname.size() - 6, 6, ".dconf") == 0)
     {
-        std::cout << ifname << " will be used to read dislocation configuration" << std::endl;
-        ifnames.push_back(ifname); // ifnames contains exactly 1 file that can be opened or
+        std::cout << iAfname << " will be used to read dislocation configuration" << std::endl;
+        ifnames.push_back(iAfname); // ifnames contains exactly 1 file that can be opened or
     }
     else
     {
-        std::cerr << ifname << " is not a valid input filename. Program terminates." << std::endl;
+        std::cerr << iAfname << " is not a valid input filename. Program terminates." << std::endl;
         exit(1);
     }
 
@@ -201,28 +203,48 @@ int main(int argc, char** argv)
 
 #pragma endregion
 
-#pragma region define vectors F_absValSqs
-    std::vector<std::vector<double>> F_avAbsValSqs; // the abs square of the different Fourier-transformed data averaged through y; rho_t, kappa, rho_p, rho_n
+#pragma region define variables
+    // the norm of the different Fourier-transformed data averaged through y over all configuration; rho_t, kappa, rho_p, rho_n
+    std::vector<std::vector<double>> F_avNorm(4, std::vector<double>(res / 2 + 1));
+
+    // the norm averaged of the 2D-Fourier components for each density over all configuration for method df
+    std::vector<std::vector<std::vector<double>>> F_norm(4, std::vector<std::vector<double>>(res / 2 + 1, std::vector<double>(res / 2 + 1)));
+
     std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };  // rho_t, kappa, rho_p, rho_n
     std::string ofname_extra = methodnameabbrev + "_r" + std::to_string(res); // method name and resolution
 
-    std::vector<std::string> o_k_fn; // output filenames for the Fourier components of rho_t, kappa, rho_p and rho_n
+    std::vector<std::string> o_k_fn; // output filenames of the ky-averaged Fourier components norm of rho_t, kappa, rho_p and rho_n
+    std::vector<std::string> o_kxy_fn; // output filenames of the norm of Fourier components of rho_t, kappa, rho_p and rho_n
     for (const auto& name : names)
+    {
         o_k_fn.push_back(of + ofname_extra + "_" + name + "_k.txt");
+        o_kxy_fn.push_back(of + ofname_extra + "_" + name + "_kxy.txt");
+    }
 
     std::vector<std::ofstream> o_kf(4); // output files for the k values; rho_t, kappa, rho_p, rho_n
+    std::vector<std::ofstream> o_kxyf(4); // output files for the k values; rho_t, kappa, rho_p, rho_n
 
     for (size_t i = 0; i < 4; ++i)
     {
-        F_avAbsValSqs.push_back(std::vector<double>(res / 2 + 1));
-
         o_kf[i].open(o_k_fn[i]);
         if (!o_kf[i])
         {
             std::cerr << "Cannot create " << o_k_fn[i] << ". Program terminates." << std::endl;
             exit(-1);
         }
-        o_kf[i] << "# This file contains the Fourier components of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+        o_kf[i] << "# This file contains the ky-averaged norm of the Fourier components of " << names[i] << " for the file " << iAfname << " using the " << methodname << " method.\n";
+
+        if (um == method::df)
+        {
+            o_kxyf[i].open(o_kxy_fn[i]);
+            if (!o_kxyf[i])
+            {
+                std::cerr << "Cannot create " << o_kxy_fn[i] << ". Program terminates." << std::endl;
+                exit(-1);
+            }
+            o_kxyf[i] << "# This file contains the norm of the Fourier components of " << names[i] << " for the file " << iAfname << " using the " << methodname << " method.\n";
+        }
+        
     }
 
 #pragma endregion
@@ -244,7 +266,7 @@ int main(int argc, char** argv)
             for (size_t i = 0; i < 4; ++i)
             {
                 if (um == method::df)
-                    cmaps.push_back(std::vector<std::vector<std::complex<double>>>(res, std::vector<std::complex<double>>(res))); 
+                    cmaps.push_back(std::vector<std::vector<std::complex<double>>>(res, std::vector<std::complex<double>>(res)));
                 else
                     maps.push_back(std::vector<std::vector<double>>(res, std::vector<double>(res)));
             }
@@ -290,7 +312,7 @@ int main(int argc, char** argv)
 
             for (size_t i = 0; i < 4; ++i)
                 for (size_t linenum = 0; linenum < res; ++linenum)
-                    addFourierAbsValSq1D(F_avAbsValSqs[i], maps[i][linenum]);
+                    addFourierNorm1D(F_avNorm[i], maps[i][linenum]);
         }
 
         if (um == method::gs) // Gauss-smoothing case
@@ -330,7 +352,7 @@ int main(int argc, char** argv)
                     maps[1][y][x] = maps[2][y][x] - maps[3][y][x];
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    addFourierAbsValSq1D(F_avAbsValSqs[i], maps[i][y]);
+                    addFourierNorm1D(F_avNorm[i], maps[i][y]);
             }
         }
 
@@ -352,7 +374,7 @@ int main(int argc, char** argv)
                     linedensities[1][x] = linedensities[2][x] - linedensities[3][x];
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    addFourierAbsValSq1D(F_avAbsValSqs[i], linedensities[i]);
+                    addFourierNorm1D(F_avNorm[i], linedensities[i]);
 
                 if (create_maps) // copy linedensity to the map
                 {
@@ -380,7 +402,7 @@ int main(int argc, char** argv)
                     linedensities[3][x] = (linedensities[0][x] - linedensities[1][x]) / 2;
                 }
                 for (size_t i = 0; i < 4; ++i)
-                    addFourierAbsValSq1D(F_avAbsValSqs[i], linedensities[i]);
+                    addFourierNorm1D(F_avNorm[i], linedensities[i]);
 
                 if (create_maps) // copy linedensity to the map
                 {
@@ -421,7 +443,10 @@ int main(int argc, char** argv)
             for (size_t i = 0; i < 4; ++i)
                 for (size_t kx = 0; kx < res / 2 + 1; ++kx)
                     for (size_t ky = 0; ky < res / 2 + 1; ++ky)
-                        F_avAbsValSqs[i][kx] += std::norm(cmaps[i][ky][kx]);
+                    {
+                        F_avNorm[i][kx] += std::norm(cmaps[i][ky][kx]);
+                        F_norm[i][ky][kx] += std::norm(cmaps[i][ky][kx]);
+                    }
         }
 
         if (debug_level) // creates dislocation area file deb_disl.txt and levels for gnuplot contour
@@ -450,15 +475,15 @@ int main(int argc, char** argv)
                     continue;
                 }
 
-                if (um != method::df)
-                {
-                    o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
-                    o_maps[i] << maps[i];
-                }
-                else
+                if (um == method::df)
                 {
                     o_maps[i] << "# This file contains the Fourier components in the format of real tab imag, corresponding to the density type " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
                     o_maps[i] << c2r_map(cmaps[i]);
+                }
+                else
+                {
+                    o_maps[i] << "# This file contains the density of " << names[i] << " for the file " << ifname << " using the " << methodname << " method.\n";
+                    o_maps[i] << maps[i];
                 }
 
             }
@@ -466,9 +491,14 @@ int main(int argc, char** argv)
     }
 
     for (size_t i = 0; i < 4; ++i)
-        for (const auto& val : F_avAbsValSqs[i])
+    {
+        for (const auto& val : F_avNorm[i])
             o_kf[i] << val << "\n";
 
+        if (um == method::df)
+            o_kxyf[i] << F_norm[i];
+    }
+        
     std::cout << "Done. Program terminates." << std::endl;
     return 0;
 }

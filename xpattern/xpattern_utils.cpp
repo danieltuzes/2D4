@@ -388,7 +388,7 @@ void abs_val2(fftw_complex* c, int size) //absolute value square for complex num
     }
 }
 
-void addFourierAbsValSq1D(std::vector<double>& F_absValSq, const std::vector<double>& linedensity)
+void addFourierNorm1D(std::vector<double>& F_absValSq, const std::vector<double>& linedensity)
 {
     const int lsize = (int)linedensity.size(); // logical size
     const int psize = lsize / 2 + 1; // physical size, size of k

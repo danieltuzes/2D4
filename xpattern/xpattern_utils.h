@@ -96,7 +96,7 @@ void nearestDislIndex(const std::vector<disl>&, size_t beginIndex, size_t endInd
 // returns a vector with pairwise average unique values from map in increasing order
 void gnuplotlevels(const std::vector<std::vector<double>>& map, std::string fname);
 
-// turns complex map into a real map to an easier use with gnuplot
+// casts a complex map into a real map to an easier use with gnuplot, makes no transformation
 std::vector<std::vector<double>> c2r_map(const std::vector<std::vector<std::complex<double>>>& in);
 
 #pragma region Fourier analysis and correlations
@@ -120,7 +120,7 @@ std::vector<double> autoCorrelation1D(const std::vector<double>&);
 std::vector<double> FourierAbsVal1D(const std::vector<double>&);
 
 // calculates the fourier values of linedensity, add it to k
-void addFourierAbsValSq1D(std::vector<double>& F_absVal, const std::vector<double>& linedensity);
+void addFourierNorm1D(std::vector<double>& F_absVal, const std::vector<double>& linedensity);
 
 #pragma endregion
 
