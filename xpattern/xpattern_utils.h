@@ -3,8 +3,11 @@
 
 #pragma once
 
-#define VERSION_xpattern_utils 1.2
+#define VERSION_xpattern_utils 1.3
 /* changelog
+# 1.3
+Xfname is implemented
+
 # 1.2
 * normalize is introduced
 * disl reading in normalizes x coordinate
@@ -52,8 +55,19 @@ using pair = std::pair<double, double>;
 // Wigner-Seitz, Box-counting and Gauss-smoothing; na: default value, wspn: Wigner-Seitz positive and negative, wsts: Wigner-Seitz total and signer, bc: box-counting, gc: Gauss-convolution, df: direct Fourier
 enum class method { na, wspn, wsts, bc, gs, df };
 
+#pragma region stream and file operators
 std::istream& operator >> (std::istream&, disl&);
 std::ostream& operator << (std::ostream&, const disl&);
+
+// separate line elements with tab
+template <typename T> std::ostream& operator << (std::ostream&, const std::vector<T>&);
+
+// separate line elements with tab, and different lines with \n
+template <typename T> std::ostream& operator << (std::ostream&, const std::vector<std::vector<T>>&);
+
+// cuts away the folder names from the input string: in.substr(in.find_last_of('/') + 1);
+std::string Xfname(std::string inputFnameWithPath);
+#pragma endregion
 
 // distance measured with periodic boundary condition on size [-0.5; 0.5)
 double dist(double, double);
@@ -63,12 +77,6 @@ double distsq(const pair&, const pair&);
 
 // the 2D distance with periodic boundary condition on size [-0.5; 0.5) × [-0.5; 0.5)
 double dist(const pair&, const pair&);
-
-// separate line elements with tab
-template <typename T> std::ostream& operator << (std::ostream&, const std::vector<T>&);
-
-// separate line elements with tab, and different lines with \n
-template <typename T> std::ostream& operator << (std::ostream&, const std::vector<std::vector<T>>&);
 
 // measures how many points belong to each dislocation on a mesh with samp × samp number of points
 void measure_area(std::vector<disl>&, size_t samp);

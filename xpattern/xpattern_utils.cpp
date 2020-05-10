@@ -15,6 +15,7 @@
 #include <numeric>
 #include <cmath>
 
+#pragma region stream and file operators
 std::istream& operator >> (std::istream& in, disl& d)
 {
     double posx = 0, posy = 0;
@@ -48,6 +49,31 @@ std::ostream& operator << (std::ostream& o, const disl& d)
     return o;
 }
 
+template <typename T> std::ostream& operator << (std::ostream& o, const std::vector<T>& line)
+{
+    for (auto const& value : line)
+        o << value << "\t";
+
+    return o;
+}
+
+template <typename T> std::ostream& operator << (std::ostream& o, const std::vector<std::vector<T>>& map)
+{
+    for (auto const& map_line : map)
+        o << map_line << "\n";
+
+    return o;
+}
+
+template std::ostream& operator << (std::ostream&, const std::vector<std::vector<int>>&);    // template instantiation
+template std::ostream& operator << (std::ostream&, const std::vector<std::vector<double>>&); // template instantiation
+
+std::string Xfname(std::string in)
+{
+    return in.substr(in.find_last_of('/') + 1);
+}
+#pragma endregion
+
 void normalize(double& n)
 {
     while (n < -0.5) // bad predictions can lead to values like n=-10'000 or so and using hyperbolic functions on them is problematic
@@ -75,25 +101,6 @@ double dist(const pair& a, const pair& b)
 {
     return sqrt(distsq(a, b));
 }
-
-template <typename T> std::ostream& operator << (std::ostream& o, const std::vector<T>& line)
-{
-    for (auto const& value : line)
-        o << value << "\t";
-
-    return o;
-}
-
-template <typename T> std::ostream& operator << (std::ostream& o, const std::vector<std::vector<T>>& map)
-{
-    for (auto const& map_line : map)
-        o << map_line << "\n";
-
-    return o;
-}
-
-template std::ostream& operator << (std::ostream&, const std::vector<std::vector<int>>&);    // template instantiation
-template std::ostream& operator << (std::ostream&, const std::vector<std::vector<double>>&); // template instantiation
 
 void measure_area(std::vector<disl>& dislocs, size_t samp)
 {

@@ -1,8 +1,11 @@
 //
 // xpattern.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xpattern 1.4
+#define VERSION_xpattern 1.5
 /*changelog
+# 1.5
+Xfname is introduced and used
+
 # 1.4
 Prints out the whole averaged 2D Fourier map if method is df
 
@@ -257,7 +260,7 @@ int main(int argc, char** argv)
 
         std::vector<std::string> o_maps_fn;
         for (const auto& name : names)
-            o_maps_fn.push_back(of + ifname + ofname_extra + "_" + name + ".txt");
+            o_maps_fn.push_back(of + Xfname(ifname) + ofname_extra + "_" + name + ".txt");
 
         std::vector<std::ofstream> o_maps(4); // output files for the maps; rho_t, kappa, rho_p, rho_n
 
@@ -461,7 +464,7 @@ int main(int argc, char** argv)
                 for (const auto& d : dislocs)
                     debo_disl_areafile << d << "\n"; // print out to ofile
                 for (size_t i = 0; i < 4; ++i)
-                    gnuplotlevels(maps[i], of + ifname + ofname_extra + "_" + names[i] + "levels.txt");
+                    gnuplotlevels(maps[i], of + Xfname(ifname) + ofname_extra + "_" + names[i] + "levels.txt");
             }
         }
 
