@@ -1,8 +1,11 @@
 //
 // xpattern.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xpattern 1.5
+#define VERSION_xpattern 1.6
 /*changelog
+# 1.6
+-i switch supports multiple input filenames
+
 # 1.5
 Xfname is introduced and used
 
@@ -33,7 +36,7 @@ int main(int argc, char** argv)
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
 
     requiredOptions.add_options()
-        ("input-fname,i", bpo::value<std::string>(), "The file name of the dislocation configuration file ending with .dconf. If it ends with .ini, a file containing the file names is expected: 1 filename per line.");
+        ("input-fname,i", bpo::value<std::vector<std::string>>()->multitoken(), "The file name(s) of the dislocation configuration file ending with .dconf. If it ends with .ini, a file containing the file names is expected: 1 filename per line.");
 
     optionalOptions.add_options()
         ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points (for all methods except df, where only Fourier components are calculated). The number of the Fourier components are r/2 + 1. Use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
@@ -85,43 +88,45 @@ int main(int argc, char** argv)
         std::cerr << "input-fname is missing! Program terminates.\n";
         exit(-1);
     }
-    std::string iAfname = vm["input-fname"].as<std::string>();  // the input filename from command line argument
-    std::vector<std::string> ifnames;
-
-    if (iAfname.size() >= 4 && iAfname.compare(iAfname.size() - 4, 4, ".ini") == 0)
+    std::vector<std::string> iAfnameV = vm["input-fname"].as<std::vector<std::string>>();  // the input filename from command line argument
+    std::vector<std::string> ifnames;   // the whole ifname list
+    for (auto iAfname : iAfnameV)
     {
-        std::ifstream ifile(iAfname);
-        if (!ifile)
+        if (iAfname.size() >= 4 && iAfname.compare(iAfname.size() - 4, 4, ".ini") == 0) // if it is an ini file
         {
-            std::cerr << "The program couldn't open " << iAfname << " for reading. Program terminates." << std::endl;
-            return 0;
-        }
-
-        for (std::string tmp; ifile >> tmp;)
-        {
-            if (tmp.size() >= 6 && tmp.compare(tmp.size() - 6, 6, ".dconf") == 0)
-                ifnames.push_back(tmp);
-            else
+            std::ifstream ifile(iAfname);
+            if (!ifile)
             {
-                std::cerr << iAfname << " contains invalid dislocation configuration filename " << tmp << ". Program termiantes." << std::endl;
-                exit(2);
+                std::cerr << "The program couldn't open " << iAfname << " for reading. Program terminates." << std::endl;
+                return 0;
             }
+
+            for (std::string tmp; ifile >> tmp;)
+            {
+                if (tmp.size() >= 6 && tmp.compare(tmp.size() - 6, 6, ".dconf") == 0)   // the ini file contains a dconf
+                    ifnames.push_back(tmp);
+                else
+                {
+                    std::cerr << iAfname << " contains invalid dislocation configuration filename " << tmp << ". Program termiantes." << std::endl;
+                    exit(2);
+                }
+            }
+            std::cout << iAfname << " as input path contained " << ifnames.size() << " number of files to read." << std::endl;
         }
-        std::cout << iAfname << " as input path contained " << ifnames.size() << " number of files to read." << std::endl;
-        if (ifnames.size() == 0)
+        else if (iAfname.size() >= 6 && iAfname.compare(iAfname.size() - 6, 6, ".dconf") == 0)
         {
-            std::cerr << "Not enough input files. Program terminates." << std::endl;
+            std::cout << iAfname << " will be used to read dislocation configuration" << std::endl;
+            ifnames.push_back(iAfname); // ifnames contains exactly 1 file that can be opened or
+        }
+        else
+        {
+            std::cerr << iAfname << " is not a valid input filename. Program terminates." << std::endl;
             exit(1);
         }
     }
-    else if (iAfname.size() >= 6 && iAfname.compare(iAfname.size() - 6, 6, ".dconf") == 0)
+    if (ifnames.size() == 0)
     {
-        std::cout << iAfname << " will be used to read dislocation configuration" << std::endl;
-        ifnames.push_back(iAfname); // ifnames contains exactly 1 file that can be opened or
-    }
-    else
-    {
-        std::cerr << iAfname << " is not a valid input filename. Program terminates." << std::endl;
+        std::cerr << "Not enough input files. Program terminates." << std::endl;
         exit(1);
     }
 
@@ -235,7 +240,7 @@ int main(int argc, char** argv)
             std::cerr << "Cannot create " << o_k_fn[i] << ". Program terminates." << std::endl;
             exit(-1);
         }
-        o_kf[i] << "# This file contains the ky-averaged norm of the Fourier components of " << names[i] << " for the file " << iAfname << " using the " << methodname << " method.\n";
+        o_kf[i] << "# This file contains the ky-averaged norm of the Fourier components of " << names[i] << " for the given input file(s) using the " << methodname << " method.\n";
 
         if (um == method::df)
         {
@@ -245,7 +250,7 @@ int main(int argc, char** argv)
                 std::cerr << "Cannot create " << o_kxy_fn[i] << ". Program terminates." << std::endl;
                 exit(-1);
             }
-            o_kxyf[i] << "# This file contains the norm of the Fourier components of " << names[i] << " for the file " << iAfname << " using the " << methodname << " method.\n";
+            o_kxyf[i] << "# This file contains the norm of the Fourier components of " << names[i] << " for the given input file(s) using the " << methodname << " method.\n";
         }
         
     }
