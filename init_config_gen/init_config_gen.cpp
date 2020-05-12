@@ -1,8 +1,12 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen 2.3
+#define VERSION_init_config_gen 2.4
 /*changelog
+# 2.4
+* if shortest-criteria doesn't hold and new y value is assigned, the new value does not depend on the last largest seed number anymore
+* wall-height is introduced and implemented
+
 # 2.3
 parameter bare and gcc warning are eliminated
 
@@ -69,6 +73,15 @@ size_t closest_yID(const disl& cmp, const std::vector<disl>& list)  // the dislo
     return ID;
 }
 
+// transfers the coordinate into the range [-0.5; 0.5)
+void normalize(double& n)
+{
+    while (n < -0.5) // bad predictions can lead to values like n=-10'000 or so and using hyperbolic functions on them is problematic
+        n += 1;
+
+    while (n >= 0.5) // in rare cases, if is not enough, and in most cases, this is faster than fprem1: https://stackoverflow.com/questions/58803438/best-way-calculating-remainder-on-floating-points
+        n -= 1;
+}
 #pragma endregion
 
 int main(int argc, char** argv)
@@ -79,7 +92,7 @@ int main(int argc, char** argv)
     bpo::options_description optionalOptions("Optional options"); // must be set from command line or file
 
     requiredOptions.add_options()
-        ("N,N", bpo::value<int>(), "The number of dislocations to generate. Must be even, because N/2 number of positive and negative dislocations will be created.");
+        ("N,N", bpo::value<size_t>(), "The number of dislocations to generate. Must be even, because N/2 number of positive and negative dislocations will be created.");
 
     optionalOptions.add_options()
         ("seed-start,S", bpo::value<int>()->default_value(1000), "An integer used as an initial seed value for the random number generator.")
@@ -89,6 +102,7 @@ int main(int argc, char** argv)
         ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the probability density function will be\n1 + A * sin(x * n * 2 pi) with A = pattern-strength for rho_+ and\n1 - A * sin(x * w * 2 pi) for rho_-. A must be in [-1:1].")
         ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5).")
         ("pattern-type,T", bpo::value<std::string>()->default_value("s"), "The pattern type in the density distribution.")
+        ("wall-height,w", bpo::value<size_t>()->default_value(8), "The number of dislocations forming 1 wall. N/2/w must be integer. shortest-distance criteria is checked for the bottom dislocation.")
         ("sorted,s", bpo::value<std::string>()->default_value("y"), "Defines the order of the dislocations in the output file.\n   * x: decreasing Burger's vector, and  decreasing x coordinate\n   * y:  decreasing Burger's vector, and  decreasing y coordinate\n   * u: sign is alternating and x and y coordinates are uncorrelated.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "In which folder should the initial conditions be stored. Symbol ./ means here.")
         ;
@@ -104,7 +118,7 @@ int main(int argc, char** argv)
     try {
         bpo::store(bpo::parse_command_line(argc, argv, options), vm, false);
     }
-    catch (bpo::error & e)
+    catch (bpo::error& e)
     {
         std::cerr << e.what() << std::endl;
         exit(-1);
@@ -134,7 +148,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        N = vm["N"].as<int>();
+        N = vm["N"].as<size_t>();
         std::cout << "N =\t" << N << std::endl;
     }
 
@@ -174,6 +188,14 @@ int main(int argc, char** argv)
     }
     else
         std::cout << "A =\t" << A << std::endl;
+
+    bool wall = vm.count("wall-height");
+    size_t wall_height = vm["wall-height"].as<size_t>();
+    if (wall && N % (wall_height * 2) != 0)
+    {
+        std::cerr << "N/2/wall-height must be integer, but it is not. Program terminates." << std::endl;
+        exit(-1);
+    }
 
 #pragma endregion
 
@@ -242,10 +264,10 @@ int main(int argc, char** argv)
         bool marked = false;                                // tells if there is (was) a dislocation with smaller y distance than shortest-distance
 
         //std::ofstream deb_conf_ofile("debug_conf.txt");
-        for (size_t n = 0; n < N; ++n) // generate the N number of dislocations
+        for (size_t n = 0; n < N; ++n) // generate the N number of dislocations, n = dislocs.size()
         {
             double x = distr(engine);
-            if (A != 0)
+            if (A != 0) // if no periodic pattern is requested
             {
                 x += 0.5;
                 auto cmp = pair(0, x);
@@ -261,11 +283,13 @@ int main(int argc, char** argv)
             }
             double y = distr(engine);       // the suggested y value for the dislocation
             int burgersv = (n % 2) * 2 - 1; // the Burgers vector of the dislocation
-            
+            if (wall)
+                burgersv = ((n / wall_height) % 2) * 2 - 1; // the Burgers vector of the dislocation
+
             // generate a proper y value
-            for (int seed2 = seed_end + 1; shortestDist != 0 && n > 0; seed2++)
+            for (int seed2 = seed_val + 1; shortestDist != 0 && n > 0; seed2++)
             {
-                if (seed2 != seed_end + 1)  // if this is not the first time here
+                if (seed2 != seed_val + 1)  // if this is not the first time here
                 {
                     br::mt19937_64 engine2(seed2);
                     y = distr(engine2);     // y value must be regenerated
@@ -275,22 +299,19 @@ int main(int argc, char** argv)
                 disl closestY = dislocs[closestYID];
 
                 double ydist = std::get<1>(closestY) - y;
-                while (ydist >= 0.5)
-                    ydist -= 1;
-                while (ydist < -0.5)
-                    ydist += 1;
+                normalize(ydist);
                 if (fabs(ydist) < shortestDist)
                 {
                     std::cout << std::setprecision(25)
                         << "Dislocations were closer than accepted for ID = " << closestYID << " and " << n << ". The positions and types are:\n"
                         << "\t(" << std::get<0>(closestY) << "), (" << std::get<1>(closestY) << ")\t" << std::get<2>(closestY) << "\n"
                         << "\t(" << x << "), (" << y << ")" << "\t" << burgersv << "\n"
-                        << "dist = " << ydist  << "\n"
+                        << "dist = " << ydist << "\n"
                         << "Limit was " << shortestDist << "\n";
                     marked = true;
                     if (!mark)
                     {
-                        std::cout << "This y value will be regenerated from a temporary random engine.\n";
+                        std::cout << "This y value will be regenerated from a temporary random engine with seed value larger by 1.\n";
                         continue;
                     }
                     else
@@ -299,6 +320,13 @@ int main(int argc, char** argv)
                 break;
             }
             dislocs.push_back(disl(x, y, burgersv)); // add the dislocation to the list
+            for (size_t wc = 1; wall && wc < wall_height; ++wc)
+            {
+                double ynew = y + wc / sqrt(N); // the y coordinate of the next dislocation above the previous one
+                normalize(ynew);
+                dislocs.push_back(disl(x, ynew, burgersv)); // add the dislocation to the list
+                ++n;
+            }
         }
 
         if (sorted == 'y') // first the negative, in increasing y value than positive with increasing y value

@@ -15,6 +15,7 @@ Type `init_config_gen --help` to get the help. The program accepts the following
 * `--pattern-strength` or `-A`: a floating point number in the range of [-1:1] representing the amplitude of the sinusoidal pattern.
 * `--linear-wavenumber` or `-n`: an integer describing how many times shall the sinusoidal wave fit into the simulation area. See fig. below.
 * `--pattern-type` or `-T`: a string selecting the distribution density to alter. `s` refers to *signed*, changing the signed dislocation density, and `t` refers to total dislocation density ρ<sub>t</sub>.
+* `--wall-height` or `-w`: the number of disloations forming 1 dislocation wall. The spacing between dislocations will be 1/sqrt(N), the *x* and *y* position of the bottom of the wall will uniformly distributed.
 * `--sorted` or `-S`: optional argument. Defines the order of the dislocations in the output file.
     * `x`: decreasing Burger's vector, and decreasing *x* coordinate
     * `y`: decreasing Burger's vector, and decreasing *y* coordinate

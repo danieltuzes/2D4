@@ -36,7 +36,7 @@ int main(int argc, char** argv)
         ("input-fname,i", bpo::value<std::string>(), "The file name of the dislocation configuration file ending with .dconf. If it ends with .ini, a file containing the file names is expected: 1 filename per line.");
 
     optionalOptions.add_options()
-        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points (for all methods except df, where only Fourier components are calculated). The number of the Fourier components will r/2 + 1. Use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
+        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points (for all methods except df, where only Fourier components are calculated). The number of the Fourier components are r/2 + 1. Use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
         ("method,m", bpo::value<std::string>()->default_value("bc"), "The method to investigate the pattern.\n - wspn: Wigner-Seitz positive and negative\n - wsts: Wigner-Seitz total and signed\n - bc: box-counting\n - gs: Gauss-smoothing\n - df: direct Fourier")
         ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
