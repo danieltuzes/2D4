@@ -1,8 +1,11 @@
 //
 // xpattern.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_xpattern 1.6
+#define VERSION_xpattern 1.7
 /*changelog
+# 1.7
+auto x: range is used insted of counter-iteration
+
 # 1.6
 -i switch supports multiple input filenames
 
@@ -252,7 +255,7 @@ int main(int argc, char** argv)
             }
             o_kxyf[i] << "# This file contains the norm of the Fourier components of " << names[i] << " for the given input file(s) using the " << methodname << " method.\n";
         }
-        
+
     }
 
 #pragma endregion
@@ -423,24 +426,24 @@ int main(int argc, char** argv)
 
         if (um == method::df) // direct Fourier case
         {
-            for (size_t i = 0; i < dislocs.size(); ++i)
+            for (auto disloc : dislocs) // for each dislocation in dislocations
             {
                 std::vector<std::complex<double>> exp_f_x(res / 2 + 1); // factor precalculation to recall it from memory
                 std::vector<std::complex<double>> exp_f_y(res / 2 + 1); // factor precalculation to recall it from memory
 
                 for (size_t ki = 0; ki < res / 2 + 1; ++ki)
                 {
-                    exp_f_x[ki] = exp(-2 * M_PI * std::get<0>(dislocs[i]) * ki * M_i);
-                    exp_f_y[ki] = exp(-2 * M_PI * std::get<1>(dislocs[i]) * ki * M_i);
+                    exp_f_x[ki] = exp(-2 * M_PI * std::get<0>(disloc) * ki * M_i);  // disloc's  first (index = 0) type is a double giving the x value
+                    exp_f_y[ki] = exp(-2 * M_PI * std::get<1>(disloc) * ki * M_i);  // disloc's second (index = 1) type is a double giving the y value
                 }
 
                 for (size_t ky = 0; ky < res / 2 + 1; ++ky)
                     for (size_t kx = 0; kx < res / 2 + 1; ++kx)
                     {
                         cmaps[0][ky][kx] += exp_f_x[kx] * exp_f_y[ky];
-                        cmaps[1][ky][kx] += static_cast<double>(std::get<2>(dislocs[i])) * exp_f_x[kx] * exp_f_y[ky];
+                        cmaps[1][ky][kx] += static_cast<double>(std::get<2>(disloc)) * exp_f_x[kx] * exp_f_y[ky]; // disloc's third (index = 2) type is an int giving the Burger's vector
 
-                        if (std::get<2>(dislocs[i]) == 1) // positive dislocation; if i < dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
+                        if (std::get<2>(disloc) == 1) // positive dislocation; if i < dislocs.size()/2, it is positive, and negative otherwise, but no problem, this is still fast
                             cmaps[2][ky][kx] += exp_f_x[kx] * exp_f_y[ky];
                         else  // negative dislocation
                             cmaps[3][ky][kx] += exp_f_x[kx] * exp_f_y[ky];
@@ -506,7 +509,7 @@ int main(int argc, char** argv)
         if (um == method::df)
             o_kxyf[i] << F_norm[i];
     }
-        
+
     std::cout << "Done. Program terminates." << std::endl;
     return 0;
 }

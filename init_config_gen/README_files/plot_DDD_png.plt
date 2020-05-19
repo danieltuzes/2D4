@@ -1,10 +1,18 @@
+reset
+# ez a kód gyártja le a README.md-be a képet
+
 set encoding utf8
 set size 1,1
 
 ifname = "1000_64.dconf"
 
-set term pdfcairo enhanced font "DejaVu Sans Disl,18" color
-set out ifname . ".pdf"
+set term pngcairo enhanced font "DejaVu Sans Disl,12" size 300,300
+set out "dislocation_configuration.png"
+
+set lmargin 3.2
+set tmargin 2
+set rmargin 0.6
+set bmargin 1.7
 
 set title "{/:Italic t}=0, {/:Italic N}=64, {/:Italic A}=1, {/:Italic n}=3,"
 unset key

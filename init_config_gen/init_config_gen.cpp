@@ -1,8 +1,12 @@
 //
 // init_config_gen.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-#define VERSION_init_config_gen 2.4
+#define VERSION_init_config_gen 2.5
 /*changelog
+# 2.5
+* issue#10: the real pattern had 2*n waves instead of n
+* wall-height doesn't have default value anymore
+
 # 2.4
 * if shortest-criteria doesn't hold and new y value is assigned, the new value does not depend on the last largest seed number anymore
 * wall-height is introduced and implemented
@@ -102,7 +106,7 @@ int main(int argc, char** argv)
         ("pattern-strength,A", bpo::value<double>()->default_value(0), "Instead of a uniform distribution, the probability density function will be\n1 + A * sin(x * n * 2 pi) with A = pattern-strength for rho_+ and\n1 - A * sin(x * w * 2 pi) for rho_-. A must be in [-1:1].")
         ("linear-wavenumber,n", bpo::value<int>()->default_value(3), "The number of waves in the simulation area [-0.5:0.5).")
         ("pattern-type,T", bpo::value<std::string>()->default_value("s"), "The pattern type in the density distribution.")
-        ("wall-height,w", bpo::value<size_t>()->default_value(8), "The number of dislocations forming 1 wall. N/2/w must be integer. shortest-distance criteria is checked for the bottom dislocation.")
+        ("wall-height,w", bpo::value<size_t>(), "The number of dislocations forming 1 wall. N/2/w must be integer. shortest-distance criteria is checked for the bottom dislocation.")
         ("sorted,s", bpo::value<std::string>()->default_value("y"), "Defines the order of the dislocations in the output file.\n   * x: decreasing Burger's vector, and  decreasing x coordinate\n   * y:  decreasing Burger's vector, and  decreasing y coordinate\n   * u: sign is alternating and x and y coordinates are uncorrelated.")
         ("output-fnameprefix,o", bpo::value<std::string>()->default_value(""), "In which folder should the initial conditions be stored. Symbol ./ means here.")
         ;
@@ -190,11 +194,16 @@ int main(int argc, char** argv)
         std::cout << "A =\t" << A << std::endl;
 
     bool wall = vm.count("wall-height");
-    size_t wall_height = vm["wall-height"].as<size_t>();
-    if (wall && N % (wall_height * 2) != 0)
+    size_t wall_height;                             // the number of dislocations positioned on top of each other
+    if (wall)
     {
-        std::cerr << "N/2/wall-height must be integer, but it is not. Program terminates." << std::endl;
-        exit(-1);
+        wall_height = vm["wall-height"].as<size_t>();
+        if (N % (wall_height * 2) != 0)
+        {
+            std::cerr << "N/2/wall-height must be integer, but it is not. Program terminates." << std::endl;
+            exit(-1);
+        }
+        
     }
 
 #pragma endregion
@@ -232,19 +241,19 @@ int main(int argc, char** argv)
 
 #pragma region cumulative distribution
 
-    std::vector<std::pair<double, double>> cdfr_p, cdfr_n; // x,y values of the cumulative distribution function of rho_p and rho_n
+    std::vector<std::pair<double, double>> cdfr_p, cdfr_n;  // x,y values of the cumulative distribution function of rho_p and rho_n
     if (A != 0)
     {
-        int res = (int)sqrt(N) * 10 + 1000; // resolution for the inverse function lookup; heuristic guess
-        double n = vm["linear-wavenumber"].as<int>(); // linear-wavenumber
+        int res = (int)sqrt(N) * 10 + 1000;                     // resolution for the inverse function lookup; heuristic guess
+        double n = vm["linear-wavenumber"].as<int>();           // linear-wavenumber
         for (int i = 0; i <= res; ++i)
         {
-            double x = (double)i / res - 0.5; // the x position in dimensionless units, x∈[-0.5:0.5]
-            double yrp = 0.5 + x + A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI); // the y values for the rho_p distribution
-            double yrn; // the y values for the rho_n distribution
-            if (vm["pattern-type"].as<std::string>() == "s") // signed, i.e. κ has patterns
-                yrn = 0.5 + x - A * pow(sin(x * n * 2 * M_PI), 2) / (n * 2 * M_PI);
-            else // total, i.e. ρ_t has patterns
+            double x = (double)i / res - 0.5;                   // the x position in dimensionless units, x∈[-0.5:0.5]
+            double yrp = 0.5 + x - A * pow(cos(x * n * M_PI), 2) / (n * M_PI); // the y values for the rho_p cdf
+            double yrn;                                         // the y values for the rho_n cdf
+            if (vm["pattern-type"].as<std::string>() == "s")    // signed, i.e. κ has patterns
+                   yrn = 0.5 + x + A * pow(cos(x * n * M_PI), 2) / (n * M_PI);
+            else                                                // total, i.e. ρ_t has patterns
                 yrn = yrp;
             cdfr_p.push_back(std::pair<double, double>(x, yrp));
             cdfr_n.push_back(std::pair<double, double>(x, yrn));
