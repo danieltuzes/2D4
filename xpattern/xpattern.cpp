@@ -4,7 +4,7 @@
 #define VERSION_xpattern 1.7
 /*changelog
 # 1.7
-auto x: range is used insted of counter-iteration
+auto x: range is used instead of counter-iteration
 
 # 1.6
 -i switch supports multiple input filenames
