@@ -24,6 +24,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "merge_data_func", "sandbox\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "localization", "localization\localization.vcxproj", "{1585C4F8-43C9-4BD7-971B-3B7C9E2FFF46}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fourier_transform", "sandbox\fourier_transform\fourier_transform.vcxproj", "{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -82,6 +84,14 @@ Global
 		{1585C4F8-43C9-4BD7-971B-3B7C9E2FFF46}.Release|x64.Build.0 = Release|x64
 		{1585C4F8-43C9-4BD7-971B-3B7C9E2FFF46}.Release|x86.ActiveCfg = Release|Win32
 		{1585C4F8-43C9-4BD7-971B-3B7C9E2FFF46}.Release|x86.Build.0 = Release|Win32
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Debug|x64.ActiveCfg = Debug|x64
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Debug|x64.Build.0 = Debug|x64
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Debug|x86.ActiveCfg = Debug|Win32
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Debug|x86.Build.0 = Debug|Win32
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Release|x64.ActiveCfg = Release|x64
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Release|x64.Build.0 = Release|x64
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Release|x86.ActiveCfg = Release|Win32
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,6 +99,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{E086F384-8B40-4D6A-8224-7B575B75DB1E} = {048A3F38-16C2-4A8A-9172-F6C36E2B335B}
 		{FE11BCAF-557E-4558-B891-915105E9B221} = {048A3F38-16C2-4A8A-9172-F6C36E2B335B}
+		{95EAD912-9D0B-4D31-BACA-54FFD7D29C5D} = {048A3F38-16C2-4A8A-9172-F6C36E2B335B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1160B3E2-E24B-4F5E-9924-2AA7FD6AB9C0}

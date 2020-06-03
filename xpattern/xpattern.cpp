@@ -3,6 +3,10 @@
 
 #define VERSION_xpattern 1.7
 /*changelog
+# 1.8
+* new default value for method df and resolution 200
+* calculates autocorrelation too
+
 # 1.7
 auto x: range is used instead of counter-iteration
 
@@ -42,8 +46,8 @@ int main(int argc, char** argv)
         ("input-fname,i", bpo::value<std::vector<std::string>>()->multitoken(), "The file name(s) of the dislocation configuration file ending with .dconf. If it ends with .ini, a file containing the file names is expected: 1 filename per line.");
 
     optionalOptions.add_options()
-        ("resolution,r", bpo::value<int>()->default_value(1024), "The dislocation density map will be evaluated in this many points (for all methods except df, where only Fourier components are calculated). The number of the Fourier components are r/2 + 1. Use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
-        ("method,m", bpo::value<std::string>()->default_value("bc"), "The method to investigate the pattern.\n - wspn: Wigner-Seitz positive and negative\n - wsts: Wigner-Seitz total and signed\n - bc: box-counting\n - gs: Gauss-smoothing\n - df: direct Fourier")
+        ("resolution,r", bpo::value<int>()->default_value(200), "The dislocation density map will be evaluated in this many points (for all methods except df, where only Fourier components are calculated). The number of the Fourier components are r/2 + 1. Use sizes which conforms the suggestions of FFTW. (E.G. power of 2.)")
+        ("method,m", bpo::value<std::string>()->default_value("df"), "The method to investigate the pattern.\n - wspn: Wigner-Seitz positive and negative\n - wsts: Wigner-Seitz total and signed\n - bc: box-counting\n - gs: Gauss-smoothing\n - df: direct Fourier")
         ("sub-sampling,s", bpo::value<int>()->default_value(1), "This is a parameter for method gs, wspn and wsts. It tells how many times should be the mesh denser, on which the density will be evaluated. (E.G.power of 2.)")
         ("half-width,w", bpo::value<double>(), "This is a parameter for method gc. It gives the width of the Gauss-distribution with which the Dirac-delta densities are convolved.")
         ("create-maps", "If set, the program will create the 2D density maps for rho_t and kappa.")
@@ -220,20 +224,24 @@ int main(int argc, char** argv)
 
     // the norm averaged of the 2D-Fourier components for each density over all configuration for method df
     std::vector<std::vector<std::vector<double>>> F_norm(4, std::vector<std::vector<double>>(res / 2 + 1, std::vector<double>(res / 2 + 1)));
+    std::vector<std::vector<std::vector<double>>> Autocorr(4, std::vector<std::vector<double>>(res / 2 + 1, std::vector<double>(res / 2 + 1)));
 
     std::vector<std::string> names{ "rho_t", "kappa", "rho_p", "rho_n" };  // rho_t, kappa, rho_p, rho_n
     std::string ofname_extra = methodnameabbrev + "_r" + std::to_string(res); // method name and resolution
 
     std::vector<std::string> o_k_fn; // output filenames of the ky-averaged Fourier components norm of rho_t, kappa, rho_p and rho_n
     std::vector<std::string> o_kxy_fn; // output filenames of the norm of Fourier components of rho_t, kappa, rho_p and rho_n
+    std::vector<std::string> o_xy_fn; // output filenames of the norm of Fourier components of rho_t, kappa, rho_p and rho_n
     for (const auto& name : names)
     {
         o_k_fn.push_back(of + ofname_extra + "_" + name + "_k.txt");
         o_kxy_fn.push_back(of + ofname_extra + "_" + name + "_kxy.txt");
+        o_xy_fn.push_back(of + ofname_extra + "_" + name + "_xy.txt");
     }
 
     std::vector<std::ofstream> o_kf(4); // output files for the k values; rho_t, kappa, rho_p, rho_n
     std::vector<std::ofstream> o_kxyf(4); // output files for the k values; rho_t, kappa, rho_p, rho_n
+    std::vector<std::ofstream> o_xyf(4); // output files for the k values; rho_t, kappa, rho_p, rho_n
 
     for (size_t i = 0; i < 4; ++i)
     {
@@ -254,6 +262,14 @@ int main(int argc, char** argv)
                 exit(-1);
             }
             o_kxyf[i] << "# This file contains the norm of the Fourier components of " << names[i] << " for the given input file(s) using the " << methodname << " method.\n";
+
+            o_xyf[i].open(o_xy_fn[i]);
+            if (!o_xyf[i])
+            {
+                std::cerr << "Cannot create " << o_xy_fn[i] << ". Program terminates." << std::endl;
+                exit(-1);
+            }
+            o_kxyf[i] << "# This file contains autocorrelation components of " << names[i] << " for the given input file(s) using the " << methodname << " method.\n";
         }
 
     }
@@ -507,7 +523,10 @@ int main(int argc, char** argv)
             o_kf[i] << val << "\n";
 
         if (um == method::df)
+        {
             o_kxyf[i] << F_norm[i];
+
+        }
     }
 
     std::cout << "Done. Program terminates." << std::endl;
