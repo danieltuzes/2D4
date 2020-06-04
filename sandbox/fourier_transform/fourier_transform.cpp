@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     if (!vm.count("hide-copyright"))
     {
         std::cout << "fourier_transform (version " << VERSION_fourier_transform << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
-            "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
+            "Copyright (C) DÃ¡niel TÃ¼zes <tuzes@metal.elte.hu>\n";
         std::cout.unsetf(std::ios_base::floatfield);
     }
 #pragma endregion
