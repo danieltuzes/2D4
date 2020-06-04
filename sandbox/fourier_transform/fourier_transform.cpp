@@ -243,9 +243,9 @@ std::vector<std::vector<double>> fftw_c2r_2d(std::vector<std::vector<std::comple
 
 void print_xyz(std::ostream& o, std::vector<std::vector<std::complex<double>>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << j << "\t" << i << "\t" << in[i][j].real() << "\t" << in[i][j].imag() << "\n";
 
         o << "\n";   // each line must end with 0
@@ -254,9 +254,9 @@ void print_xyz(std::ostream& o, std::vector<std::vector<std::complex<double>>> i
 
 void print_xyz(std::ostream& o, std::vector<std::vector<double>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << j << "\t" << i << "\t" << in[i][j] << "\n";
 
         o << "\n";
@@ -265,9 +265,9 @@ void print_xyz(std::ostream& o, std::vector<std::vector<double>> in)
 
 void print_z(std::ostream& o, std::vector<std::vector<std::complex<double>>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << in[i][j].real() << "\t" << in[i][j].imag() << "\t";
 
         o << "\n";
@@ -276,9 +276,9 @@ void print_z(std::ostream& o, std::vector<std::vector<std::complex<double>>> in)
 
 void print_z(std::ostream& o, std::vector<std::vector<double>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << in[i][j] << "\t";
 
         o << "\n";
