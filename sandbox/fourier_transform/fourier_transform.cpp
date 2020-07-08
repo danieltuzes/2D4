@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     if (!vm.count("hide-copyright"))
     {
         std::cout << "fourier_transform (version " << VERSION_fourier_transform << ") from 2D4 - a 2D discrete dislocation dynamics simulation program toolset.\n"
-            "Copyright (C) Dániel Tüzes <tuzes@metal.elte.hu>\n";
+            "Copyright (C) DÃ¡niel TÃ¼zes <tuzes@metal.elte.hu>\n";
         std::cout.unsetf(std::ios_base::floatfield);
     }
 #pragma endregion
@@ -231,9 +231,9 @@ std::vector<std::vector<double>> fftw_c2r_2d(std::vector<std::vector<std::comple
 
 void print_xyz(std::ostream& o, std::vector<std::vector<std::complex<double>>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << j << "\t" << i << "\t" << in[i][j].real() << "\t" << in[i][j].imag() << "\n";
 
         o << "\n";   // each line must end with 0
@@ -242,9 +242,9 @@ void print_xyz(std::ostream& o, std::vector<std::vector<std::complex<double>>> i
 
 void print_xyz(std::ostream& o, std::vector<std::vector<double>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << j << "\t" << i << "\t" << in[i][j] << "\n";
 
         o << "\n";
@@ -253,9 +253,9 @@ void print_xyz(std::ostream& o, std::vector<std::vector<double>> in)
 
 void print_z(std::ostream& o, std::vector<std::vector<std::complex<double>>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << in[i][j].real() << "\t" << in[i][j].imag() << "\t";
 
         o << "\n";
@@ -264,9 +264,9 @@ void print_z(std::ostream& o, std::vector<std::vector<std::complex<double>>> in)
 
 void print_z(std::ostream& o, std::vector<std::vector<double>> in)
 {
-    for (auto i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
     {
-        for (auto j = 0; j < in[0].size(); ++j)
+        for (size_t j = 0; j < in[0].size(); ++j)
             o << in[i][j] << "\t";
 
         o << "\n";
