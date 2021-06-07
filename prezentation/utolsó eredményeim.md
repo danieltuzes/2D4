@@ -23,6 +23,9 @@ DDD szimulációk optimalizálása és korrelációk vizsgálata
     - [Egy érzékeny kiértékelő](#egy-érzékeny-kiértékelő)
   - [Diszlokcáiósűrűségek zsákutcája](#diszlokcáiósűrűségek-zsákutcája)
   - [Mennyire érzékeny?](#mennyire-érzékeny)
+- [Eredmények](#eredmények)
+  - [Relaxáltatott rendszerek](#relaxáltatott-rendszerek)
+  - [Ciklikus terhelésnél mi történik?](#ciklikus-terhelésnél-mi-történik)
 
 # Fordítási optimalizáció
 
@@ -168,7 +171,38 @@ $$\mathcal{F}\left( {{k_x},{k_y}} \right) = \sum\limits_{i = 1}^N {{e^{ - 2\pi i
 - Ha nincs mintázat, akkor [zajt látunk](kappa_random.png).
 - Ha van minta, akkor az [eléggé kiemelkedik](kappa_mintázatos.png).
   
-  Összevetve a többi módszerrel csak kiátlagolt $k_y$ mellett lehetséges.
+  Csak kiátlagolt $k_y$ mellett lehetséges összevetni a többi módszerrel (nagy felbontás mellett lassúak a 2D kiértékelők).
   
   - [Szármzatott mintázat esetén](Fourier_transforms_diff.pdf) a box countingot leszámítva mindegyik jó, **1%** mellett!
   - Ha a mintázatokat [random seed-ből nézem](Fourier_transforms_diff_rand.pdf), akkor **5%** mintázat kell
+
+# Eredmények
+
+Nézzük, hogyan skálázik a jellemző hullámhossz a rendszermérettel!
+
+## Relaxáltatott rendszerek
+
+Hogyan alakul $\rho_p$ és $\rho_t$? Hogy néz ki relaxáltatás előtt és után?
+
+|          | kezdeti                                | relax                                      | relax zoom                       | 1D                                 |
+| -------- | -------------------------------------- | ------------------------------------------ | -------------------------------- | ---------------------------------- |
+| $\rho_p$ | [zaj](patt/rho_p_random_kezdetiek.png) | [minta](patt/rho_p_relaxált_fullScale.png) | [minta](patt/rho_p_relaxált.png) | [proj](patt/rho_p_relaxált_1D.png) |
+| $\rho_t$ | [zaj](patt/rho_t_random_kezdetiek.png) | [minta](patt/rho_t_relaxált_fullScale.png) | [minta](patt/rho_t_relaxált.png) | [proj](patt/rho_t_relaxált_1D.png) |
+
+Nagyon is van minta! Jó, hogy van 2D kiértékelés. Azt mondom, y=0 körül 2-3 csatornát átlagoljunk csak.
+
+Hogyan skálázik a mérettel [2 csatorna](patt/az%20első%202db%20k_y%20értékre%20kiátlagolt%20Fourier%20norma.png) és [3 csatorna](patt/az%20első%203db%20k_y%20értékre%20kiátlagolt%20Fourier%20norma.png) kiátlagolásra?
+
+Skálázik a mérettel!
+
+## Ciklikus terhelésnél mi történik?
+
+[Könnyen zárt ciklusba kerül.](cyc/1000.png)
+
+Mindegy, hogy relaxáltatottból kezded, vagy randomból, ha a ciklikus terhelés periódusideje $\to \infty$.
+
+Növekvő terhelés [strain-stress](cyc/strain%20-%20stress.png) és [strain-time](cyc/strain%20-%20time%20line.png). (Lila:ciklukus, zöld: nem ciklikus, hogy lássuk, mikor folyik meg.)
+
+[Kicsi rendszerre szemmel látható.](cyc/start_from_relaxed.mp4)
+
+[Minták erősödnek?](cyc/első%205%20k_y%20mellett%20kiátlagolt%20k_x%20intenzitások%20különféle%20külső%20feszültségekre%20absz.png)
